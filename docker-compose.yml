@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/voteland-backend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-local}
+      - STORAGE_DATABASE_CORE_DB_URL=${STORAGE_DATABASE_CORE_DB_URL}
+      - STORAGE_DATABASE_CORE_DB_USERNAME=${STORAGE_DATABASE_CORE_DB_USERNAME}
+      - STORAGE_DATABASE_CORE_DB_PASSWORD=${STORAGE_DATABASE_CORE_DB_PASSWORD}

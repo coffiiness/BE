@@ -1,0 +1,16 @@
+.gradle
+build/
+.env
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+.claude/settings.local.json
+CLAUDE.md
+.vscode/settings.json

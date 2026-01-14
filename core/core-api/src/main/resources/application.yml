@@ -1,0 +1,31 @@
+spring.application.name: core-api
+spring.profiles.active: local
+
+spring:
+  config:
+    import:
+      - monitoring.yml
+      - logging.yml
+      - db-core.yml
+      - client-example.yml
+  web.resources.add-mappings: false
+
+# JWT 설정
+jwt:
+  secret: my-super-secret-key-for-jwt-token-generation-must-be-at-least-256-bits
+  access-token-expiration: 3600000   # 1시간 (ms)
+  refresh-token-expiration: 604800000 # 7일 (ms)
+
+server:
+  tomcat:
+    max-connections: 20000
+    threads:
+      max: 600
+      min-spare: 100
+
+---
+spring.config.activate.on-profile: local
+
+
+---
+spring.config.activate.on-profile: prod
