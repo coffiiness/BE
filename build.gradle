@@ -92,7 +92,7 @@ subprojects {
 
 sonar {
     properties {
-        property 'sonar.projectKey', 'coffiiness_voteland'
+        property 'sonar.projectKey', 'coffiiness_BE'
         property 'sonar.organization', 'coffiiness'
         property 'sonar.host.url', 'https://sonarcloud.io'
 
