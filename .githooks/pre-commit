@@ -1,10 +1,7 @@
 #!/bin/sh
-echo "Running format check..."
-./gradlew checkFormat --daemon
+echo "Running format..."
 
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "Format check failed!"
-    echo "Run './gradlew format' to fix formatting issues."
-    exit 1
-fi
+GIT_DIR=$(git rev-parse --show-toplevel)
+$GIT_DIR/gradlew format
+
+git add -u
