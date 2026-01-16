@@ -34,6 +34,16 @@ storage:
 ---
 spring.config.activate.on-profile: prod
 
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        temp:
+          use_jdbc_metadata_defaults: false
+
 storage:
   datasource:
     core:
