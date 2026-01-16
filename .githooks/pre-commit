@@ -1,0 +1,10 @@
+#!/bin/sh
+echo "Running format check..."
+./gradlew checkFormat --daemon
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "Format check failed!"
+    echo "Run './gradlew format' to fix formatting issues."
+    exit 1
+fi
