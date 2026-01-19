@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "Running format..."
+
+GIT_DIR=$(git rev-parse --show-toplevel)
+$GIT_DIR/gradlew format
+
+git add -u
