@@ -2,4 +2,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus
+        include:
+          - prometheus
+          - health
+          - metrics
+
+  endpoint:
+    prometheus:
+      enabled: true
+
+  metrics:
+    tags:
+      application: voteland-api
