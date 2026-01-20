@@ -7,8 +7,7 @@ COPY core core
 COPY storage storage
 COPY support support
 COPY clients clients
-#RUN chmod +x gradlew && ./gradlew :core:core-api:bootJar -x test
-RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew :core:core-api:bootJar -x test
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
