@@ -182,6 +182,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "docker-compose.yml,support/monitoring/"
           target: "/home/ubuntu/app"
+          timeout: 120s
+          command_timeout: 10m
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1
