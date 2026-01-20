@@ -1,0 +1,14 @@
+# Docker
+DOCKER_USERNAME=guddnr5345
+
+# Spring
+SPRING_PROFILES_ACTIVE=prod
+
+# Database
+STORAGE_DATABASE_CORE_DB_URL=dev.macacolabs.site:5555/voteland
+STORAGE_DATABASE_CORE_DB_USERNAME=voteland
+STORAGE_DATABASE_CORE_DB_PASSWORD=voteland
+
+# Grafana
+GRAFANA_ADMIN_PASSWORD=admin
+GRAFANA_DOMAIN=grafana.example.com
