@@ -180,7 +180,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,support/monitoring/"
+          source: "docker-compose.yml,support/monitoring/src/main/resources/prometheus.yml"
           target: "/home/ubuntu/app"
           timeout: 120s
           command_timeout: 10m
@@ -195,6 +195,9 @@ jobs:
             cd /home/ubuntu/app
 
             echo "${{ secrets.ENV_FILE_BASE64 }}" | base64 -d > .env
+
+            # prometheus.yml을 루트로 이동
+            mv support/monitoring/src/main/resources/prometheus.yml ./prometheus.yml 2>/dev/null || true
 
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/final-backend:latest
             sudo docker-compose up -d
