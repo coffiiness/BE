@@ -26,6 +26,15 @@ server:
 ---
 spring.config.activate.on-profile: local
 
+cors:
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:3000
 
 ---
 spring.config.activate.on-profile: prod
+
+cors:
+  allowed-origins:
+    - https://YOUR_DOMAIN.com
+    - https://www.YOUR_DOMAIN.com
