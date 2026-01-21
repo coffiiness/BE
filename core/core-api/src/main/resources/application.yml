@@ -32,6 +32,15 @@ cors:
     - http://localhost:3000
 
 ---
+spring.config.activate.on-profile: dev
+
+cors:
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:5011
+    - http://beyond21.iptime.org:5011
+
+---
 spring.config.activate.on-profile: prod
 
 cors:

@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-dev
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-voteland}
+      - MYSQL_USER=${MYSQL_USER:-voteland}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-voteland123}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "5001:3306"
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${DOCKER_USERNAME}/final-backend:dev
+    container_name: backend-dev
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - STORAGE_DATABASE_CORE_DB_URL=mysql:3306/${MYSQL_DATABASE:-voteland}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      - STORAGE_DATABASE_CORE_DB_USERNAME=${MYSQL_USER:-voteland}
+      - STORAGE_DATABASE_CORE_DB_PASSWORD=${MYSQL_PASSWORD:-voteland123}
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    ports:
+      - "5012:8080"
+    networks:
+      - dev-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    image: ${DOCKER_USERNAME}/final-frontend:dev
+    container_name: frontend-dev
+    restart: unless-stopped
+    ports:
+      - "5011:80"
+    networks:
+      - dev-network
+    depends_on:
+      - backend
+
+networks:
+  dev-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
