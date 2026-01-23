@@ -1,6 +1,6 @@
 package com.team.voteland.core.api.config;
 
-import com.team.voteland.core.support.error.CoreException;
+import com.team.voteland.support.error.CoreException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

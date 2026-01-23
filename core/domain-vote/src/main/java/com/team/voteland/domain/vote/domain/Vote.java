@@ -8,10 +8,10 @@ import com.team.voteland.storage.db.core.vote.VoteEntity;
 import java.time.LocalDateTime;
 
 public record Vote(Long id, String title, String description, VoteType voteType, VoteStatus voteStatus,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt, LocalDateTime deadline) {
 
     public static Vote from(VoteEntity entity) {
         return new Vote(entity.getId(), entity.getTitle(), entity.getDescription(), entity.getVoteType(),
-                entity.getVoteStatus(), entity.getCreatedAt());
+                entity.getVoteStatus(), entity.getCreatedAt(), entity.getDeadline());
     }
 }

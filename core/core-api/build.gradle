@@ -12,6 +12,7 @@ dependencies {
     implementation project(':support:logging')
     implementation project(':support:security')
     implementation project(':support:event')
+    implementation project(':support:error')
 
     // 스토리지
     implementation project(':storage:db-core')

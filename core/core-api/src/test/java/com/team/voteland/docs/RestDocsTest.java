@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ContentNegotiationManager;
 import org.springframework.web.accept.FixedContentNegotiationStrategy;
 import org.springframework.web.filter.CharacterEncodingFilter;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 
 @Tag("restdocs")
 @ExtendWith(RestDocumentationExtension.class)
@@ -34,6 +35,11 @@ public abstract class RestDocsTest {
     }
 
     protected void setUpMockMvc(Object controller, RestDocumentationContextProvider restDocumentation) {
+        setUpMockMvc(controller, restDocumentation, (HandlerMethodArgumentResolver[]) null);
+    }
+
+    protected void setUpMockMvc(Object controller, RestDocumentationContextProvider restDocumentation,
+            HandlerMethodArgumentResolver... argumentResolvers) {
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(objectMapper);
         converter.setDefaultCharset(StandardCharsets.UTF_8);
 
@@ -44,7 +50,7 @@ public abstract class RestDocsTest {
         characterEncodingFilter.setEncoding("UTF-8");
         characterEncodingFilter.setForceEncoding(true);
 
-        this.mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        var builder = MockMvcBuilders.standaloneSetup(controller)
             .apply(MockMvcRestDocumentation.documentationConfiguration(restDocumentation)
                 .uris()
                 .withScheme("https")
@@ -52,8 +58,13 @@ public abstract class RestDocsTest {
                 .withPort(443))
             .setMessageConverters(converter)
             .setContentNegotiationManager(contentNegotiationManager)
-            .addFilters(characterEncodingFilter)
-            .build();
+            .addFilters(characterEncodingFilter);
+
+        if (argumentResolvers != null) {
+            builder.setCustomArgumentResolvers(argumentResolvers);
+        }
+
+        this.mockMvc = builder.build();
     }
 
     private ObjectMapper createObjectMapper() {
