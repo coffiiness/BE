@@ -1,4 +1,4 @@
-package com.team.voteland.core.support.error;
+package com.team.voteland.support.error;
 
 public enum ErrorCode {
 

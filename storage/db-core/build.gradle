@@ -5,3 +5,8 @@ dependencies {
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
 }
+
+// Entity/Repository 모듈은 커버리지 검증 제외
+tasks.named('jacocoTestCoverageVerification') {
+    enabled = false
+}

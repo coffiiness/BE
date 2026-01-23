@@ -1,4 +1,4 @@
-package com.team.voteland.core.support.error;
+package com.team.voteland.support.error;
 
 public class ErrorMessage {
 
@@ -7,6 +7,12 @@ public class ErrorMessage {
     private final String message;
 
     private final Object data;
+
+    protected ErrorMessage() {
+        this.code = null;
+        this.message = null;
+        this.data = null;
+    }
 
     public ErrorMessage(ErrorType errorType) {
         this.code = errorType.getCode().name();

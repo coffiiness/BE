@@ -1,38 +1,70 @@
-= API Docs
+= API Documentation
 :doctype: book
 :icons: font
 :source-highlighter: highlightjs
 :toc: left
-:toclevels: 3
+:toclevels: 2
 :sectlinks:
-:snippets: build/generated-snippets
+:sectnums:
+:docinfo: shared-head
 
-== Introduce
+== 개요 (Introduction)
+이 문서는 Core API 명세서입니다.
 
-This is the Core API documentation.
+== Users API
 
-== Example API
-
-=== Example GET API
+=== 회원가입
 ==== Curl Request
-include::{snippets}/exampleGet/curl-request.adoc[]
-==== Path Parameters
-include::{snippets}/exampleGet/path-parameters.adoc[]
-==== Query Parameters
-include::{snippets}/exampleGet/query-parameters.adoc[]
+include::{snippets}/users/signup/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/users/signup/request-fields.adoc[]
 ==== Http Response
-include::{snippets}/exampleGet/http-response.adoc[]
+include::{snippets}/users/signup/http-response.adoc[]
 ==== Response Fields
-include::{snippets}/exampleGet/response-fields.adoc[]
+include::{snippets}/users/signup/response-fields.adoc[]
 
 '''
 
-=== Example POST API
+=== 로그인
 ==== Curl Request
-include::{snippets}/examplePost/curl-request.adoc[]
+include::{snippets}/users/login/curl-request.adoc[]
 ==== Request Fields
-include::{snippets}/examplePost/request-fields.adoc[]
+include::{snippets}/users/login/request-fields.adoc[]
 ==== Http Response
-include::{snippets}/examplePost/http-response.adoc[]
+include::{snippets}/users/login/http-response.adoc[]
 ==== Response Fields
-include::{snippets}/examplePost/response-fields.adoc[]
+include::{snippets}/users/login/response-fields.adoc[]
+
+'''
+
+=== 내 정보 조회
+==== Curl Request
+include::{snippets}/users/me/curl-request.adoc[]
+==== Http Response
+include::{snippets}/users/me/http-response.adoc[]
+==== Response Fields
+include::{snippets}/users/me/response-fields.adoc[]
+
+'''
+
+=== 회원 탈퇴
+==== Curl Request
+include::{snippets}/users/delete/curl-request.adoc[]
+==== Http Response
+include::{snippets}/users/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/users/delete/response-fields.adoc[]
+
+'''
+
+== Votes API
+
+=== 투표 생성
+==== Curl Request
+include::{snippets}/votes/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/votes/request-fields.adoc[]
+==== Http Response
+include::{snippets}/votes/http-response.adoc[]
+==== Response Fields
+include::{snippets}/votes/response-fields.adoc[]

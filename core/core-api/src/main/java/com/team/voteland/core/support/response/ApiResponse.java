@@ -1,7 +1,7 @@
 package com.team.voteland.core.support.response;
 
-import com.team.voteland.core.support.error.ErrorMessage;
-import com.team.voteland.core.support.error.ErrorType;
+import com.team.voteland.support.error.ErrorMessage;
+import com.team.voteland.support.error.ErrorType;
 
 public class ApiResponse<S> {
 
@@ -37,7 +37,7 @@ public class ApiResponse<S> {
         return result;
     }
 
-    public Object getData() {
+    public S getData() {
         return data;
     }
 
