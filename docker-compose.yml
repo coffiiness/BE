@@ -9,8 +9,8 @@ services:
       - "127.0.0.1:3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-voteland}
-      - MYSQL_USER=${MYSQL_USER:-voteland}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-calfit}
+      - MYSQL_USER=${MYSQL_USER:-calfit}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - TZ=Asia/Seoul
     volumes:
@@ -41,8 +41,8 @@ services:
         condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - STORAGE_DATABASE_CORE_DB_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-voteland}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-      - STORAGE_DATABASE_CORE_DB_USERNAME=${MYSQL_USER:-voteland}
+      - STORAGE_DATABASE_CORE_DB_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-calfit}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      - STORAGE_DATABASE_CORE_DB_USERNAME=${MYSQL_USER:-calfit}
       - STORAGE_DATABASE_CORE_DB_PASSWORD=${MYSQL_PASSWORD}
       - JAVA_OPTS=-Xms256m -Xmx512m
     volumes:

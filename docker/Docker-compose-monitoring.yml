@@ -9,7 +9,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - voteland-net
+      - calfit-net
 
   grafana:
     image: grafana/grafana
@@ -19,8 +19,8 @@ services:
     depends_on:
       - prometheus
     networks:
-      - voteland-net
+      - calfit-net
 
 networks:
-  voteland-net:
+  calfit-net:
     external: true

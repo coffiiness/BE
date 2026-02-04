@@ -18,7 +18,7 @@
     </appender>
 
     <logger name="org.springframework" level="WARN"/>
-    <logger name="com.team.voteland" level="INFO"/>
+    <logger name="com.coffiness.calfit" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

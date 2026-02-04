@@ -10,7 +10,7 @@
     </appender>
 
     <logger name="org.springframework" level="INFO"/>
-    <logger name="com.team.voteland" level="DEBUG"/>
+    <logger name="com.coffiness.calfit" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

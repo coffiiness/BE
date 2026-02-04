@@ -7,7 +7,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'spring-boot-java-template'
+rootProject.name = 'calfit'
 
 // Core 모듈
 include 'core:core-enum'
