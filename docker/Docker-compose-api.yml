@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   core-api:
-    image: voteland-api
+    image: calfit-api
     build:
       context: ../..
       dockerfile: ../../Dockerfile
@@ -12,8 +12,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: local
     networks:
-      - voteland-net
+      - calfit-net
 
 networks:
-  voteland-net:
+  calfit-net:
     external: true

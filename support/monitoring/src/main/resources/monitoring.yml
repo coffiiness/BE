@@ -13,4 +13,4 @@ management:
 
   metrics:
     tags:
-      application: voteland-api
+      application: calfit-api
