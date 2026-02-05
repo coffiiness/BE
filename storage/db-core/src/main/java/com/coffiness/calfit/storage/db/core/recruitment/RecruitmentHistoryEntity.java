@@ -31,7 +31,7 @@ public class RecruitmentHistoryEntity extends BaseEntity {
 
     // 시행 타입
     @Enumerated(EnumType.STRING)
-    @Column(name = "action_type",  nullable = false)
+    @Column(name = "action_type", nullable = false)
     private ActionType actionType;
 
     // 변경한 필드
@@ -51,7 +51,8 @@ public class RecruitmentHistoryEntity extends BaseEntity {
     private String reason;
 
     @Builder
-    public RecruitmentHistoryEntity(Long recruitmentId, Long stageId, Long actorId, ActionType actionType, String targetField, String oldValue, String newValue, String reason) {
+    public RecruitmentHistoryEntity(Long recruitmentId, Long stageId, Long actorId, ActionType actionType,
+            String targetField, String oldValue, String newValue, String reason) {
         this.recruitmentId = recruitmentId;
         this.stageId = stageId;
         this.actorId = actorId;
@@ -61,4 +62,5 @@ public class RecruitmentHistoryEntity extends BaseEntity {
         this.newValue = newValue;
         this.reason = reason;
     }
+
 }
