@@ -1,28 +1,32 @@
 package com.coffiness.calfit.storage.db.core.recruitment;
 
-import com.coffiness.calfit.core.enums.ActionType;
-import com.coffiness.calfit.storage.db.core.BaseEntity;
+import com.coffiness.calfit.core.enums.RecruitmentActionType;
+import com.coffiness.calfit.storage.db.core.TenancyEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.Map;
 
 /*
-*
-* */
+ * 채용 로그 엔티티
+ * */
 @Entity
 @Table(name = "recruitment_histories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class RecruitmentHistoryEntity extends BaseEntity {
+public class RecruitmentHistoryEntity extends TenancyEntity {
 
     // 채용 ID
     @Column(name = "recruitment_id", nullable = false)
     private Long recruitmentId;
 
     // 채용 단계 ID (Optional)
-    @Column(name = "recruitment_process_id")
+    @Column(name = "stage_id")
     private Long stageId;
 
     // 시행자 ID
@@ -32,35 +36,24 @@ public class RecruitmentHistoryEntity extends BaseEntity {
     // 시행 타입
     @Enumerated(EnumType.STRING)
     @Column(name = "action_type", nullable = false)
-    private ActionType actionType;
+    private RecruitmentActionType recruitmentActionType;
 
-    // 변경한 필드
-    @Column(name = "target_field")
-    private String targetField;
-
-    // 변경 전 값
-    @Column(name = "old_value", columnDefinition = "TEXT")
-    private String oldValue;
-
-    // 변경 후 값
-    @Column(name = "new_value", columnDefinition = "TEXT")
-    private String newValue;
+    // 변경한 필드, 변경 전후 값의 JSON 필드
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "change_log", columnDefinition = "json")
+    private Map<String, Object> changeLog;
 
     // 시행 이후(Optional)
     @Column(name = "reason")
     private String reason;
 
     @Builder
-    public RecruitmentHistoryEntity(Long recruitmentId, Long stageId, Long actorId, ActionType actionType,
-            String targetField, String oldValue, String newValue, String reason) {
+    public RecruitmentHistoryEntity(Long recruitmentId, Long stageId, Long actorId, RecruitmentActionType recruitmentActionType, Map<String, Object> changeLog, String reason) {
         this.recruitmentId = recruitmentId;
         this.stageId = stageId;
         this.actorId = actorId;
-        this.actionType = actionType;
-        this.targetField = targetField;
-        this.oldValue = oldValue;
-        this.newValue = newValue;
+        this.recruitmentActionType = recruitmentActionType;
+        this.changeLog = changeLog;
         this.reason = reason;
     }
-
 }
