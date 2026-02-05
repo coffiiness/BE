@@ -29,4 +29,5 @@ public class RecruitmentProcessEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "stage_type", nullable = false)
     private ProcessType stageType;
+
 }
