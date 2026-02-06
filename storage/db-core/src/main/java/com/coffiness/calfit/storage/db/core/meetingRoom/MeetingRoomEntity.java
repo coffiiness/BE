@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "meeting_room")
+@Table(name = "meeting_rooms")
 @NoArgsConstructor
 @Getter
 public class MeetingRoomEntity extends TenancyEntity {

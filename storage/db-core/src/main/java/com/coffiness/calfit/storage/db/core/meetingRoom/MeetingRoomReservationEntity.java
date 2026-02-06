@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "meeting_room_reservation")
+@Table(name = "meeting_room_reservations")
 @NoArgsConstructor
 @Getter
 public class MeetingRoomReservationEntity extends TenancyEntity {
