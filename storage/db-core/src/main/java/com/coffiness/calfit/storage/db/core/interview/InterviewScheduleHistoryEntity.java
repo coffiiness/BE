@@ -13,7 +13,7 @@ import org.hibernate.type.SqlTypes;
 import java.util.Map;
 
 @Entity
-@Table(name = "interview_schedule_history")
+@Table(name = "interview_schedule_histories")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class InterviewScheduleHistoryEntity extends TenancyEntity {

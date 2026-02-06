@@ -48,7 +48,8 @@ public class RecruitmentEntity extends TenancyEntity {
     private LocalDateTime endDate;
 
     @Builder
-    public RecruitmentEntity(Long workspaceId, Long creatorId, String title, RecruitmentStatus status, int targetCount, LocalDateTime startDate, LocalDateTime endDate) {
+    public RecruitmentEntity(Long workspaceId, Long creatorId, String title, RecruitmentStatus status, int targetCount,
+            LocalDateTime startDate, LocalDateTime endDate) {
         this.workspaceId = workspaceId;
         this.creatorId = creatorId;
         this.title = title;
@@ -57,4 +58,5 @@ public class RecruitmentEntity extends TenancyEntity {
         this.startDate = startDate;
         this.endDate = endDate;
     }
+
 }
