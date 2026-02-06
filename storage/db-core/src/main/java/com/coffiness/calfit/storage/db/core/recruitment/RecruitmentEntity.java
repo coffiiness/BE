@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.recruitment;
 
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Table(name = "recruitments")
 @NoArgsConstructor
 @Getter
-public class RecruitmentEntity extends TenancyEntity {
+public class RecruitmentEntity extends TenantBaseEntity {
 
     // 채용 작성자 ID
     @Column(name = "creator_id", nullable = false)

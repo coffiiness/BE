@@ -1,6 +1,6 @@
 package com.coffiness.calfit.storage.db.core.meetingRoom;
 
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "meeting_rooms")
 @NoArgsConstructor
 @Getter
-public class MeetingRoomEntity extends TenancyEntity {
+public class MeetingRoomEntity extends TenantBaseEntity {
 
     // 회의실 이름
     @Column(name = "name", nullable = false)

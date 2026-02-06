@@ -1,6 +1,6 @@
 package com.coffiness.calfit.storage.db.core.interview;
 
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
         uniqueConstraints = @UniqueConstraint(columnNames = { "interview_schedule_id", "user_id" }))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class InterviewScheduleInterviewerEntity extends TenancyEntity {
+public class InterviewScheduleInterviewerEntity extends TenantBaseEntity {
 
     // 인터뷰 일정 ID
     @Column(name = "interview_schedule_id", nullable = false)

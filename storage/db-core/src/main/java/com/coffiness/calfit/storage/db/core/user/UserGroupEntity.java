@@ -1,11 +1,11 @@
 package com.coffiness.calfit.storage.db.core.user;
 
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "user_groups")
-public class UserGroupEntity extends TenancyEntity {
+public class UserGroupEntity extends TenantBaseEntity {
 
     // 이름
     @Column(name = "name", nullable = false)

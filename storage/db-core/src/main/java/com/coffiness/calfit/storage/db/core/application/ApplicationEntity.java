@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.application;
 
 import com.coffiness.calfit.core.enums.Gender;
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "applications") // 지원서
 @NoArgsConstructor
 @Getter
-public class ApplicationEntity extends TenancyEntity {
+public class ApplicationEntity extends TenantBaseEntity {
 
     // 지원자 ID
     @Column(name = "applicant_id", nullable = false)

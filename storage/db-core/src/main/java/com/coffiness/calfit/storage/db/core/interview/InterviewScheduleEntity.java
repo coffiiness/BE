@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.interview;
 
 import com.coffiness.calfit.core.enums.InterviewStatus;
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "interview_schedules")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class InterviewScheduleEntity extends TenancyEntity {
+public class InterviewScheduleEntity extends TenantBaseEntity {
 
     // 채용 ID
     @Column(name = "recruitment_id", nullable = false)
