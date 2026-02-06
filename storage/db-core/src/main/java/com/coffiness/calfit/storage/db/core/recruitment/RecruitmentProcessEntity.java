@@ -4,6 +4,7 @@ import com.coffiness.calfit.core.enums.RecruitmentProcessType;
 import com.coffiness.calfit.storage.db.core.TenancyEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -32,5 +33,14 @@ public class RecruitmentProcessEntity extends TenancyEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "stage_type", nullable = false)
     private RecruitmentProcessType stageType;
+
+    @Builder
+    public RecruitmentProcessEntity(Long recruitmentId, String stageName, Integer stageStep,
+            RecruitmentProcessType stageType) {
+        this.recruitmentId = recruitmentId;
+        this.stageName = stageName;
+        this.stageStep = stageStep;
+        this.stageType = stageType;
+    }
 
 }
