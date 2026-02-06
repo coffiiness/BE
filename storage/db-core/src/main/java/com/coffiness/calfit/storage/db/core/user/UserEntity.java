@@ -2,11 +2,12 @@ package com.coffiness.calfit.storage.db.core.user;
 
 import com.coffiness.calfit.core.enums.UserRole;
 import com.coffiness.calfit.storage.db.core.BaseEntity;
+import com.coffiness.calfit.storage.db.core.TenancyEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
-public class UserEntity extends BaseEntity {
+public class UserEntity extends TenancyEntity {
 
     // 이메일
     @Column(nullable = false, unique = true)
