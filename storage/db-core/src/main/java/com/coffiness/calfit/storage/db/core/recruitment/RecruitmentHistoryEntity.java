@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.recruitment;
 
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -19,7 +19,7 @@ import java.util.Map;
 @Table(name = "recruitment_histories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class RecruitmentHistoryEntity extends TenancyEntity {
+public class RecruitmentHistoryEntity extends TenantBaseEntity {
 
     // 채용 ID
     @Column(name = "recruitment_id", nullable = false)

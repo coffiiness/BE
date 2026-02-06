@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.meetingRoom;
 
 import com.coffiness.calfit.core.enums.MeetingRoomActionType;
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "meeting_room_histories")
 @NoArgsConstructor
 @Getter
-public class MeetingRoomHistoryEntity extends TenancyEntity {
+public class MeetingRoomHistoryEntity extends TenantBaseEntity {
 
     // 회의실 id
     @Column(name = "meeting_room_id", nullable = false)

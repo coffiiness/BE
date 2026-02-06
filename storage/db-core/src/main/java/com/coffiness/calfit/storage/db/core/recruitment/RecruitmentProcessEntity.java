@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.recruitment;
 
 import com.coffiness.calfit.core.enums.RecruitmentProcessType;
-import com.coffiness.calfit.storage.db.core.TenancyEntity;
+import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "recruitment_processes")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class RecruitmentProcessEntity extends TenancyEntity {
+public class RecruitmentProcessEntity extends TenantBaseEntity {
 
     // 채용 ID
     @Column(name = "recruitment_id", nullable = false)

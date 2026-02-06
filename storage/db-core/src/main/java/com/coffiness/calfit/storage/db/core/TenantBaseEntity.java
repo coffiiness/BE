@@ -4,16 +4,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 
 @MappedSuperclass
-public abstract class TenancyEntity extends BaseEntity {
+public abstract class TenantBaseEntity extends BaseEntity {
 
     // 워크스페이스 ID
     @Column(name = "workspace_id", nullable = false)
     private Long workspaceId;
 
-    protected TenancyEntity() {
+    protected TenantBaseEntity() {
     }
 
-    protected TenancyEntity(Long workspaceId) {
+    protected TenantBaseEntity(Long workspaceId) {
         this.workspaceId = workspaceId;
     }
 
