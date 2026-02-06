@@ -20,7 +20,6 @@ public class ApplicationEntity extends BaseEntity {
     @Column(name = "applicant_id", nullable = false)
     private Long applicantId;
 
-
     // 채용공고 ID
     @Column(name = "recruitment_id", nullable = false)
     private Long recruitmentId;
@@ -53,4 +52,5 @@ public class ApplicationEntity extends BaseEntity {
     // 지원서 상세내용
     @Column(columnDefinition = "JSON", nullable = false)
     private String schema;
+
 }
