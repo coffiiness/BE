@@ -1,20 +1,18 @@
 package com.coffiness.calfit.storage.db.core.application;
 
 import com.coffiness.calfit.core.enums.Gender;
-import com.coffiness.calfit.storage.db.core.BaseEntity;
-
+import com.coffiness.calfit.storage.db.core.TenancyEntity;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Applications") // 지원서
+@Table(name = "applications") // 지원서
 @NoArgsConstructor
 @Getter
-public class ApplicationEntity extends BaseEntity {
+public class ApplicationEntity extends TenancyEntity {
 
     // 지원자 ID
     @Column(name = "applicant_id", nullable = false)
