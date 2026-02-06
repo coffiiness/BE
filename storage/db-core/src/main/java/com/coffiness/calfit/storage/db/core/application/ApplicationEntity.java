@@ -22,6 +22,10 @@ public class ApplicationEntity extends TenancyEntity {
     @Column(name = "recruitment_id", nullable = false)
     private Long recruitmentId;
 
+    // 채용절차 ID
+    @Column(name = "recruitmentProcess_id", nullable = false)
+    private Long recruitmentProcessId;
+
     // 지원서템플릿 ID
     @Column(name = "template_id", nullable = false)
     private Long templateId;
