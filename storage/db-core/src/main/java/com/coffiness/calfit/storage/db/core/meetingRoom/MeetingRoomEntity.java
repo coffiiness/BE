@@ -14,10 +14,6 @@ import lombok.NoArgsConstructor;
 @Getter
 public class MeetingRoomEntity extends TenancyEntity {
 
-    // 워크스페이스 id
-    @Column(name = "workspace_id", nullable = false)
-    private Long workSpaceId;
-
     // 회의실 이름
     @Column(name = "name", nullable = false)
     private String name;
@@ -31,8 +27,7 @@ public class MeetingRoomEntity extends TenancyEntity {
     private Long capacity;
 
     @Builder
-    public MeetingRoomEntity(Long workSpaceId, String name, String location, Long capacity) {
-        this.workSpaceId = workSpaceId;
+    public MeetingRoomEntity(String name, String location, Long capacity) {
         this.name = name;
         this.location = location;
         this.capacity = capacity;

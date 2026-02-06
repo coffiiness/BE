@@ -15,10 +15,6 @@ import java.time.LocalDateTime;
 @Getter
 public class MeetingRoomHistoryEntity extends TenancyEntity {
 
-    // 워크스페이스 id
-    @Column(name = "workspace_id", nullable = false)
-    private String workspaceId;
-
     // 회의실 id
     @Column(name = "meeting_room_id", nullable = false)
     private Long meetingRoomId;
@@ -48,9 +44,8 @@ public class MeetingRoomHistoryEntity extends TenancyEntity {
     private String detailJson;
 
     @Builder
-    public MeetingRoomHistoryEntity(String workspaceId, Long meetingRoomId, Long meetingRoomReservationId, Long actorId,
+    public MeetingRoomHistoryEntity(Long meetingRoomId, Long meetingRoomReservationId, Long actorId,
             LocalDateTime occurredAt, MeetingRoomActionType actionType) {
-        this.workspaceId = workspaceId;
         this.meetingRoomId = meetingRoomId;
         this.meetingRoomReservationId = meetingRoomReservationId;
         this.actorId = actorId;
