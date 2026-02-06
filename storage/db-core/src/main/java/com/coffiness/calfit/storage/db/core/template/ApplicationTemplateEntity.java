@@ -41,4 +41,5 @@ public class ApplicationTemplateEntity extends BaseEntity {
 
     @Column(name = "is_default")
     private Boolean isDefault = false;
+
 }
