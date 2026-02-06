@@ -18,10 +18,6 @@ import java.time.LocalDateTime;
 @Getter
 public class RecruitmentEntity extends TenancyEntity {
 
-    // 워크스페이스 ID
-    @Column(name = "workspace_id", nullable = false)
-    private Long workspaceId;
-
     // 채용 작성자 ID
     @Column(name = "creator_id", nullable = false)
     private Long creatorId;
@@ -48,9 +44,8 @@ public class RecruitmentEntity extends TenancyEntity {
     private LocalDateTime endDate;
 
     @Builder
-    public RecruitmentEntity(Long workspaceId, Long creatorId, String title, RecruitmentStatus status, int targetCount,
+    public RecruitmentEntity(Long creatorId, String title, RecruitmentStatus status, int targetCount,
             LocalDateTime startDate, LocalDateTime endDate) {
-        this.workspaceId = workspaceId;
         this.creatorId = creatorId;
         this.title = title;
         this.status = status;
