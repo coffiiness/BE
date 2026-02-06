@@ -32,4 +32,5 @@ public class RecruitmentProcessEntity extends TenancyEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "stage_type", nullable = false)
     private RecruitmentProcessType stageType;
+
 }

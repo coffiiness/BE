@@ -48,7 +48,8 @@ public class RecruitmentHistoryEntity extends TenancyEntity {
     private String reason;
 
     @Builder
-    public RecruitmentHistoryEntity(Long recruitmentId, Long stageId, Long actorId, RecruitmentActionType recruitmentActionType, Map<String, Object> changeLog, String reason) {
+    public RecruitmentHistoryEntity(Long recruitmentId, Long stageId, Long actorId,
+            RecruitmentActionType recruitmentActionType, Map<String, Object> changeLog, String reason) {
         this.recruitmentId = recruitmentId;
         this.stageId = stageId;
         this.actorId = actorId;
@@ -56,4 +57,5 @@ public class RecruitmentHistoryEntity extends TenancyEntity {
         this.changeLog = changeLog;
         this.reason = reason;
     }
+
 }
