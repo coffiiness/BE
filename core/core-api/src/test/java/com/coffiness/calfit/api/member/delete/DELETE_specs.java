@@ -24,4 +24,12 @@ public class DELETE_specs {
     void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다() {
     }
 
+    @Test
+    void 자기_자신을_삭제하면_에러를_반환한다() {
+    }
+
+    @Test
+    void 다른_워크스페이스의_멤버를_삭제하면_에러를_반환한다() {
+    }
+
 }

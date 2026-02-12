@@ -24,4 +24,8 @@ public class GET_specs {
     void 모든_요금제_유형을_포함한다() {
     }
 
+    @Test
+    void 관리자가_아닌_사용자는_403_Forbidden을_반환한다() {
+    }
+
 }

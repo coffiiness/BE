@@ -28,4 +28,12 @@ public class GET_specs {
     void outstandingOverdue는_연체_건수만_포함한다() {
     }
 
+    @Test
+    void 관리자가_아닌_사용자는_403_Forbidden을_반환한다() {
+    }
+
+    @Test
+    void 잘못된_month_형식이면_400_Bad_Request를_반환한다() {
+    }
+
 }

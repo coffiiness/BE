@@ -32,4 +32,12 @@ public class GET_specs {
     void mrrGrowth는_전월_대비_증감률을_올바르게_계산한다() {
     }
 
+    @Test
+    void 잘못된_month_형식이면_400_Bad_Request를_반환한다() {
+    }
+
+    @Test
+    void 데이터가_없는_월을_조회하면_모든_값이_0으로_반환된다() {
+    }
+
 }

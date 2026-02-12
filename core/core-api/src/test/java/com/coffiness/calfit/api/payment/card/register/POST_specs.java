@@ -36,4 +36,16 @@ public class POST_specs {
     void 등록_성공_시_기존_카드는_삭제되고_새_카드가_주_결제_수단이_된다() {
     }
 
+    @Test
+    void cardNumber가_16자리가_아니면_400_Bad_Request를_반환한다() {
+    }
+
+    @Test
+    void 만료된_expiryDate이면_400_Bad_Request를_반환한다() {
+    }
+
+    @Test
+    void cardType이_허용된_값이_아니면_400_Bad_Request를_반환한다() {
+    }
+
 }
