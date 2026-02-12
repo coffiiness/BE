@@ -5,6 +5,6 @@ package com.coffiness.calfit.core.enums;
  */
 public enum UserRole {
 
-    USER, ADMIN
+    MEMBER, ADMIN
 
 }
