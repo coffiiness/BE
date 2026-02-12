@@ -1,5 +1,6 @@
 package com.coffiness.calfit.storage.db.core.user;
 
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.UserRole;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
@@ -24,6 +25,10 @@ public class UserEntity extends TenantBaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MemberType type;
 
     protected UserEntity() {
     }

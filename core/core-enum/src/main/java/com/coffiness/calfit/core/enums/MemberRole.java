@@ -1,6 +1,6 @@
 package com.coffiness.calfit.core.enums;
 
-public enum MemberRole {
+public enum MemberType {
 
     HR, IVW
 
