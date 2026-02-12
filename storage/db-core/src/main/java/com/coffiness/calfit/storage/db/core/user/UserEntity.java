@@ -36,7 +36,7 @@ public class UserEntity extends TenantBaseEntity {
     }
 
     public static UserEntity create(String email, String password, String name) {
-        return new UserEntity(email, password, name, UserRole.USER);
+        return new UserEntity(email, password, name, UserRole.MEMBER);
     }
 
     public String getEmail() {
