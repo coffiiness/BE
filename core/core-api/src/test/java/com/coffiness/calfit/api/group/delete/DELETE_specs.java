@@ -24,4 +24,8 @@ public class DELETE_specs {
     void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다() {
     }
 
+    @Test
+    void 그룹_내_멤버가_있는_상태에서_삭제해도_정상_처리된다() {
+    }
+
 }

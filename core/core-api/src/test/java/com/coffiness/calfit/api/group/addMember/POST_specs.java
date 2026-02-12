@@ -28,4 +28,12 @@ public class POST_specs {
     void 다른_워크스페이스_소속_멤버를_추가하면_에러를_반환한다() {
     }
 
+    @Test
+    void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다() {
+    }
+
+    @Test
+    void 존재하지_않는_groupId이면_404_Not_Found를_반환한다() {
+    }
+
 }

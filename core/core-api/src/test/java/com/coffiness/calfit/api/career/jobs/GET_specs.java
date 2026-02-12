@@ -32,4 +32,12 @@ public class GET_specs {
     void 검색_조건이_없으면_전체_목록을_반환한다() {
     }
 
+    @Test
+    void search와_category를_동시에_사용해도_올바르게_동작한다() {
+    }
+
+    @Test
+    void 존재하지_않는_companySlug로_요청하면_404_Not_Found를_반환한다() {
+    }
+
 }

@@ -28,4 +28,12 @@ public class PATCH_specs {
     void 접근_토큰을_사용하지_않으면_401_Unauthorized를_반환한다() {
     }
 
+    @Test
+    void targetPlan이_누락되면_400_Bad_Request를_반환한다() {
+    }
+
+    @Test
+    void 변경_후_응답에_newPlan과_changedAt이_포함된다() {
+    }
+
 }

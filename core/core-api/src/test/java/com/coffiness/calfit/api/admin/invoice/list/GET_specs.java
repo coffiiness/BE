@@ -24,4 +24,12 @@ public class GET_specs {
     void 인보이스_ID는_INV_YYYY_순번4자리_형식을_따른다() {
     }
 
+    @Test
+    void 관리자가_아닌_사용자는_403_Forbidden을_반환한다() {
+    }
+
+    @Test
+    void 인보이스가_없으면_빈_리스트를_반환한다() {
+    }
+
 }

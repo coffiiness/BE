@@ -32,4 +32,16 @@ public class GET_specs {
     void 접근_토큰을_사용하지_않으면_401_Unauthorized를_반환한다() {
     }
 
+    @Test
+    void 관리자가_아닌_사용자는_403_Forbidden을_반환한다() {
+    }
+
+    @Test
+    void status와_search를_동시에_사용해도_올바르게_동작한다() {
+    }
+
+    @Test
+    void 검색_결과가_없으면_빈_리스트를_반환한다() {
+    }
+
 }

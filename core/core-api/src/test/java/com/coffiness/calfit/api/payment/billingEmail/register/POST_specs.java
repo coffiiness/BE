@@ -20,4 +20,8 @@ public class POST_specs {
     void 접근_토큰을_사용하지_않으면_401_Unauthorized를_반환한다() {
     }
 
+    @Test
+    void email_필드가_누락되면_400_Bad_Request를_반환한다() {
+    }
+
 }

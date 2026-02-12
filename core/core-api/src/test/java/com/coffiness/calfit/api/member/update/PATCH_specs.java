@@ -36,4 +36,16 @@ public class PATCH_specs {
     void groupId만_변경해도_정상_처리된다() {
     }
 
+    @Test
+    void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다() {
+    }
+
+    @Test
+    void 다른_워크스페이스의_멤버를_수정하면_에러를_반환한다() {
+    }
+
+    @Test
+    void 요청_본문이_비어있으면_400_Bad_Request를_반환한다() {
+    }
+
 }
