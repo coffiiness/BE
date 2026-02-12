@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 public class GET_specs {
 
     @Test
-    void 4개_카테고리_모두_반환한다() {
+    void 카테고리를_모두_반환한다() {
     }
 
     @Test

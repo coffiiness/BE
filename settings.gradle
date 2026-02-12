@@ -12,9 +12,13 @@ rootProject.name = 'calfit'
 // Core 모듈
 include 'core:core-enum'
 include 'core:core-api'
-include 'core:domain-admin'
+include 'core:domain-analytics'
+include 'core:domain-billing'
+include 'core:domain-career'
+include 'core:domain-finance'
 include 'core:domain-user'
 include 'core:domain-vote'
+include 'core:domain-workspace'
 
 // Storage 모듈
 include 'storage:db-core'

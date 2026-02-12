@@ -2,23 +2,24 @@ package com.coffiness.calfit.storage.db.core;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import org.hibernate.annotations.TenantId;
 
 @MappedSuperclass
 public abstract class TenantBaseEntity extends BaseEntity {
 
-    // 워크스페이스 ID
-    @Column(name = "workspace_id", nullable = false)
-    private Long workspaceId;
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private String tenantId;
 
     protected TenantBaseEntity() {
     }
 
-    protected TenantBaseEntity(Long workspaceId) {
-        this.workspaceId = workspaceId;
+    protected TenantBaseEntity(String tenantId) {
+        this.tenantId = tenantId;
     }
 
-    public Long getWorkspaceId() {
-        return workspaceId;
+    public String getTenantId() {
+        return tenantId;
     }
 
 }
