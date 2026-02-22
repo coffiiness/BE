@@ -3,7 +3,7 @@ pluginManagement {
         id 'org.springframework.boot' version "${springBootVersion}"
         id 'io.spring.dependency-management' version "${springDependencyManagementVersion}"
         id 'org.asciidoctor.jvm.convert' version "${asciidoctorConvertVersion}"
-        id 'io.spring.javaformat' version "${springJavaFormatVersion}"
+        id 'com.diffplug.spotless' version "${spotlessVersion}"
     }
 }
 
@@ -17,7 +17,6 @@ include 'core:domain-billing'
 include 'core:domain-career'
 include 'core:domain-finance'
 include 'core:domain-user'
-include 'core:domain-vote'
 include 'core:domain-workspace'
 
 // Storage 모듈
