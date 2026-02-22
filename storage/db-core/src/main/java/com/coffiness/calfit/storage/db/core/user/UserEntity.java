@@ -9,59 +9,57 @@ import jakarta.persistence.*;
 @Table(name = "users")
 public class UserEntity extends TenantBaseEntity {
 
-    // 이메일
-    @Column(nullable = false, unique = true)
-    private String email;
+  // 이메일
+  @Column(nullable = false, unique = true)
+  private String email;
 
-    // 비밀번호
-    @Column(nullable = false)
-    private String password;
+  // 비밀번호
+  @Column(nullable = false)
+  private String password;
 
-    // 이름
-    @Column(name = "name", length = 50, nullable = false)
-    private String name;
+  // 이름
+  @Column(name = "name", length = 50, nullable = false)
+  private String name;
 
-    // 사용자 역할
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserRole role;
+  // 사용자 역할
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private UserRole role;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MemberType type;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private MemberType type;
 
-    protected UserEntity() {
-    }
+  protected UserEntity() {}
 
-    private UserEntity(String email, String password, String name, UserRole role) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-        this.role = role;
-    }
+  private UserEntity(String email, String password, String name, UserRole role) {
+    this.email = email;
+    this.password = password;
+    this.name = name;
+    this.role = role;
+  }
 
-    public static UserEntity create(String email, String password, String name) {
-        return new UserEntity(email, password, name, UserRole.MEMBER);
-    }
+  public static UserEntity create(String email, String password, String name) {
+    return new UserEntity(email, password, name, UserRole.MEMBER);
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public String getPassword() {
-        return password;
-    }
+  public String getPassword() {
+    return password;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public UserRole getRole() {
-        return role;
-    }
+  public UserRole getRole() {
+    return role;
+  }
 
-    public void updateProfile(String name) {
-        this.name = name;
-    }
-
+  public void updateProfile(String name) {
+    this.name = name;
+  }
 }
