@@ -14,23 +14,22 @@ import lombok.NoArgsConstructor;
 @Getter
 public class MeetingRoomEntity extends TenantBaseEntity {
 
-    // 회의실 이름
-    @Column(name = "name", nullable = false)
-    private String name;
+  // 회의실 이름
+  @Column(name = "name", nullable = false)
+  private String name;
 
-    // 회의실 위치
-    @Column(name = "location", nullable = true)
-    private String location;
+  // 회의실 위치
+  @Column(name = "location", nullable = true)
+  private String location;
 
-    // 수용 인원
-    @Column(name = "capacity", nullable = true)
-    private Long capacity;
+  // 수용 인원
+  @Column(name = "capacity", nullable = true)
+  private Long capacity;
 
-    @Builder
-    public MeetingRoomEntity(String name, String location, Long capacity) {
-        this.name = name;
-        this.location = location;
-        this.capacity = capacity;
-    }
-
+  @Builder
+  public MeetingRoomEntity(String name, String location, Long capacity) {
+    this.name = name;
+    this.location = location;
+    this.capacity = capacity;
+  }
 }
