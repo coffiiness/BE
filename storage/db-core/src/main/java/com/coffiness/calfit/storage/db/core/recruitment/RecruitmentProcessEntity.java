@@ -17,30 +17,29 @@ import lombok.NoArgsConstructor;
 @Getter
 public class RecruitmentProcessEntity extends TenantBaseEntity {
 
-    // 채용 ID
-    @Column(name = "recruitment_id", nullable = false)
-    private Long recruitmentId;
+  // 채용 ID
+  @Column(name = "recruitment_id", nullable = false)
+  private Long recruitmentId;
 
-    // 채용 단계명
-    @Column(name = "stage_name", nullable = false)
-    private String stageName;
+  // 채용 단계명
+  @Column(name = "stage_name", nullable = false)
+  private String stageName;
 
-    // 채용 단계 순서
-    @Column(name = "stage_step", nullable = false)
-    private Integer stageStep;
+  // 채용 단계 순서
+  @Column(name = "stage_step", nullable = false)
+  private Integer stageStep;
 
-    // 채용 단계 유형
-    @Enumerated(EnumType.STRING)
-    @Column(name = "stage_type", nullable = false)
-    private RecruitmentProcessType stageType;
+  // 채용 단계 유형
+  @Enumerated(EnumType.STRING)
+  @Column(name = "stage_type", nullable = false)
+  private RecruitmentProcessType stageType;
 
-    @Builder
-    public RecruitmentProcessEntity(Long recruitmentId, String stageName, Integer stageStep,
-            RecruitmentProcessType stageType) {
-        this.recruitmentId = recruitmentId;
-        this.stageName = stageName;
-        this.stageStep = stageStep;
-        this.stageType = stageType;
-    }
-
+  @Builder
+  public RecruitmentProcessEntity(
+      Long recruitmentId, String stageName, Integer stageStep, RecruitmentProcessType stageType) {
+    this.recruitmentId = recruitmentId;
+    this.stageName = stageName;
+    this.stageStep = stageStep;
+    this.stageType = stageType;
+  }
 }

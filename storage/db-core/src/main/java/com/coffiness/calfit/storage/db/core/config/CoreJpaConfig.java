@@ -15,13 +15,13 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableJpaRepositories(basePackages = "com.coffiness.calfit.storage.db.core")
 class CoreJpaConfig {
 
-    @Bean
-    public HibernatePropertiesCustomizer hibernatePropertiesCustomizer(
-            CurrentTenantIdentifierResolver tenantIdentifierResolver) {
+  @Bean
+  public HibernatePropertiesCustomizer hibernatePropertiesCustomizer(
+      CurrentTenantIdentifierResolver tenantIdentifierResolver) {
 
-        return hibernateProperties -> {
-            hibernateProperties.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER, tenantIdentifierResolver);
-        };
-    }
-
+    return hibernateProperties -> {
+      hibernateProperties.put(
+          AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER, tenantIdentifierResolver);
+    };
+  }
 }

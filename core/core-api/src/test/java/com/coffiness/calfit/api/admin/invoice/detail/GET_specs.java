@@ -8,20 +8,15 @@ import org.junit.jupiter.api.Test;
 @DisplayName("GET /admin/invoices/{id}")
 public class GET_specs {
 
-    @Test
-    void 존재하지_않는_인보이스_ID_사용_시_404_Not_Found를_반환한다() {
-    }
+  @Test
+  void 존재하지_않는_인보이스_ID_사용_시_404_Not_Found를_반환한다() {}
 
-    @Test
-    void 인보이스_정보를_올바르게_반환한다() {
-    }
+  @Test
+  void 인보이스_정보를_올바르게_반환한다() {}
 
-    @Test
-    void 접근_토큰을_사용하지_않으면_401_Unauthorized를_반환한다() {
-    }
+  @Test
+  void 접근_토큰을_사용하지_않으면_401_Unauthorized를_반환한다() {}
 
-    @Test
-    void 관리자가_아닌_사용자는_403_Forbidden을_반환한다() {
-    }
-
+  @Test
+  void 관리자가_아닌_사용자는_403_Forbidden을_반환한다() {}
 }
