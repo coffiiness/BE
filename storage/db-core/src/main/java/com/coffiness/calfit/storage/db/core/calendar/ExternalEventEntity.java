@@ -20,11 +20,11 @@ import java.time.LocalDateTime;
 public class ExternalEventEntity extends TenantBaseEntity {
 
   // ExternalCalendar Id
-  @Column(name = "external_calendar_id", nullable = false)
+  @Column(name = "external_calendar_id", unique = true, nullable = false)
   private Long externalCalendarId;
 
   // 구글 캘린더 고유 일정 ID
-  @Column(name = "google_event_id", nullable = false)
+  @Column(name = "google_event_id", unique = true, nullable = false)
   private String googleEventId;
 
   @Column(name = "title", length = 255)

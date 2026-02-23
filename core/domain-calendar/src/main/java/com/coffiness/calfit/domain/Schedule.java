@@ -27,9 +27,13 @@ public record Schedule(
       throw new IllegalArgumentException("종료 시간이 시작 시간보다 빠를 수 없습니다.");
     }
 
+    // 구글 API Exclusive 정책 반영으로 종일 일정 스펙을 00:00으로 반영
     if (isAllDay) {
         if (!startTime.toLocalTime().equals(LocalTime.MIDNIGHT)) {
             throw new IllegalArgumentException("종일 일정의 시작 시간은 00:00 이어야 합니다.");
+        }
+        if (!endTime.toLocalTime().equals(LocalTime.MIDNIGHT)) {
+            throw new IllegalArgumentException("종일 일정의 종료 시간은 익일 00:00 이어야 합니다.");
         }
     }
   }
