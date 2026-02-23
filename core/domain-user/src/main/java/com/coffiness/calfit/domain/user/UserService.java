@@ -1,6 +1,6 @@
 package com.coffiness.calfit.domain.user;
 
-import com.coffiness.calfit.event.UserDeletedEvent;
+import com.coffiness.calfit.domain.user.event.UserDeletedEvent;
 import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.event.DomainEventPublisher;
