@@ -1,10 +1,10 @@
 package com.coffiness.calfit.api.fixture;
 
+import com.coffiness.calfit.api.v1.request.LoginRequest;
+import com.coffiness.calfit.api.v1.request.SignUpRequest;
+import com.coffiness.calfit.api.v1.response.LoginResponse;
+import com.coffiness.calfit.api.v1.response.UserResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.user.api.v1.request.LoginRequest;
-import com.coffiness.calfit.domain.user.api.v1.request.SignUpRequest;
-import com.coffiness.calfit.domain.user.api.v1.response.LoginResponse;
-import com.coffiness.calfit.domain.user.api.v1.response.UserResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.springframework.core.env.Environment;
