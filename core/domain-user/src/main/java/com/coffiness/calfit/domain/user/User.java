@@ -1,4 +1,4 @@
-package com.coffiness.calfit.domain.user.domain;
+package com.coffiness.calfit.domain.user;
 
 import java.time.LocalDateTime;
 

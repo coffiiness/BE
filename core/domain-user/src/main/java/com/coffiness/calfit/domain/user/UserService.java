@@ -1,6 +1,6 @@
-package com.coffiness.calfit.domain.user.domain;
+package com.coffiness.calfit.domain.user;
 
-import com.coffiness.calfit.domain.user.domain.event.UserDeletedEvent;
+import com.coffiness.calfit.event.UserDeletedEvent;
 import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.event.DomainEventPublisher;
@@ -42,6 +42,16 @@ public class UserService {
     UserEntity savedEntity = userRepository.save(userEntity);
 
     return toUser(savedEntity);
+  }
+
+  @Transactional(readOnly = true)
+  public User getUserByEmail(String email) {
+    UserEntity userEntity =
+        userRepository
+            .findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + email));
+
+    return toUser(userEntity);
   }
 
   @Transactional(readOnly = true)

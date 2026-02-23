@@ -9,12 +9,12 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.coffiness.calfit.api.v1.request.LoginRequest;
+import com.coffiness.calfit.api.v1.request.SignUpRequest;
 import com.coffiness.calfit.core.api.controller.v1.UserController;
 import com.coffiness.calfit.docs.RestDocsTest;
-import com.coffiness.calfit.domain.user.api.v1.request.LoginRequest;
-import com.coffiness.calfit.domain.user.api.v1.request.SignUpRequest;
-import com.coffiness.calfit.domain.user.domain.User;
-import com.coffiness.calfit.domain.user.domain.UserService;
+import com.coffiness.calfit.domain.user.User;
+import com.coffiness.calfit.domain.user.UserService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;

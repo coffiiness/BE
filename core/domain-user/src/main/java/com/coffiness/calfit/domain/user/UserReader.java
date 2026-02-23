@@ -1,4 +1,4 @@
-package com.coffiness.calfit.domain.user.domain;
+package com.coffiness.calfit.domain.user;
 
 /** 외부 도메인에서 User 정보를 조회하기 위한 인터페이스 (의존성 역전) */
 public interface UserReader {
