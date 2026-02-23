@@ -16,15 +16,23 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Table(name = "external_event")
+@Table(
+        name = "external_event",
+        uniqueConstraints = {
+             @UniqueConstraint(
+                name = "uq_external_event_calendar_google",
+                columnNames = {"external_calendar_id", "google_event_id"}
+            )
+        }
+)
 public class ExternalEventEntity extends TenantBaseEntity {
 
   // ExternalCalendar Id
-  @Column(name = "external_calendar_id", unique = true, nullable = false)
+  @Column (name = "external_calendar_id", nullable = false)
   private Long externalCalendarId;
 
   // 구글 캘린더 고유 일정 ID
-  @Column(name = "google_event_id", unique = true, nullable = false)
+  @Column(name = "google_event_id", nullable = false)
   private String googleEventId;
 
   @Column(name = "title", length = 255)
