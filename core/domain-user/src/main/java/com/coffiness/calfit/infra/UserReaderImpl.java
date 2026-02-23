@@ -1,7 +1,7 @@
-package com.coffiness.calfit.domain.user.infra;
+package com.coffiness.calfit.infra;
 
-import com.coffiness.calfit.domain.user.domain.UserInfo;
-import com.coffiness.calfit.domain.user.domain.UserReader;
+import com.coffiness.calfit.domain.user.UserInfo;
+import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import org.springframework.stereotype.Component;

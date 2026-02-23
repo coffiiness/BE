@@ -1,12 +1,12 @@
 package com.coffiness.calfit.core.api.controller.v1;
 
+import com.coffiness.calfit.api.v1.request.LoginRequest;
+import com.coffiness.calfit.api.v1.request.SignUpRequest;
+import com.coffiness.calfit.api.v1.response.LoginResponse;
+import com.coffiness.calfit.api.v1.response.UserResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.user.api.v1.request.LoginRequest;
-import com.coffiness.calfit.domain.user.api.v1.request.SignUpRequest;
-import com.coffiness.calfit.domain.user.api.v1.response.LoginResponse;
-import com.coffiness.calfit.domain.user.api.v1.response.UserResponse;
-import com.coffiness.calfit.domain.user.domain.User;
-import com.coffiness.calfit.domain.user.domain.UserService;
+import com.coffiness.calfit.domain.user.User;
+import com.coffiness.calfit.domain.user.UserService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

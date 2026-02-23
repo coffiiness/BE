@@ -1,6 +1,6 @@
-package com.coffiness.calfit.domain.user.api.v1.response;
+package com.coffiness.calfit.api.v1.response;
 
-import com.coffiness.calfit.domain.user.domain.User;
+import com.coffiness.calfit.domain.user.User;
 import java.time.LocalDateTime;
 
 public record UserResponse(
