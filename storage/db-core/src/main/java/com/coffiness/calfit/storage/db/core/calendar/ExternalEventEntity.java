@@ -3,11 +3,12 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.EventStatus;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /*
  * 구글 캘린더 내부 개별 일정 엔티티
@@ -28,6 +29,9 @@ public class ExternalEventEntity extends TenantBaseEntity {
 
   @Column(name = "title", length = 255)
   private String title;
+
+  @Column(name = "description", columnDefinition = "TEXT")
+  private String description;
 
   @Column(name = "start_time", nullable = false)
   private LocalDateTime startTime;
@@ -50,6 +54,7 @@ public class ExternalEventEntity extends TenantBaseEntity {
       Long externalCalendarId,
       String googleEventId,
       String title,
+      String description,
       LocalDateTime startTime,
       LocalDateTime endTime,
       boolean isAllDay,
@@ -58,6 +63,7 @@ public class ExternalEventEntity extends TenantBaseEntity {
     this.externalCalendarId = externalCalendarId;
     this.googleEventId = googleEventId;
     this.title = title;
+    this.description = description;
     this.startTime = startTime;
     this.endTime = endTime;
     this.isAllDay = isAllDay;

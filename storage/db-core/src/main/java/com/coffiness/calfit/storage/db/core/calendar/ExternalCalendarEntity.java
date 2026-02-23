@@ -4,11 +4,12 @@ import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /*
  * 구글 계정 연동 엔티티
@@ -28,6 +29,7 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   private String calendarId;
 
   // OAuth2 인증 정보
+  // TODO: 추후 암호화 적용 예정
   @Column(name = "access_token", nullable = false, columnDefinition = "TEXT")
   private String accessToken;
 
@@ -38,7 +40,7 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   private LocalDateTime tokenExpiresAt;
 
   // 변경된 일정만 가져오는 동기화한 지점의 토큰
-  @Column(name = "sync_token", nullable = false, columnDefinition = "TEXT")
+  @Column(name = "sync_token", columnDefinition = "TEXT")
   private String syncToken;
 
   @Column(name = "is_sync_enabled", nullable = false)

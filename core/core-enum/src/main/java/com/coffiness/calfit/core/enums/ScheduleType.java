@@ -6,7 +6,7 @@ public enum ScheduleType {
   BUSINESS("외근/출장"),
   OTHERS("기타");
 
-  private String description;
+  private final String description;
 
   private ScheduleType(final String description) {
     this.description = description;
