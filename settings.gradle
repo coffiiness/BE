@@ -18,6 +18,7 @@ include 'core:domain-career'
 include 'core:domain-finance'
 include 'core:domain-user'
 include 'core:domain-workspace'
+include 'core:domain-calendar'
 
 // Storage 모듈
 include 'storage:db-core'
@@ -31,3 +32,4 @@ include 'support:error'
 
 // Client 모듈
 include 'clients:client-example'
+include 'clients:google-calendar'
