@@ -4,6 +4,7 @@ jar.enabled = false
 dependencies {
     // 도메인 모듈
     implementation project(':core:domain-user')
+    implementation project(':core:domain-workspace')
     implementation project(':core:core-enum')
 
     // 지원 모듈

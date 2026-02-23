@@ -32,15 +32,16 @@ public class UserEntity extends TenantBaseEntity {
 
   protected UserEntity() {}
 
-  private UserEntity(String email, String password, String name, UserRole role) {
+  private UserEntity(String email, String password, String name, UserRole role, MemberType type) {
     this.email = email;
     this.password = password;
     this.name = name;
     this.role = role;
+    this.type = type;
   }
 
   public static UserEntity create(String email, String password, String name) {
-    return new UserEntity(email, password, name, UserRole.MEMBER);
+    return new UserEntity(email, password, name, UserRole.MEMBER, MemberType.HR);
   }
 
   public String getEmail() {
@@ -59,7 +60,7 @@ public class UserEntity extends TenantBaseEntity {
     return role;
   }
 
-  public void updateProfile(String name) {
-    this.name = name;
+  public MemberType getType() {
+    return type;
   }
 }
