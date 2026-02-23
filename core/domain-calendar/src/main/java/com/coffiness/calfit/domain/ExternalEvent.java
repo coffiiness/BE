@@ -23,7 +23,7 @@ public record ExternalEvent(
       throw new IllegalArgumentException("일정의 시작 시간과 종료 시간은 필수입니다.");
     }
     if (startTime.isAfter(endTime)) {
-      throw new IllegalArgumentException("일정 시각 시간이 종료 시간보다 늦을 수 없습니다.");
+      throw new IllegalArgumentException("일정 시작 시간이 종료 시간보다 늦을 수 없습니다.");
     }
   }
 

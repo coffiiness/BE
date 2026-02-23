@@ -2,6 +2,7 @@ package com.coffiness.calfit.domain;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public record Schedule(
     Long id,
@@ -27,9 +28,9 @@ public record Schedule(
     }
 
     if (isAllDay) {
-      if (startTime.getHour() != 0 || startTime.getMinute() != 0) {
-        throw new IllegalArgumentException("종일 일정의 시작 시간은 00:00 이어야 합니다.");
-      }
+        if (!startTime.toLocalTime().equals(LocalTime.MIDNIGHT)) {
+            throw new IllegalArgumentException("종일 일정의 시작 시간은 00:00 이어야 합니다.");
+        }
     }
   }
 
