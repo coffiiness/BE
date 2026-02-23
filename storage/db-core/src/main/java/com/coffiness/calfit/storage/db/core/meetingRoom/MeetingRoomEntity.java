@@ -20,14 +20,14 @@ public class MeetingRoomEntity extends TenantBaseEntity {
 
   // 회의실 위치
   @Column(name = "location", nullable = true)
-  private String location;
+  private Integer location;
 
   // 수용 인원
   @Column(name = "capacity", nullable = true)
-  private Long capacity;
+  private String capacity;
 
   @Builder
-  public MeetingRoomEntity(String name, String location, Long capacity) {
+  public MeetingRoomEntity(String name, Integer location, String capacity) {
     this.name = name;
     this.location = location;
     this.capacity = capacity;
