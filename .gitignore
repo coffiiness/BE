@@ -14,3 +14,9 @@ out/
 .claude/settings.local.json
 CLAUDE.md
 .vscode/settings.json
+
+### Credentials & Secrets ###
+*secret*.yml
+*secret*.properties
+*oauth*.yml
+application-local.yml
