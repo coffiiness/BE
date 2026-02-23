@@ -1,4 +1,4 @@
-package com.coffiness.calfit.event;
+package com.coffiness.calfit.domain.user.event;
 
 import com.coffiness.calfit.support.event.DomainEvent;
 
