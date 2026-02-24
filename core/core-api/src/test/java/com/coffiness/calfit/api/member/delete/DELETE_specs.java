@@ -33,8 +33,8 @@ public class DELETE_specs {
     // Assert: 멤버 목록에서 제거됨
     ApiResponse<MemberResponse[]> membersResponse =
         fixture.getMembers(ctx.hrToken(), ctx.workspaceId());
-    boolean stillExists = Arrays.stream(membersResponse.getData())
-        .anyMatch(m -> m.id().equals(secondMemberId));
+    boolean stillExists =
+        Arrays.stream(membersResponse.getData()).anyMatch(m -> m.id().equals(secondMemberId));
     assertThat(stillExists).isFalse();
   }
 

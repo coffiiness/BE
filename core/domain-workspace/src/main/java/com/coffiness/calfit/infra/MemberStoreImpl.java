@@ -25,15 +25,19 @@ public class MemberStoreImpl implements MemberStore {
 
   @Override
   public void updateMemberType(Long memberId, MemberType memberType) {
-    MemberEntity entity = memberRepository.findById(memberId)
-        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+    MemberEntity entity =
+        memberRepository
+            .findById(memberId)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     entity.updateMemberType(memberType);
   }
 
   @Override
   public void remove(Long memberId) {
-    MemberEntity entity = memberRepository.findById(memberId)
-        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+    MemberEntity entity =
+        memberRepository
+            .findById(memberId)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     entity.deleted();
   }
 }

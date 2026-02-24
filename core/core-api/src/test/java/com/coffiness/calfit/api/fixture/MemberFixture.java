@@ -24,11 +24,13 @@ public record MemberFixture(
   // ==================== Member API Calls ====================
 
   public ApiResponse<MemberResponse[]> getMembers(String token, String tenantId) {
-    return exchangeWithTenant("/api/v1/members", HttpMethod.GET, null, token, tenantId, MemberResponse[].class);
+    return exchangeWithTenant(
+        "/api/v1/members", HttpMethod.GET, null, token, tenantId, MemberResponse[].class);
   }
 
   public ApiResponse<MemberResponse> getMyMember(String token, String tenantId) {
-    return exchangeWithTenant("/api/v1/members/me", HttpMethod.GET, null, token, tenantId, MemberResponse.class);
+    return exchangeWithTenant(
+        "/api/v1/members/me", HttpMethod.GET, null, token, tenantId, MemberResponse.class);
   }
 
   public ApiResponse<Void> updateMember(
@@ -55,8 +57,7 @@ public record MemberFixture(
   }
 
   public ApiResponse<Void> acceptInvitation(String invitationToken) {
-    return base.post(
-        "/api/v1/invitations/" + invitationToken + "/accept", null, Void.class);
+    return base.post("/api/v1/invitations/" + invitationToken + "/accept", null, Void.class);
   }
 
   // ==================== Convenience Setup ====================
@@ -68,10 +69,7 @@ public record MemberFixture(
     return new WorkspaceContext(token, workspace.workspaceId());
   }
 
-  /**
-   * 워크스페이스에 두 번째 멤버 추가 (초대 → 수락)
-   * 두 번째 유저의 이메일을 직접 지정해 초대하고, 수락 후 해당 멤버의 ID를 반환한다.
-   */
+  /** 워크스페이스에 두 번째 멤버 추가 (초대 → 수락) 두 번째 유저의 이메일을 직접 지정해 초대하고, 수락 후 해당 멤버의 ID를 반환한다. */
   public Long addSecondMember(WorkspaceContext context) {
     String inviteeEmail = userFixture.randomEmail();
     String inviteePassword = userFixture.randomPassword();
