@@ -1,9 +1,18 @@
 package com.coffiness.calfit.model;
 
-import com.coffiness.calfit.dto.GoogleCalendarSyncResponseDto.Item;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 public record GoogleCalendarSyncResult(
-        List<Item> items,
+        List<SyncEventModel> items,
         String nextSyncToken
-) {}
+) {
+    public record SyncEventModel(
+            String googleEventId,
+            String status,
+            String summary,
+            String description,
+            ZonedDateTime startTime,
+            ZonedDateTime endTime
+    ) {}
+}

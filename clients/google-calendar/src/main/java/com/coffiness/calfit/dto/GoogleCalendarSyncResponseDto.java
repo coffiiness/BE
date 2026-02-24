@@ -2,10 +2,13 @@ package com.coffiness.calfit.dto;
 
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 /*
-* 전체 동기화용 레코드
+* 전체 동기화용 DTO
 * */
 public record GoogleCalendarSyncResponseDto(
         List<Item> items,
@@ -28,8 +31,38 @@ public record GoogleCalendarSyncResponseDto(
 
     public GoogleCalendarSyncResult toResult() {
         return new GoogleCalendarSyncResult(
-                this.items(),
+                this.items().stream()
+                        .map(item -> new GoogleCalendarSyncResult.SyncEventModel(
+                                item.id(),
+                                item.status(),
+                                item.summary(),
+                                item.description(),
+                                parseTime(item.start()),
+                                parseTime(item.end())
+                        ))
+                        .toList(),
                 this.nextSyncToken()
         );
+    }
+
+    /*
+    * ZonedDateTime으로 통일하는 헬퍼 메소드
+    * */
+    private ZonedDateTime parseTime(EventDateTime eventDateTime) {
+        if (eventDateTime == null) return null;
+
+        if (eventDateTime.dateTime() != null) {
+            return ZonedDateTime.parse(eventDateTime.dateTime());
+        }
+
+        if(eventDateTime.date() != null) {
+            ZoneId zoneId = eventDateTime.timeZone() != null
+                    ? ZoneId.of(eventDateTime.timeZone())
+                    : ZoneId.of("Asia/Seoul");
+
+            return LocalDate.parse(eventDateTime.date()).atStartOfDay(zoneId);
+        }
+
+        return null;
     }
 }

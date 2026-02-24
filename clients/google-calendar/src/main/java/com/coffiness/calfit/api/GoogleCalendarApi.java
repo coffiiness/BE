@@ -19,16 +19,17 @@ interface GoogleCalendarApi {
             @RequestHeader("Authorization") String bearerToken,
             @RequestBody GoogleEventRequestDto request);
 
-    // 구글 캘린더 일정 수정
+    // 구글 캘린더 일정 삭제
     @DeleteMapping("/{eventId}")
     void deleteEvent(
             @RequestHeader("Authorization") String bearerToken,
             @PathVariable("eventId") String eventId);
 
+    // 구글 캘린더 동기화
     @GetMapping
     GoogleCalendarSyncResponseDto syncEvent(
             @RequestHeader("Authorization") String bearerToken,
-            String nextSyncToken);
+            @RequestParam(value = "syncToken", required = false) String nextSyncToken);
 
-    // TODO: DTO 작성 후 일정 수정 및 리스트 조회 기능 추가 (02.24)
+    // TODO: DTO 일정 수정 및 리스트 조회 기능 추가 (02.24)
 }

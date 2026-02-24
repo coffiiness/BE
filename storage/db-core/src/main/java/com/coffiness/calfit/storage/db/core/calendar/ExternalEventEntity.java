@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 /*
  * 구글 캘린더 내부 개별 일정 엔티티
@@ -42,10 +42,10 @@ public class ExternalEventEntity extends TenantBaseEntity {
   private String description;
 
   @Column(name = "start_time", nullable = false)
-  private LocalDateTime startTime;
+  private ZonedDateTime startTime;
 
   @Column(name = "end_time", nullable = false)
-  private LocalDateTime endTime;
+  private ZonedDateTime endTime;
 
   // 종일 일정 여부
   @Column(name = "is_all_day", nullable = false)
@@ -63,8 +63,8 @@ public class ExternalEventEntity extends TenantBaseEntity {
       String googleEventId,
       String title,
       String description,
-      LocalDateTime startTime,
-      LocalDateTime endTime,
+      ZonedDateTime startTime,
+      ZonedDateTime endTime,
       boolean isAllDay,
       EventStatus status) {
     super(tenantId);
