@@ -3,7 +3,7 @@ package com.coffiness.calfit.dto;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 
 /*
-* 단일 생성용 레코드
+* 일정 단일 생성 DTO
 * */
 public record GoogleEventResponseDto(
         String id,
