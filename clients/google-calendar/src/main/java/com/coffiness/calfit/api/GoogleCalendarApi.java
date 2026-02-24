@@ -27,7 +27,8 @@ interface GoogleCalendarApi {
   @GetMapping
   GoogleCalendarSyncResponseDto syncEvent(
       @RequestHeader("Authorization") String bearerToken,
-      @RequestParam(value = "syncToken", required = false) String nextSyncToken);
+      @RequestParam(value = "syncToken", required = false) String nextSyncToken,
+      @RequestParam(value = "pageToken", required = false) String pageToken);
 
   // TODO: DTO 일정 수정 및 리스트 조회 기능 추가 (02.24)
 }

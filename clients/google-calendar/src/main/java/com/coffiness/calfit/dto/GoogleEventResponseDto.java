@@ -7,6 +7,6 @@ import com.coffiness.calfit.model.GoogleCalendarClientResult;
  * */
 public record GoogleEventResponseDto(String id, String status) {
   public GoogleCalendarClientResult toResult() {
-    return new GoogleCalendarClientResult(this.id(), true);
+    return new GoogleCalendarClientResult(this.id(), "confirmed".equals(this.status()));
   }
 }

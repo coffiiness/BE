@@ -19,4 +19,7 @@ CLAUDE.md
 *secret*.yml
 *secret*.properties
 *oauth*.yml
+*credentials*.json
+*client_secret*.json
+*service-account*.json
 application-local.yml
