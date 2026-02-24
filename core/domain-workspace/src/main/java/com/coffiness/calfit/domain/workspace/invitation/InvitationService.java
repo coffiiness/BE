@@ -23,7 +23,7 @@ public class InvitationService {
       String workspaceId, String email, MemberType memberType, Long invitedBy) {
     if (invitationRepository.existsByWorkspaceIdAndEmailAndInvitationStatus(
         workspaceId, email, InvitationStatus.PENDING)) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR, "이미 대기 중인 초대가 존재합니다.");
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
     String token = UUID.randomUUID().toString();

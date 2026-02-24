@@ -1,13 +1,12 @@
 package com.coffiness.calfit.storage.db.core.user;
 
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.UserRole;
-import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
+import com.coffiness.calfit.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
-public class UserEntity extends TenantBaseEntity {
+public class UserEntity extends BaseEntity {
 
   // 이메일
   @Column(nullable = false, unique = true)
@@ -26,22 +25,17 @@ public class UserEntity extends TenantBaseEntity {
   @Column(nullable = false)
   private UserRole role;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private MemberType type;
-
   protected UserEntity() {}
 
-  private UserEntity(String email, String password, String name, UserRole role, MemberType type) {
+  private UserEntity(String email, String password, String name, UserRole role) {
     this.email = email;
     this.password = password;
     this.name = name;
     this.role = role;
-    this.type = type;
   }
 
   public static UserEntity create(String email, String password, String name) {
-    return new UserEntity(email, password, name, UserRole.MEMBER, MemberType.HR);
+    return new UserEntity(email, password, name, UserRole.MEMBER);
   }
 
   public String getEmail() {
@@ -58,9 +52,5 @@ public class UserEntity extends TenantBaseEntity {
 
   public UserRole getRole() {
     return role;
-  }
-
-  public MemberType getType() {
-    return type;
   }
 }
