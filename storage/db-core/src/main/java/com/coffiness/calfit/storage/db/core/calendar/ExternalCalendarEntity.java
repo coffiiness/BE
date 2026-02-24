@@ -19,14 +19,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(
-        name = "external_calendars",
-        uniqueConstraints = {
-            @UniqueConstraint(
-                name = "uq_external_calendars_user_calendar",
-                columnNames = {"user_id", "calendar_id"}
-            )
-        }
-)
+    name = "external_calendars",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uq_external_calendars_user_calendar",
+          columnNames = {"user_id", "calendar_id"})
+    })
 public class ExternalCalendarEntity extends TenantBaseEntity {
 
   // 연관 사용자의 식별자
