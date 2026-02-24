@@ -9,7 +9,8 @@ import java.util.List;
 /*
  * 전체 동기화용 DTO
  * */
-public record GoogleCalendarSyncResponseDto(List<Item> items, String nextSyncToken) {
+public record GoogleCalendarSyncResponseDto(
+    List<Item> items, String nextSyncToken, String nextPageToken) {
 
   public record Item(
       String id,
@@ -26,8 +27,9 @@ public record GoogleCalendarSyncResponseDto(List<Item> items, String nextSyncTok
       String timeZone) {}
 
   public GoogleCalendarSyncResult toResult() {
+    List<Item> safeItems = this.items() != null ? this.items() : List.of();
     return new GoogleCalendarSyncResult(
-        this.items().stream()
+        safeItems.stream()
             .map(
                 item -> {
                   boolean isAllDay = item.start() != null && item.start().date() != null;
@@ -50,7 +52,7 @@ public record GoogleCalendarSyncResponseDto(List<Item> items, String nextSyncTok
 
   /*
    * ZonedDateTime으로 통일하는 헬퍼 메소드
-   * */
+   */
   private ZonedDateTime parseTime(EventDateTime eventDateTime) {
     if (eventDateTime == null) return null;
 

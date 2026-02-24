@@ -11,7 +11,7 @@ public record GoogleCalendarSyncResult(List<SyncEventModel> items, String nextSy
       String description,
       ZonedDateTime startTime,
       ZonedDateTime endTime,
-      boolean isAllDay,
-      boolean isFree // 한가함 여부
+      boolean allDay,
+      boolean free // 한가함 여부
       ) {}
 }

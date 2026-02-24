@@ -8,6 +8,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.TimeZoneColumn;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 /*
  * 구글 캘린더 내부 개별 일정 엔티티
@@ -20,7 +23,7 @@ import lombok.NoArgsConstructor;
     uniqueConstraints = {
       @UniqueConstraint(
           name = "uq_external_event_calendar_google",
-          columnNames = {"external_calendar_id", "google_event_id"})
+          columnNames = {"tenant_id", "external_calendar_id", "google_event_id"})
     })
 public class ExternalEventEntity extends TenantBaseEntity {
 
@@ -38,9 +41,13 @@ public class ExternalEventEntity extends TenantBaseEntity {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
+  @TimeZoneStorage(TimeZoneStorageType.COLUMN)
+  @TimeZoneColumn(name = "start_time_tz")
   @Column(name = "start_time", nullable = false)
   private ZonedDateTime startTime;
 
+  @TimeZoneStorage(TimeZoneStorageType.COLUMN)
+  @TimeZoneColumn(name = "end_time_tz")
   @Column(name = "end_time", nullable = false)
   private ZonedDateTime endTime;
 
