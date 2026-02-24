@@ -19,6 +19,7 @@ public record GoogleCalendarSyncResponseDto(
             String status,
             String summary,
             String description,
+            String transparency, // 한가함 여부
             EventDateTime start,
             EventDateTime end
     ) {}
@@ -32,14 +33,22 @@ public record GoogleCalendarSyncResponseDto(
     public GoogleCalendarSyncResult toResult() {
         return new GoogleCalendarSyncResult(
                 this.items().stream()
-                        .map(item -> new GoogleCalendarSyncResult.SyncEventModel(
-                                item.id(),
-                                item.status(),
-                                item.summary(),
-                                item.description(),
-                                parseTime(item.start()),
-                                parseTime(item.end())
-                        ))
+                        .map(item -> {
+                            boolean isAllDay = item.start() != null && item.start().date() != null;
+
+                            boolean isFree = "transparent".equals(item.transparency());
+
+                            return new GoogleCalendarSyncResult.SyncEventModel(
+                                    item.id(),
+                                    item.status(),
+                                    item.summary(),
+                                    item.description(),
+                                    parseTime(item.start()),
+                                    parseTime(item.end()),
+                                    isAllDay,
+                                    isFree
+                            );
+                        })
                         .toList(),
                 this.nextSyncToken()
         );
