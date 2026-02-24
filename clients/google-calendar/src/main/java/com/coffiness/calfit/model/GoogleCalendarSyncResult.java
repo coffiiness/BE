@@ -13,6 +13,8 @@ public record GoogleCalendarSyncResult(
             String summary,
             String description,
             ZonedDateTime startTime,
-            ZonedDateTime endTime
+            ZonedDateTime endTime,
+            boolean isAllDay,
+            boolean isFree // 한가함 여부
     ) {}
 }
