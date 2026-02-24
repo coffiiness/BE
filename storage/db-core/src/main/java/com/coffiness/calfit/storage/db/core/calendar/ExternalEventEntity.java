@@ -3,12 +3,11 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.EventStatus;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
+import java.time.ZonedDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.ZonedDateTime;
 
 /*
  * 구글 캘린더 내부 개별 일정 엔티티
@@ -17,18 +16,16 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(
-        name = "external_event",
-        uniqueConstraints = {
-             @UniqueConstraint(
-                name = "uq_external_event_calendar_google",
-                columnNames = {"external_calendar_id", "google_event_id"}
-            )
-        }
-)
+    name = "external_event",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uq_external_event_calendar_google",
+          columnNames = {"external_calendar_id", "google_event_id"})
+    })
 public class ExternalEventEntity extends TenantBaseEntity {
 
   // ExternalCalendar Id
-  @Column (name = "external_calendar_id", nullable = false)
+  @Column(name = "external_calendar_id", nullable = false)
   private Long externalCalendarId;
 
   // 구글 캘린더 고유 일정 ID
