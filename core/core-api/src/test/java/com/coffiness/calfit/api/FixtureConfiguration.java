@@ -1,5 +1,6 @@
 package com.coffiness.calfit.api;
 
+import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,5 +22,11 @@ public class FixtureConfiguration {
   @Scope("prototype")
   WorkspaceFixture workspaceFixture(Environment environment, ObjectMapper objectMapper) {
     return WorkspaceFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  MemberFixture memberFixture(Environment environment, ObjectMapper objectMapper) {
+    return MemberFixture.create(environment, objectMapper);
   }
 }
