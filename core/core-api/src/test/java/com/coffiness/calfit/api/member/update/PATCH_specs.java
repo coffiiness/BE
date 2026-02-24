@@ -26,8 +26,12 @@ public class PATCH_specs {
     Long secondMemberId = fixture.addSecondMember(ctx);
 
     // Act
-    ApiResponse<Void> response = fixture.updateMember(
-        secondMemberId, new UpdateMemberRequest(MemberType.HR), ctx.hrToken(), ctx.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(
+            secondMemberId,
+            new UpdateMemberRequest(MemberType.HR),
+            ctx.hrToken(),
+            ctx.workspaceId());
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -40,11 +44,9 @@ public class PATCH_specs {
     Long secondMemberId = fixture.addSecondMember(ctx);
 
     // Act: 존재하지 않는 MemberType 문자열 전송 → JSON 역직렬화 실패
-    ApiResponse<Void> response = fixture.updateMember(
-        secondMemberId,
-        Map.of("memberType", "INVALID_ROLE"),
-        ctx.hrToken(),
-        ctx.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(
+            secondMemberId, Map.of("memberType", "INVALID_ROLE"), ctx.hrToken(), ctx.workspaceId());
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -67,11 +69,12 @@ public class PATCH_specs {
     Long nonExistentMemberId = Long.MAX_VALUE;
 
     // Act
-    ApiResponse<Void> response = fixture.updateMember(
-        nonExistentMemberId,
-        new UpdateMemberRequest(MemberType.IVW),
-        ctx.hrToken(),
-        ctx.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(
+            nonExistentMemberId,
+            new UpdateMemberRequest(MemberType.IVW),
+            ctx.hrToken(),
+            ctx.workspaceId());
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -84,16 +87,21 @@ public class PATCH_specs {
     Long secondMemberId = fixture.addSecondMember(ctx);
 
     // Act: MEMBER → HR 변경
-    ApiResponse<Void> response = fixture.updateMember(
-        secondMemberId, new UpdateMemberRequest(MemberType.HR), ctx.hrToken(), ctx.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(
+            secondMemberId,
+            new UpdateMemberRequest(MemberType.HR),
+            ctx.hrToken(),
+            ctx.workspaceId());
 
     // Assert: 변경 성공 확인
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
 
     // Assert: 실제 값이 변경됐는지 멤버 목록으로 확인
     ApiResponse<MemberResponse[]> members = fixture.getMembers(ctx.hrToken(), ctx.workspaceId());
-    boolean updated = java.util.Arrays.stream(members.getData())
-        .anyMatch(m -> m.id().equals(secondMemberId) && m.memberType() == MemberType.HR);
+    boolean updated =
+        java.util.Arrays.stream(members.getData())
+            .anyMatch(m -> m.id().equals(secondMemberId) && m.memberType() == MemberType.HR);
     assertThat(updated).isTrue();
   }
 
@@ -109,8 +117,9 @@ public class PATCH_specs {
     Long secondMemberId = fixture.addSecondMember(ctx);
 
     // Act
-    ApiResponse<Void> response = fixture.updateMember(
-        secondMemberId, new UpdateMemberRequest(MemberType.HR), null, ctx.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(
+            secondMemberId, new UpdateMemberRequest(MemberType.HR), null, ctx.workspaceId());
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -124,8 +133,9 @@ public class PATCH_specs {
     Long memberBId = fixture.addSecondMember(ctxB);
 
     // Act: A의 토큰과 테넌트로 B 멤버를 수정 시도
-    ApiResponse<Void> response = fixture.updateMember(
-        memberBId, new UpdateMemberRequest(MemberType.HR), ctxA.hrToken(), ctxA.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(
+            memberBId, new UpdateMemberRequest(MemberType.HR), ctxA.hrToken(), ctxA.workspaceId());
 
     // Assert: Hibernate @TenantId 필터링으로 NOT_FOUND 반환
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -138,8 +148,8 @@ public class PATCH_specs {
     Long secondMemberId = fixture.addSecondMember(ctx);
 
     // Act: body null 전송
-    ApiResponse<Void> response = fixture.updateMember(
-        secondMemberId, null, ctx.hrToken(), ctx.workspaceId());
+    ApiResponse<Void> response =
+        fixture.updateMember(secondMemberId, null, ctx.hrToken(), ctx.workspaceId());
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

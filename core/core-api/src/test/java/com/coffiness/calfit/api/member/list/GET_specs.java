@@ -52,7 +52,8 @@ public class GET_specs {
     fixture.addSecondMember(ctxB);
 
     // Act: 워크스페이스 A 기준으로 멤버 조회
-    ApiResponse<MemberResponse[]> responseA = fixture.getMembers(ctxA.hrToken(), ctxA.workspaceId());
+    ApiResponse<MemberResponse[]> responseA =
+        fixture.getMembers(ctxA.hrToken(), ctxA.workspaceId());
 
     // Assert: A는 자기 자신(1명)만 있어야 함 — B의 멤버가 포함되면 안 됨
     assertThat(responseA.getResult()).isEqualTo(ResultType.SUCCESS);
