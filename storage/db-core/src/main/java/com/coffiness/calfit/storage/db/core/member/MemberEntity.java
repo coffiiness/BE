@@ -10,24 +10,24 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "workspace_members")
-public class WorkspaceMemberEntity extends TenantBaseEntity {
+public class MemberEntity extends TenantBaseEntity {
 
-  @Column(nullable = false)
+  @Column(name = "user_id", nullable = false)
   private Long userId;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private MemberType memberType;
 
-  protected WorkspaceMemberEntity() {}
+  protected MemberEntity() {}
 
-  private WorkspaceMemberEntity(Long userId, MemberType memberType) {
+  private MemberEntity(Long userId, MemberType memberType) {
     this.userId = userId;
     this.memberType = memberType;
   }
 
-  public static WorkspaceMemberEntity create(Long userId, MemberType memberType) {
-    return new WorkspaceMemberEntity(userId, memberType);
+  public static MemberEntity create(Long userId, MemberType memberType) {
+    return new MemberEntity(userId, memberType);
   }
 
   public Long getUserId() {
@@ -36,5 +36,9 @@ public class WorkspaceMemberEntity extends TenantBaseEntity {
 
   public MemberType getMemberType() {
     return memberType;
+  }
+
+  public void updateMemberType(MemberType memberType) {
+    this.memberType = memberType;
   }
 }
