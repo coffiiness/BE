@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.member.MemberEntity;
@@ -21,7 +22,8 @@ public class MemberReaderImpl implements MemberReader {
 
   @Override
   public List<Member> getMembers(String workspaceId) {
-    List<MemberEntity> entities = memberRepository.findByTenantId(workspaceId);
+    List<MemberEntity> entities =
+        memberRepository.findByTenantIdAndStatus(workspaceId, EntityStatus.ACTIVE);
     return entities.stream().map(this::toWorkspaceMember).toList();
   }
 
