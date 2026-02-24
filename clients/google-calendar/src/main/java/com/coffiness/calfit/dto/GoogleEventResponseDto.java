@@ -10,6 +10,6 @@ public record GoogleEventResponseDto(
         String status
 ) {
     public GoogleCalendarClientResult toResult() {
-        return new GoogleCalendarClientResult(this.id, true);
+        return new GoogleCalendarClientResult(this.id(), true);
     }
 }

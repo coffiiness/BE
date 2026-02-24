@@ -1,7 +1,8 @@
 package com.coffiness.calfit.api;
 
-import com.coffiness.calfit.dto.GoogleEventRequestDto;
 import com.coffiness.calfit.dto.GoogleCalendarSyncResponseDto;
+import com.coffiness.calfit.dto.GoogleEventRequestDto;
+import com.coffiness.calfit.dto.GoogleEventResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +15,7 @@ interface GoogleCalendarApi {
 
     // 구글 캘린더 일정 생성
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    GoogleCalendarSyncResponseDto createEvent(
+    GoogleEventResponseDto createEvent(
             @RequestHeader("Authorization") String bearerToken,
             @RequestBody GoogleEventRequestDto request);
 
@@ -23,6 +24,11 @@ interface GoogleCalendarApi {
     void deleteEvent(
             @RequestHeader("Authorization") String bearerToken,
             @PathVariable("eventId") String eventId);
+
+    @GetMapping
+    GoogleCalendarSyncResponseDto syncEvent(
+            @RequestHeader("Authorization") String bearerToken,
+            String nextSyncToken);
 
     // TODO: DTO 작성 후 일정 수정 및 리스트 조회 기능 추가 (02.24)
 }

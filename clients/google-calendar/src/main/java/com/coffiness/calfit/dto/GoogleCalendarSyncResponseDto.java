@@ -26,7 +26,7 @@ public record GoogleCalendarSyncResponseDto(
             String timeZone
     ) {}
 
-    GoogleCalendarSyncResult toResult() {
+    public GoogleCalendarSyncResult toResult() {
         return new GoogleCalendarSyncResult(
                 this.items(),
                 this.nextSyncToken()
