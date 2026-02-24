@@ -42,7 +42,8 @@ public class MemberController {
   @DeleteMapping("/api/v1/members/{memberId}")
   public ApiResponse<?> removeMember(
       @PathVariable Long memberId, @AuthenticationPrincipal SecurityUser securityUser) {
-    memberService.removeMember(memberId);
+    String workspaceId = TenantContext.getTenantId();
+    memberService.removeMember(workspaceId, securityUser.userId(), memberId);
     return ApiResponse.success();
   }
 }
