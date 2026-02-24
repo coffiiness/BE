@@ -29,6 +29,7 @@ include 'support:monitoring'
 include 'support:security'
 include 'support:event'
 include 'support:error'
+include 'support:email'
 
 // Client 모듈
 include 'clients:client-example'
