@@ -19,8 +19,7 @@ public class MemberController {
 
   @GetMapping("/api/v1/members")
   public ApiResponse<List<MemberResponse>> getMembers() {
-    String workspaceId = TenantContext.getTenantId();
-    List<MemberInfo> members = memberService.getMembers(workspaceId);
+    List<MemberInfo> members = memberService.getMembers();
     return ApiResponse.success(members.stream().map(MemberResponse::from).toList());
   }
 
@@ -42,8 +41,7 @@ public class MemberController {
   @DeleteMapping("/api/v1/members/{memberId}")
   public ApiResponse<?> removeMember(
       @PathVariable Long memberId, @AuthenticationPrincipal SecurityUser securityUser) {
-    String workspaceId = TenantContext.getTenantId();
-    memberService.removeMember(workspaceId, securityUser.userId(), memberId);
+    memberService.removeMember(securityUser.userId(), memberId);
     return ApiResponse.success();
   }
 }

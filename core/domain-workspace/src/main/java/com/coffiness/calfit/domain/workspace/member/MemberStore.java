@@ -5,14 +5,13 @@ import com.coffiness.calfit.core.enums.MemberType;
 public interface MemberStore {
 
   /**
-   * 멤버 저장
+   * 멤버 저장 (TenantContext에 workspaceId가 설정된 상태에서 호출해야 함)
    *
-   * @param workspaceId 워크스페이스ID
    * @param userId 사용자 ID
    * @param memberType 멤버 타입
    * @return Member 리턴
    */
-  Member save(String workspaceId, Long userId, MemberType memberType);
+  Member save(Long userId, MemberType memberType);
 
   /**
    * 멤버 타입 수정

@@ -50,7 +50,7 @@ public class InvitationController {
 
     invitationService.acceptInvitation(token);
 
-    memberService.registerMember(invitation.workspaceId(), user.id(), invitation.memberType());
+    memberService.registerMember(user.id(), invitation.memberType());
 
     return ApiResponse.success();
   }
