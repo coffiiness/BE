@@ -6,7 +6,6 @@ import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,26 +21,27 @@ public class CalendarConnectService {
     private final GoogleOAuthPort googleOAuthPort;
     private final ExternalCalendarRepository externalCalendarRepository;
 
-    @Transactional
     public void connectGoogleCalendar(String authCode, Long userId, String tenantId) {
 
         // 구글 토큰 발급 및 이메일 추출
-        // TODO : 트랜잭션 분리
         GoogleTokenModel tokenModel = googleOAuthPort.exchangeToken(authCode);
         String googleEmail = tokenModel.email();
 
         // 토큰 만료 시간 계산
-        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(tokenModel.expiresIn());
+        // 만료 시간 버퍼 확보를 위한 2분 차감
+        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(tokenModel.expiresIn() - 120);
 
         // 기존 캘린더 연동 내역 조회
-        Optional<ExternalCalendarEntity> optionalEmail =
+        Optional<ExternalCalendarEntity> existingCalendar =
                 externalCalendarRepository.findByTenantIdAndUserIdAndCalendarId(tenantId, userId, googleEmail);
 
         // 연동 정보 저장
-        if(optionalEmail.isPresent()) {
+        if(existingCalendar.isPresent()) {
             // 기존 연동 유지
-            ExternalCalendarEntity existingEmail = optionalEmail.get();
+            ExternalCalendarEntity existingEmail = existingCalendar.get();
             existingEmail.updateAuthTokens(tokenModel.accessToken(), tokenModel.refreshToken(), expiresAt);
+
+            externalCalendarRepository.save(existingEmail);
         } else {
             // 최초 연동
             ExternalCalendarEntity newCalendar = ExternalCalendarEntity.builder()
