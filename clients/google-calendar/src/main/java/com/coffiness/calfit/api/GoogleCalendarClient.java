@@ -6,17 +6,19 @@ import com.coffiness.calfit.dto.GoogleEventResponseDto;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
+import com.coffiness.calfit.port.GoogleCalendarPort;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class GoogleCalendarClient {
+public class GoogleCalendarClient implements GoogleCalendarPort {
 
   private final GoogleCalendarApi googleCalendarApi;
 
@@ -46,7 +48,7 @@ public class GoogleCalendarClient {
   /*
    * 캘린더에 있는 일정 가져오기 (GET)
    */
-  public GoogleCalendarSyncResult syncEvents(String accessToken, String syncToken) {
+  public GoogleCalendarSyncResult syncEvent(String accessToken, String syncToken) {
     String bearerToken = "Bearer " + accessToken;
     List<SyncEventModel> allEvents = new ArrayList<>();
     String pageToken = null;
