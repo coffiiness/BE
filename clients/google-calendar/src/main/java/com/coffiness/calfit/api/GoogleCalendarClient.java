@@ -5,10 +5,10 @@ import com.coffiness.calfit.dto.GoogleEventRequestDto;
 import com.coffiness.calfit.dto.GoogleEventResponseDto;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
-import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
