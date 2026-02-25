@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain.workspace.member;
 
 import java.util.List;
+import java.util.Map;
 
 public interface MemberReader {
   /**
@@ -35,4 +36,12 @@ public interface MemberReader {
    * @return 존재 여부
    */
   boolean exists(String workspaceId, Long userId);
+
+  /**
+   * 그룹별 활성 멤버 수 맵 조회
+   *
+   * @param groupIds 그룹 ID 목록
+   * @return groupId → memberCount 맵
+   */
+  Map<Long, Long> getGroupMemberCountMap(List<Long> groupIds);
 }

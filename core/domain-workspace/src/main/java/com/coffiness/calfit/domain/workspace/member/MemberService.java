@@ -3,12 +3,12 @@ package com.coffiness.calfit.domain.workspace.member;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
+import com.coffiness.calfit.domain.workspace.group.GroupReader;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.coffiness.calfit.support.error.CoreException;
-import com.coffiness.calfit.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +20,7 @@ public class MemberService {
   private final MemberStore memberStore;
 
   private final UserReader userReader;
+  private final GroupReader groupReader;
 
   @Transactional
   public Member registerMember(Long userId, MemberType memberType) {
@@ -30,7 +31,11 @@ public class MemberService {
   public MemberInfo getMember(String workspaceId, Long userId) {
     UserInfo user = userReader.getUser(userId);
     Member member = memberReader.getMember(workspaceId, userId);
-    return toMemberInfo(user, member);
+    Map<Long, String> groupNameMap =
+        member.groupId() != null
+            ? groupReader.getGroupNameMap(List.of(member.groupId()))
+            : Map.of();
+    return toMemberInfo(user, member, groupNameMap);
   }
 
   @Transactional(readOnly = true)
@@ -41,8 +46,13 @@ public class MemberService {
     Map<Long, UserInfo> userMap =
         userReader.getUsers(userIds).stream().collect(Collectors.toMap(UserInfo::id, u -> u));
 
+    List<Long> groupIds =
+        members.stream().map(Member::groupId).filter(gid -> gid != null).distinct().toList();
+    Map<Long, String> groupNameMap =
+        groupIds.isEmpty() ? Map.of() : groupReader.getGroupNameMap(groupIds);
+
     return members.stream()
-        .map(member -> toMemberInfo(userMap.get(member.userId()), member))
+        .map(member -> toMemberInfo(userMap.get(member.userId()), member, groupNameMap))
         .toList();
   }
 
@@ -60,8 +70,24 @@ public class MemberService {
     memberStore.remove(memberId);
   }
 
-  private MemberInfo toMemberInfo(UserInfo user, Member member) {
+  @Transactional
+  public void assignGroup(Long memberId, Long groupId) {
+    memberStore.assignGroup(memberId, groupId);
+  }
+
+  @Transactional
+  public void leaveGroup(Long memberId) {
+    memberStore.assignGroup(memberId, null);
+  }
+
+  private MemberInfo toMemberInfo(UserInfo user, Member member, Map<Long, String> groupNameMap) {
+    String groupName = member.groupId() != null ? groupNameMap.get(member.groupId()) : null;
     return new MemberInfo(
-        member.id(), user.name(), user.createdAt(), user.recentAt(), "group", member.memberType());
+        member.id(),
+        user.name(),
+        user.createdAt(),
+        user.recentAt(),
+        groupName,
+        member.memberType());
   }
 }
