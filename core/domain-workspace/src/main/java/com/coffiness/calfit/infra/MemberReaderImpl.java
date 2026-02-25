@@ -8,6 +8,8 @@ import com.coffiness.calfit.storage.db.core.member.MemberRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -41,8 +43,19 @@ public class MemberReaderImpl implements MemberReader {
     return memberRepository.existsByTenantIdAndUserId(workspaceId, userId);
   }
 
+  @Override
+  public Map<Long, Long> getGroupMemberCountMap(List<Long> groupIds) {
+    if (groupIds.isEmpty()) return Map.of();
+    return memberRepository.countByGroupIdsAndStatus(groupIds, EntityStatus.ACTIVE).stream()
+        .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+  }
+
   private Member toWorkspaceMember(MemberEntity entity) {
     return new Member(
-        entity.getId(), entity.getTenantId(), entity.getUserId(), entity.getMemberType());
+        entity.getId(),
+        entity.getTenantId(),
+        entity.getUserId(),
+        entity.getMemberType(),
+        entity.getGroupId());
   }
 }
