@@ -5,11 +5,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /*
  * 구글 계정 연동 엔티티
@@ -22,7 +23,7 @@ import lombok.NoArgsConstructor;
     uniqueConstraints = {
       @UniqueConstraint(
           name = "uq_external_calendars_user_calendar",
-          columnNames = {"user_id", "calendar_id"})
+          columnNames = {"tenant_id", "user_id", "calendar_id"})
     })
 public class ExternalCalendarEntity extends TenantBaseEntity {
 
