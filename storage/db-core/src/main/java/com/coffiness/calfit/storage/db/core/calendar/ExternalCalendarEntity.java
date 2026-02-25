@@ -72,4 +72,20 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
     this.syncToken = syncToken;
     this.isSyncEnabled = isSyncEnabled;
   }
+
+  // 토큰 재발급 메소드
+  public void updateAuthTokens(
+      String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
+    this.accessToken = accessToken;
+    this.tokenExpiresAt = tokenExpiresAt;
+    // null 덮어쓰기 방지
+    if (refreshToken != null) {
+      this.refreshToken = refreshToken;
+    }
+  }
+
+  // 새로운 동기화 지점을 저장 메소드
+  public void updateSyncToken(String syncToken) {
+    this.syncToken = syncToken;
+  }
 }

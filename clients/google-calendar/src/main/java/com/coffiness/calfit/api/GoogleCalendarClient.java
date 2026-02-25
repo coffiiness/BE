@@ -8,13 +8,12 @@ import com.coffiness.calfit.model.GoogleCalendarSyncResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import feign.FeignException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
