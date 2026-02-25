@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
-  List<MemberEntity> findByTenantIdAndStatus(String tenantId, EntityStatus status);
+  List<MemberEntity> findByStatus(EntityStatus status);
 
   MemberEntity findByTenantIdAndUserId(String tenantId, Long userId);
 

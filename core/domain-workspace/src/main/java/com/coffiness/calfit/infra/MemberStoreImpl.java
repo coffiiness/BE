@@ -16,11 +16,11 @@ public class MemberStoreImpl implements MemberStore {
   private final MemberRepository memberRepository;
 
   @Override
-  public Member save(String workspaceId, Long userId, MemberType memberType) {
+  public Member save(Long userId, MemberType memberType) {
     MemberEntity entity = MemberEntity.create(userId, memberType);
     MemberEntity saved = memberRepository.save(entity);
 
-    return new Member(saved.getId(), workspaceId, saved.getUserId(), saved.getMemberType());
+    return new Member(saved.getId(), saved.getTenantId(), saved.getUserId(), saved.getMemberType());
   }
 
   @Override

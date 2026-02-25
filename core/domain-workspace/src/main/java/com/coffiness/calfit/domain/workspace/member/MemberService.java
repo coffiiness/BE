@@ -22,8 +22,8 @@ public class MemberService {
   private final UserReader userReader;
 
   @Transactional
-  public Member registerMember(String workspaceId, Long userId, MemberType memberType) {
-    return memberStore.save(workspaceId, userId, memberType);
+  public Member registerMember(Long userId, MemberType memberType) {
+    return memberStore.save(userId, memberType);
   }
 
   @Transactional(readOnly = true)
@@ -34,8 +34,8 @@ public class MemberService {
   }
 
   @Transactional(readOnly = true)
-  public List<MemberInfo> getMembers(String workspaceId) {
-    List<Member> members = memberReader.getMembers(workspaceId);
+  public List<MemberInfo> getMembers() {
+    List<Member> members = memberReader.getMembers();
 
     List<Long> userIds = members.stream().map(Member::userId).toList();
     Map<Long, UserInfo> userMap =
@@ -52,9 +52,9 @@ public class MemberService {
   }
 
   @Transactional
-  public void removeMember(String workspaceId, Long userId, Long memberId) {
-    Member member = memberReader.getMember(workspaceId, memberId);
-    if(userId.equals(member.userId())) {
+  public void removeMember(Long userId, Long memberId) {
+    Member member = memberReader.getMemberById(memberId);
+    if (userId.equals(member.userId())) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     memberStore.remove(memberId);
