@@ -1,0 +1,5 @@
+package com.coffiness.calfit.request;
+
+import jakarta.validation.constraints.NotBlank;
+
+public record CalendarConnectRequest(@NotBlank(message = "구글 인가 코드는 필수입니다.") String authCode) {}

@@ -8,6 +8,7 @@ dependencies {
     implementation project(':core:domain-meeting-room')
     implementation project(':core:domain-announcment-board')
     implementation project(':core:core-enum')
+    implementation project(':core:domain-calendar')
 
     // 지원 모듈
     implementation project(':support:monitoring')
@@ -19,8 +20,11 @@ dependencies {
     // 스토리지
     implementation project(':storage:db-core')
 
+    // clients
+    implementation project(':clients')
+
     // 외부 클라이언트 (MSA)
-    implementation project(':clients:client-example')
+    implementation project(':clients:google-calendar')
 
     // 테스트 - REST Docs
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
@@ -30,6 +34,9 @@ dependencies {
     // Spring
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // OpenFeign
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 }
 
 def jacocoTargetProjects = rootProject.subprojects.findAll { subproject ->
