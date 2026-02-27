@@ -20,6 +20,7 @@ include 'core:domain-user'
 include 'core:domain-workspace'
 include 'core:domain-calendar'
 include 'core:domain-meeting-room'
+include 'core:domain-announcement-board'
 
 // Storage 모듈
 include 'storage:db-core'
@@ -35,3 +36,4 @@ include 'support:email'
 // Client 모듈
 include 'clients:client-example'
 include 'clients:google-calendar'
+include 'core:domain-announcment-board'
