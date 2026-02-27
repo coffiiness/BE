@@ -7,7 +7,7 @@ spring:
       - monitoring.yml
       - logging.yml
       - db-core.yml
-      - client-example.yml
+      - google-calendar.yml
   web.resources.add-mappings: false
 
 # JWT 설정
