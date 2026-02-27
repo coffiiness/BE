@@ -28,13 +28,15 @@ public class AnnouncementBoardController {
       @Valid @RequestBody AnnouncementBoardCreateRequest request) {
     Long userId = (user != null) ? user.userId() : null;
     AnnouncementBoard board =
-        announcementBoardService.create(request.title(), request.content(), request.pinned(), userId);
+        announcementBoardService.create(
+            request.title(), request.content(), request.pinned(), userId);
     return ApiResponse.success(AnnouncementBoardResponse.from(board));
   }
 
   /* 공지사항 조회 */
   @GetMapping
-  public ApiResponse<List<AnnouncementBoardListResponse>> list(@AuthenticationPrincipal SecurityUser user) {
+  public ApiResponse<List<AnnouncementBoardListResponse>> list(
+      @AuthenticationPrincipal SecurityUser user) {
     List<AnnouncementBoard> result = announcementBoardService.list();
     List<AnnouncementBoardListResponse> responses = new java.util.ArrayList<>();
     for (AnnouncementBoard board : result) {
@@ -51,7 +53,8 @@ public class AnnouncementBoardController {
       @Valid @RequestBody AnnouncementBoardUpdateRequest request) {
     Long userId = (user != null) ? user.userId() : null;
     AnnouncementBoard board =
-        announcementBoardService.update(id, request.title(), request.content(), request.pinned(), userId);
+        announcementBoardService.update(
+            id, request.title(), request.content(), request.pinned(), userId);
     return ApiResponse.success(AnnouncementBoardResponse.from(board));
   }
 
