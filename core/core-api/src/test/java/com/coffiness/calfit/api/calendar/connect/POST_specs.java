@@ -1,5 +1,8 @@
 package com.coffiness.calfit.api.calendar.connect;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
@@ -12,48 +15,39 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-
 @CalfitApiTest
 @DisplayName("POST /api/v1/calendars/google/connect")
 public class POST_specs {
 
-    @MockitoBean
-    private GoogleOAuthPort googleOAuthPort;
+  @MockitoBean private GoogleOAuthPort googleOAuthPort;
 
-    @Test
-    void 올바른_인가코드로_요청하면_캘린더_연동에_성공한다(
-            @Autowired UserFixture userFixture,
-            @Autowired CalendarFixture calendarFixture
-    ) {
-        String token = userFixture.createUserAndGetToken();
-        String validAuthCode = "dummy-auth-code";
+  @Test
+  void 올바른_인가코드로_요청하면_캘린더_연동에_성공한다(
+      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+    String token = userFixture.createUserAndGetToken();
+    String validAuthCode = "dummy-auth-code";
 
-        given(googleOAuthPort.exchangeToken(validAuthCode))
-                .willReturn(new GoogleTokenModel("mock-access", "mock-refresh", 3600, "test@gmail.com"));
+    given(googleOAuthPort.exchangeToken(validAuthCode))
+        .willReturn(new GoogleTokenModel("mock-access", "mock-refresh", 3600, "test@gmail.com"));
 
-        // Act
-        ApiResponse<Void> response = calendarFixture.connectGoogleCalendar(token, validAuthCode);
+    // Act
+    ApiResponse<Void> response = calendarFixture.connectGoogleCalendar(token, validAuthCode);
 
-        // Assert
-        assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    }
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+  }
 
-    @Test
-    void 인가코드가_비어있으면_에러_응답을_반환한다(
-            @Autowired UserFixture userFixture,
-            @Autowired CalendarFixture calendarFixture
-    ) {
-        // Arrange
-        String token = userFixture.createUserAndGetToken();
-        String emptyAuthCode = "";
+  @Test
+  void 인가코드가_비어있으면_에러_응답을_반환한다(
+      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+    // Arrange
+    String token = userFixture.createUserAndGetToken();
+    String emptyAuthCode = "";
 
-        // Act
-        ApiResponse<Void> response = calendarFixture.connectGoogleCalendar(token, emptyAuthCode);
+    // Act
+    ApiResponse<Void> response = calendarFixture.connectGoogleCalendar(token, emptyAuthCode);
 
-        // Assert
-        assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
-    }
-
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
 }
