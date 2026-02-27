@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain.user;
 
 import com.coffiness.calfit.domain.user.event.UserDeletedEvent;
+import com.coffiness.calfit.storage.db.core.member.MemberRepository;
 import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.event.DomainEventPublisher;
@@ -14,6 +15,8 @@ public class UserService {
 
   private final UserRepository userRepository;
 
+  private final MemberRepository memberRepository;
+
   private final PasswordEncoder passwordEncoder;
 
   private final JwtTokenProvider jwtTokenProvider;
@@ -22,10 +25,12 @@ public class UserService {
 
   public UserService(
       UserRepository userRepository,
+      MemberRepository memberRepository,
       PasswordEncoder passwordEncoder,
       JwtTokenProvider jwtTokenProvider,
       DomainEventPublisher eventPublisher) {
     this.userRepository = userRepository;
+    this.memberRepository = memberRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtTokenProvider = jwtTokenProvider;
     this.eventPublisher = eventPublisher;
@@ -70,7 +75,9 @@ public class UserService {
             userEntity.getId(), userEntity.getEmail(), userEntity.getRole().name());
     String refreshToken = jwtTokenProvider.createRefreshToken(userEntity.getId());
 
-    return new LoginResult(accessToken, refreshToken, toUser(userEntity));
+    String workspaceId = memberRepository.findTenantIdByUserId(userEntity.getId()).orElse(null);
+
+    return new LoginResult(accessToken, refreshToken, toUser(userEntity), workspaceId);
   }
 
   @Transactional(readOnly = true)
@@ -106,5 +113,6 @@ public class UserService {
         entity.getCreatedAt());
   }
 
-  public record LoginResult(String accessToken, String refreshToken, User user) {}
+  public record LoginResult(
+      String accessToken, String refreshToken, User user, String workspaceId) {}
 }

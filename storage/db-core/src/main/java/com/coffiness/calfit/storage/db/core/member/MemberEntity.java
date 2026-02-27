@@ -19,6 +19,9 @@ public class MemberEntity extends TenantBaseEntity {
   @Column(nullable = false)
   private MemberType memberType;
 
+  @Column(name = "group_id")
+  private Long groupId;
+
   protected MemberEntity() {}
 
   private MemberEntity(Long userId, MemberType memberType) {
@@ -38,7 +41,15 @@ public class MemberEntity extends TenantBaseEntity {
     return memberType;
   }
 
+  public Long getGroupId() {
+    return groupId;
+  }
+
   public void updateMemberType(MemberType memberType) {
     this.memberType = memberType;
+  }
+
+  public void assignGroup(Long groupId) {
+    this.groupId = groupId;
   }
 }

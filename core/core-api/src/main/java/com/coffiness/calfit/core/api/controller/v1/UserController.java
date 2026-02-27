@@ -33,7 +33,10 @@ public class UserController {
     UserService.LoginResult result = userService.login(request.email(), request.password());
     LoginResponse response =
         new LoginResponse(
-            result.accessToken(), result.refreshToken(), UserResponse.from(result.user()));
+            result.accessToken(),
+            result.refreshToken(),
+            UserResponse.from(result.user()),
+            result.workspaceId());
     return ApiResponse.success(response);
   }
 
