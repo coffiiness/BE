@@ -21,7 +21,7 @@ public class CalendarConnectService {
     private final GoogleOAuthPort googleOAuthPort;
     private final ExternalCalendarRepository externalCalendarRepository;
 
-    public void connectGoogleCalendar(String authCode, Long userId, String tenantId) {
+    public void connectGoogleCalendar(String authCode, Long userId) {
 
         // 구글 토큰 발급 및 이메일 추출
         GoogleTokenModel tokenModel = googleOAuthPort.exchangeToken(authCode);
@@ -33,7 +33,7 @@ public class CalendarConnectService {
 
         // 기존 캘린더 연동 내역 조회
         Optional<ExternalCalendarEntity> existingCalendar =
-                externalCalendarRepository.findByTenantIdAndUserIdAndCalendarId(tenantId, userId, googleEmail);
+                externalCalendarRepository.findByUserIdAndCalendarId(userId, googleEmail);
 
         // 연동 정보 저장
         if(existingCalendar.isPresent()) {
@@ -45,7 +45,6 @@ public class CalendarConnectService {
         } else {
             // 최초 연동
             ExternalCalendarEntity newCalendar = ExternalCalendarEntity.builder()
-                    .tenantId(tenantId)
                     .userId(userId)
                     .calendarId(googleEmail)
                     .accessToken(tokenModel.accessToken())
