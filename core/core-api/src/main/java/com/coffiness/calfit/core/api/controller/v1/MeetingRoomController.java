@@ -8,71 +8,58 @@ import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/meeting-rooms")
 public class MeetingRoomController {
 
-    private final MeetingRoomService meetingRoomService;
+  private final MeetingRoomService meetingRoomService;
 
-    /* 회의실 생성 */
-    @PostMapping
-    public ApiResponse<MeetingRoomResponse> create(
-            @AuthenticationPrincipal SecurityUser user,
-            @Valid @RequestBody MeetingRoomCreateRequest request) {
+  /* 회의실 생성 */
+  @PostMapping
+  public ApiResponse<MeetingRoomResponse> create(
+      @AuthenticationPrincipal SecurityUser user,
+      @Valid @RequestBody MeetingRoomCreateRequest request) {
 
-        MeetingRoom room = meetingRoomService.create(
-                        request.name(),
-                        request.location(),
-                        request.capacity());
+    MeetingRoom room =
+        meetingRoomService.create(request.name(), request.location(), request.capacity());
 
-        return ApiResponse.success(MeetingRoomResponse.from(room));
-    }
+    return ApiResponse.success(MeetingRoomResponse.from(room));
+  }
 
+  /* 회의실 조회 */
+  @GetMapping
+  public ApiResponse<List<MeetingRoom>> list(@AuthenticationPrincipal SecurityUser user) {
 
-    /* 회의실 조회 */
-    @GetMapping
-    public ApiResponse<List<MeetingRoom>> list(
-            @AuthenticationPrincipal SecurityUser user) {
+    List<MeetingRoom> result = meetingRoomService.list();
 
-        List<MeetingRoom> result =
-                meetingRoomService.list();
+    return ApiResponse.success(result);
+  }
 
-        return ApiResponse.success(result);
-    }
+  /* 회의실 수정 */
+  @PutMapping("/{id}")
+  public ApiResponse<MeetingRoomResponse> update(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long id,
+      @Valid @RequestBody MeetingRoomUpdateRequest request) {
 
+    MeetingRoom room = meetingRoomService.update(id, request.name(), request.capacity());
 
-    /* 회의실 수정 */
-    @PutMapping("/{id}")
-    public ApiResponse<MeetingRoomResponse> update(
-            @AuthenticationPrincipal SecurityUser user,
-            @PathVariable Long id,
-            @Valid @RequestBody MeetingRoomUpdateRequest request) {
+    return ApiResponse.success(MeetingRoomResponse.from(room));
+  }
 
-        MeetingRoom room = meetingRoomService.update(
-                        id,
-                        request.name(),
-                        request.capacity());
+  /* 회의실 삭제 */
+  @DeleteMapping("/{id}")
+  public ApiResponse<?> delete(@AuthenticationPrincipal SecurityUser user, @PathVariable Long id) {
 
-        return ApiResponse.success(MeetingRoomResponse.from(room));
-    }
+    Long userId = (user != null) ? user.userId() : null;
+    meetingRoomService.delete(id, userId);
 
-
-    /* 회의실 삭제 */
-    @DeleteMapping("/{id}")
-    public ApiResponse<?> delete(
-            @AuthenticationPrincipal SecurityUser user,
-            @PathVariable Long id) {
-
-        Long userId = (user != null) ? user.userId() : null;
-        meetingRoomService.delete(id, userId);
-
-        return ApiResponse.success();
-    }
+    return ApiResponse.success();
+  }
 }

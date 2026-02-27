@@ -20,28 +20,22 @@ import org.springframework.test.annotation.DirtiesContext;
 @DisplayName("DELETE /api/v1/meeting-rooms/{meetingRoomId}")
 public class DELETE_specs {
 
-    @Test
-    void 정상_삭제_시_204_No_Content를_반환한다(
-            @Autowired MemberFixture memberFixture,
-            @Autowired MeetingRoomFixture meetingRoomFixture
-    ) {
-        // Arrange
-        MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
-        String token = context.hrToken();
-        String tenantId = context.workspaceId();
+  @Test
+  void 정상_삭제_시_204_No_Content를_반환한다(
+      @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    // Arrange
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
 
-        long meetingRoomId =
-                meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 5)
-                        .getData()
-                        .id();
+    long meetingRoomId = meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 5).getData().id();
 
-        // Act
-        ApiResponse<Void> response =
-                meetingRoomFixture.delete(token, tenantId, meetingRoomId);
+    // Act
+    ApiResponse<Void> response = meetingRoomFixture.delete(token, tenantId, meetingRoomId);
 
-        // Assert
-        assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    }
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+  }
 
   @Test
   void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다(
@@ -54,8 +48,7 @@ public class DELETE_specs {
         createMeetingRoomAndGetId(meetingRoomFixture, token, tenantId, "회의실 A", 1, 5);
 
     // Act
-    ApiResponse<Void> response =
-        meetingRoomFixture.delete(null, tenantId, meetingRoomId);
+    ApiResponse<Void> response = meetingRoomFixture.delete(null, tenantId, meetingRoomId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -69,14 +62,12 @@ public class DELETE_specs {
     String token = context.hrToken();
     String tenantId = context.workspaceId();
     Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
-    memberFixture.updateMember(
-        memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
+    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
     long meetingRoomId =
         createMeetingRoomAndGetId(meetingRoomFixture, token, tenantId, "회의실 A", 1, 5);
 
     // Act
-    ApiResponse<Void> response =
-        meetingRoomFixture.delete(token, tenantId, meetingRoomId);
+    ApiResponse<Void> response = meetingRoomFixture.delete(token, tenantId, meetingRoomId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -91,8 +82,7 @@ public class DELETE_specs {
     String tenantId = context.workspaceId();
 
     // Act
-    ApiResponse<Void> response =
-        meetingRoomFixture.delete(token, tenantId, 99999L);
+    ApiResponse<Void> response = meetingRoomFixture.delete(token, tenantId, 99999L);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -110,8 +100,7 @@ public class DELETE_specs {
     meetingRoomFixture.delete(token, tenantId, meetingRoomId);
 
     // Act
-    ApiResponse<Void> response =
-        meetingRoomFixture.delete(token, tenantId, meetingRoomId);
+    ApiResponse<Void> response = meetingRoomFixture.delete(token, tenantId, meetingRoomId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

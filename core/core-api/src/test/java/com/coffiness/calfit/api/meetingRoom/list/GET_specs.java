@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
-import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +26,7 @@ public class GET_specs {
     meetingRoomFixture.create(token, "회의실 A", 1, 5);
 
     // Act
-    ApiResponse<MeetingRoom[]> response =
-        meetingRoomFixture.list(token);
+    ApiResponse<MeetingRoom[]> response = meetingRoomFixture.list(token);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -35,11 +34,9 @@ public class GET_specs {
   }
 
   @Test
-  void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다(
-      @Autowired MeetingRoomFixture meetingRoomFixture) {
+  void 토큰을_제공하지_않으면_401_Unauthorized를_반환한다(@Autowired MeetingRoomFixture meetingRoomFixture) {
     // Act
-    ApiResponse<MeetingRoom[]> response =
-        meetingRoomFixture.list();
+    ApiResponse<MeetingRoom[]> response = meetingRoomFixture.list();
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -55,8 +52,7 @@ public class GET_specs {
     meetingRoomFixture.create(tokenB, "회의실 B", 1, 5);
 
     // Act
-    ApiResponse<MeetingRoom[]> response =
-        meetingRoomFixture.list(tokenA);
+    ApiResponse<MeetingRoom[]> response = meetingRoomFixture.list(tokenA);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -73,8 +69,7 @@ public class GET_specs {
     meetingRoomFixture.create(token, "회의실 A", 1, 5);
 
     // Act
-    ApiResponse<MeetingRoom[]> response =
-        meetingRoomFixture.list(token);
+    ApiResponse<MeetingRoom[]> response = meetingRoomFixture.list(token);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -91,13 +86,11 @@ public class GET_specs {
     String token = userFixture.createUserAndGetToken();
 
     // Act
-    ApiResponse<MeetingRoom[]> response =
-        meetingRoomFixture.list(token);
+    ApiResponse<MeetingRoom[]> response = meetingRoomFixture.list(token);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData()).isNotNull();
     assertThat(response.getData().length).isEqualTo(0);
   }
-
 }

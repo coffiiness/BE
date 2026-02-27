@@ -3,12 +3,11 @@ package com.coffiness.calfit.domain.workspace.member;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.coffiness.calfit.support.error.CoreException;
-import com.coffiness.calfit.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +53,7 @@ public class MemberService {
   @Transactional
   public void removeMember(String workspaceId, Long userId, Long memberId) {
     Member member = memberReader.getMember(workspaceId, memberId);
-    if(userId.equals(member.userId())) {
+    if (userId.equals(member.userId())) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     memberStore.remove(memberId);
