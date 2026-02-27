@@ -76,7 +76,8 @@ public record MemberFixture(
     userFixture.signUp(inviteeEmail, inviteePassword, userFixture.randomName());
 
     ApiResponse<InvitationResponse> invitationResponse =
-        createInvitation(context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.IVW);
+        createInvitation(
+            context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.INTERVIEWER);
     String invitationToken = invitationResponse.getData().token();
 
     acceptInvitation(invitationToken);

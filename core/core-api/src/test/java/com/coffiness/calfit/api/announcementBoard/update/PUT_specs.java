@@ -107,7 +107,8 @@ class PUT_specs {
     Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
     long boardId =
         createBoardAndGetId(announcementBoardFixture, token, tenantId, "공지 A", "내용 A", false);
-    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
+    memberFixture.updateMember(
+        memberId, new UpdateMemberRequest(MemberType.INTERVIEWER), token, tenantId);
 
     // Act
     ApiResponse<AnnouncementBoardResponse> response =
