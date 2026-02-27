@@ -4,6 +4,7 @@ import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,7 +18,13 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Table(name = "external_calendars")
+@Table(
+    name = "external_calendars",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uq_external_calendars_user_calendar",
+          columnNames = {"tenant_id", "user_id", "calendar_id"})
+    })
 public class ExternalCalendarEntity extends TenantBaseEntity {
 
   // 연관 사용자의 식별자

@@ -3,12 +3,14 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.EventStatus;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
+import java.time.ZonedDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import org.hibernate.annotations.TimeZoneColumn;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 /*
  * 구글 캘린더 내부 개별 일정 엔티티
@@ -16,15 +18,21 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Table(name = "external_event")
+@Table(
+    name = "external_event",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uq_external_event_calendar_google",
+          columnNames = {"tenant_id", "external_calendar_id", "google_event_id"})
+    })
 public class ExternalEventEntity extends TenantBaseEntity {
 
   // ExternalCalendar Id
-  @Column(name = "external_calendar_id", unique = true, nullable = false)
+  @Column(name = "external_calendar_id", nullable = false)
   private Long externalCalendarId;
 
   // 구글 캘린더 고유 일정 ID
-  @Column(name = "google_event_id", unique = true, nullable = false)
+  @Column(name = "google_event_id", nullable = false)
   private String googleEventId;
 
   @Column(name = "title", length = 255)
@@ -33,11 +41,15 @@ public class ExternalEventEntity extends TenantBaseEntity {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
+  @TimeZoneStorage(TimeZoneStorageType.COLUMN)
+  @TimeZoneColumn(name = "start_time_tz")
   @Column(name = "start_time", nullable = false)
-  private LocalDateTime startTime;
+  private ZonedDateTime startTime;
 
+  @TimeZoneStorage(TimeZoneStorageType.COLUMN)
+  @TimeZoneColumn(name = "end_time_tz")
   @Column(name = "end_time", nullable = false)
-  private LocalDateTime endTime;
+  private ZonedDateTime endTime;
 
   // 종일 일정 여부
   @Column(name = "is_all_day", nullable = false)
@@ -55,8 +67,8 @@ public class ExternalEventEntity extends TenantBaseEntity {
       String googleEventId,
       String title,
       String description,
-      LocalDateTime startTime,
-      LocalDateTime endTime,
+      ZonedDateTime startTime,
+      ZonedDateTime endTime,
       boolean isAllDay,
       EventStatus status) {
     super(tenantId);

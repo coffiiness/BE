@@ -1,5 +1,6 @@
 package com.coffiness.calfit.core.api.controller.v1;
 
+import com.coffiness.calfit.api.v1.request.AssignGroupRequest;
 import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.MemberResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -19,8 +20,7 @@ public class MemberController {
 
   @GetMapping("/api/v1/members")
   public ApiResponse<List<MemberResponse>> getMembers() {
-    String workspaceId = TenantContext.getTenantId();
-    List<MemberInfo> members = memberService.getMembers(workspaceId);
+    List<MemberInfo> members = memberService.getMembers();
     return ApiResponse.success(members.stream().map(MemberResponse::from).toList());
   }
 
@@ -42,8 +42,20 @@ public class MemberController {
   @DeleteMapping("/api/v1/members/{memberId}")
   public ApiResponse<?> removeMember(
       @PathVariable Long memberId, @AuthenticationPrincipal SecurityUser securityUser) {
-    String workspaceId = TenantContext.getTenantId();
-    memberService.removeMember(workspaceId, securityUser.userId(), memberId);
+    memberService.removeMember(securityUser.userId(), memberId);
+    return ApiResponse.success();
+  }
+
+  @PatchMapping("/api/v1/members/{memberId}/group")
+  public ApiResponse<?> assignGroup(
+      @PathVariable Long memberId, @RequestBody AssignGroupRequest request) {
+    memberService.assignGroup(memberId, request.groupId());
+    return ApiResponse.success();
+  }
+
+  @DeleteMapping("/api/v1/members/{memberId}/group")
+  public ApiResponse<?> leaveGroup(@PathVariable Long memberId) {
+    memberService.leaveGroup(memberId);
     return ApiResponse.success();
   }
 }
