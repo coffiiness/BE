@@ -64,10 +64,10 @@ class DELETE_specs {
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String token = context.hrToken();
     String tenantId = context.workspaceId();
-    Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
-    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
     long boardId =
         createBoardAndGetId(announcementBoardFixture, token, tenantId, "공지 A", "내용 A", true);
+    Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
+    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
 
     // Act
     ApiResponse<Void> response = announcementBoardFixture.delete(token, tenantId, boardId);

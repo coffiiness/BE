@@ -25,7 +25,10 @@ public class AnnouncementBoardService {
 
   /* 공지사항 생성 */
   @Transactional
-  public AnnouncementBoard create(String title, String content, Boolean pinned) {
+  public AnnouncementBoard create(String title, String content, Boolean pinned, Long userId) {
+    String tenantId = TenantContext.getTenantId();
+    assertHrMember(tenantId, userId);
+
     if (announcementBoardRepository.existsByTitle(title)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
@@ -57,7 +60,10 @@ public class AnnouncementBoardService {
 
   /* 공지사항 수정 */
   @Transactional
-  public AnnouncementBoard update(Long id, String title, String content, Boolean pinned) {
+  public AnnouncementBoard update(Long id, String title, String content, Boolean pinned, Long userId) {
+    String tenantId = TenantContext.getTenantId();
+    assertHrMember(tenantId, userId);
+
     AnnouncementBoardEntity entity =
         announcementBoardRepository
             .findById(id)

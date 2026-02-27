@@ -2,6 +2,7 @@ package com.coffiness.calfit.core.api.controller.v1;
 
 import com.coffiness.calfit.api.v1.request.AnnouncementBoardCreateRequest;
 import com.coffiness.calfit.api.v1.request.AnnouncementBoardUpdateRequest;
+import com.coffiness.calfit.api.v1.response.AnnouncementBoardListResponse;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.announcementBoard.AnnouncementBoard;
@@ -25,16 +26,21 @@ public class AnnouncementBoardController {
   public ApiResponse<AnnouncementBoardResponse> create(
       @AuthenticationPrincipal SecurityUser user,
       @Valid @RequestBody AnnouncementBoardCreateRequest request) {
+    Long userId = (user != null) ? user.userId() : null;
     AnnouncementBoard board =
-        announcementBoardService.create(request.title(), request.content(), request.pinned());
+        announcementBoardService.create(request.title(), request.content(), request.pinned(), userId);
     return ApiResponse.success(AnnouncementBoardResponse.from(board));
   }
 
   /* 공지사항 조회 */
   @GetMapping
-  public ApiResponse<List<AnnouncementBoard>> list(@AuthenticationPrincipal SecurityUser user) {
+  public ApiResponse<List<AnnouncementBoardListResponse>> list(@AuthenticationPrincipal SecurityUser user) {
     List<AnnouncementBoard> result = announcementBoardService.list();
-    return ApiResponse.success(result);
+    List<AnnouncementBoardListResponse> responses = new java.util.ArrayList<>();
+    for (AnnouncementBoard board : result) {
+      responses.add(AnnouncementBoardListResponse.from(board));
+    }
+    return ApiResponse.success(responses);
   }
 
   /* 공지사항  수정 */
@@ -43,8 +49,9 @@ public class AnnouncementBoardController {
       @AuthenticationPrincipal SecurityUser user,
       @PathVariable Long id,
       @Valid @RequestBody AnnouncementBoardUpdateRequest request) {
+    Long userId = (user != null) ? user.userId() : null;
     AnnouncementBoard board =
-        announcementBoardService.update(id, request.title(), request.content(), request.pinned());
+        announcementBoardService.update(id, request.title(), request.content(), request.pinned(), userId);
     return ApiResponse.success(AnnouncementBoardResponse.from(board));
   }
 
