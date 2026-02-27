@@ -72,7 +72,7 @@ public class PATCH_specs {
     ApiResponse<Void> response =
         fixture.updateMember(
             nonExistentMemberId,
-            new UpdateMemberRequest(MemberType.IVW),
+            new UpdateMemberRequest(MemberType.INTERVIEWER),
             ctx.hrToken(),
             ctx.workspaceId());
 
