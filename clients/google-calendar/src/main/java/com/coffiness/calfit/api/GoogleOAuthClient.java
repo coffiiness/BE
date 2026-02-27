@@ -10,6 +10,8 @@ import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 @Component
 @RequiredArgsConstructor
@@ -28,11 +30,15 @@ public class GoogleOAuthClient implements GoogleOAuthPort {
 
   public GoogleTokenModel exchangeToken(String authCode) {
 
+    MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+    formData.add("code", authCode);
+    formData.add("client_id", clientId);
+    formData.add("client_secret", clientSecret);
+    formData.add("redirect_uri", redirectUri);
     // 구글 스펙상 고정값
-    final String GRANT_TYPE = "authorization_code";
+    formData.add("grant_type", "authorization_code");
 
-    GoogleOAuthResponseDto rawDto =
-        googleOAuthApi.exchange(authCode, clientId, clientSecret, redirectUri, GRANT_TYPE);
+    GoogleOAuthResponseDto rawDto = googleOAuthApi.exchange(formData);
 
     String extractEmail = extractEmailFromIdToken(rawDto.idToken());
 
