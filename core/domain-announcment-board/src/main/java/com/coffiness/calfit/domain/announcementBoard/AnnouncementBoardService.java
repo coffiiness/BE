@@ -60,7 +60,8 @@ public class AnnouncementBoardService {
 
   /* 공지사항 수정 */
   @Transactional
-  public AnnouncementBoard update(Long id, String title, String content, Boolean pinned, Long userId) {
+  public AnnouncementBoard update(
+      Long id, String title, String content, Boolean pinned, Long userId) {
     String tenantId = TenantContext.getTenantId();
     assertHrMember(tenantId, userId);
 
