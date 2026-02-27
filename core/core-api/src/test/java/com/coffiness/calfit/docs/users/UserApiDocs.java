@@ -135,6 +135,7 @@ public class UserApiDocs extends RestDocsTest {
                     fieldWithPath("data.user.name").description("사용자 이름"),
                     fieldWithPath("data.user.role").description("사용자 역할"),
                     fieldWithPath("data.user.createdAt").description("가입 일시"),
+                    fieldWithPath("data.workspaceId").description("기본 워크스페이스 ID").optional(),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
