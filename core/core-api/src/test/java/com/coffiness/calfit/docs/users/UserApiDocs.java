@@ -104,7 +104,8 @@ public class UserApiDocs extends RestDocsTest {
     // given
     User user = new User(1L, "test@example.com", "홍길동", "USER", LocalDateTime.now());
     UserService.LoginResult loginResult =
-        new UserService.LoginResult("access-token-example", "refresh-token-example", user);
+        new UserService.LoginResult(
+            "access-token-example", "refresh-token-example", user, "workspace-id-example");
     when(userService.login(anyString(), anyString())).thenReturn(loginResult);
 
     LoginRequest request = new LoginRequest("test@example.com", "password123");
@@ -134,6 +135,7 @@ public class UserApiDocs extends RestDocsTest {
                     fieldWithPath("data.user.name").description("사용자 이름"),
                     fieldWithPath("data.user.role").description("사용자 역할"),
                     fieldWithPath("data.user.createdAt").description("가입 일시"),
+                    fieldWithPath("data.workspaceId").description("기본 워크스페이스 ID").optional(),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
