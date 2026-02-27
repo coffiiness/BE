@@ -34,6 +34,12 @@ public class FixtureConfiguration {
 
   @Bean
   @Scope("prototype")
+  CalendarFixture calendarFixture(Environment environment, ObjectMapper objectMapper) {
+    return CalendarFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
   MeetingRoomFixture meetingRoomFixture(Environment environment, ObjectMapper objectMapper) {
     return MeetingRoomFixture.create(environment, objectMapper);
   }
