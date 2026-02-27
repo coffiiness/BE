@@ -2,13 +2,29 @@ package com.coffiness.calfit.storage.db.core.member;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
-  List<MemberEntity> findByTenantIdAndStatus(String tenantId, EntityStatus status);
+  List<MemberEntity> findByStatus(EntityStatus status);
+
+  @Query(
+      value = "SELECT tenant_id FROM workspace_members WHERE user_id = :userId LIMIT 1",
+      nativeQuery = true)
+  Optional<String> findTenantIdByUserId(@Param("userId") Long userId);
 
   MemberEntity findByTenantIdAndUserId(String tenantId, Long userId);
 
   boolean existsByTenantIdAndUserId(String workspaceId, Long userId);
+
+  List<MemberEntity> findByGroupIdAndStatus(Long groupId, EntityStatus status);
+
+  @Query(
+      "SELECT m.groupId, COUNT(m) FROM MemberEntity m"
+          + " WHERE m.groupId IN :groupIds AND m.status = :status GROUP BY m.groupId")
+  List<Object[]> countByGroupIdsAndStatus(
+      @Param("groupIds") List<Long> groupIds, @Param("status") EntityStatus status);
 }

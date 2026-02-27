@@ -33,7 +33,7 @@ public class WorkspaceController {
 
     TenantContext.setTenantId(workspace.workspaceId());
 
-    memberService.registerMember(workspace.workspaceId(), securityUser.userId(), MemberType.HR);
+    memberService.registerMember(securityUser.userId(), MemberType.HR);
 
     return ApiResponse.success(WorkspaceResponse.from(workspace));
   }
