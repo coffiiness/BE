@@ -4,10 +4,11 @@ import com.coffiness.calfit.model.GoogleTokenModel;
 import com.coffiness.calfit.port.GoogleOAuthPort;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarRepository;
-import java.time.LocalDateTime;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 /*
  * 구글 캘린더 연동 서비스 클래스
@@ -38,8 +39,11 @@ public class CalendarConnectService {
     if (existingCalendar.isPresent()) {
       // 기존 연동 유지
       ExternalCalendarEntity existingEmail = existingCalendar.get();
-      existingEmail.updateAuthTokens(
-          tokenModel.accessToken(), tokenModel.refreshToken(), expiresAt);
+      String refreshToken =
+          tokenModel.refreshToken() != null && !tokenModel.refreshToken().isBlank()
+              ? tokenModel.refreshToken()
+              : existingEmail.getRefreshToken();
+      existingEmail.updateAuthTokens(tokenModel.accessToken(), refreshToken, expiresAt);
 
       externalCalendarRepository.save(existingEmail);
     } else {

@@ -104,7 +104,8 @@ public class UserApiDocs extends RestDocsTest {
     // given
     User user = new User(1L, "test@example.com", "홍길동", "USER", LocalDateTime.now());
     UserService.LoginResult loginResult =
-        new UserService.LoginResult("access-token-example", "refresh-token-example", user);
+        new UserService.LoginResult(
+            "access-token-example", "refresh-token-example", user, "workspace-123");
     when(userService.login(anyString(), anyString())).thenReturn(loginResult);
 
     LoginRequest request = new LoginRequest("test@example.com", "password123");
