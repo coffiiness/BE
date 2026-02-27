@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.AnnouncementBoardFixture;
-import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardResponse;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import org.junit.jupiter.api.DisplayName;
@@ -20,14 +22,16 @@ class POST_specs {
 
   @Test
   void 정상_요청시_공지사항이_생성된다(
-      @Autowired UserFixture userFixture,
+      @Autowired MemberFixture memberFixture,
       @Autowired AnnouncementBoardFixture announcementBoardFixture) {
     // Arrange
-    String token = userFixture.createUserAndGetToken();
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
 
     // Act
     ApiResponse<AnnouncementBoardResponse> response =
-        announcementBoardFixture.create(token, "공지 제목", "공지 내용", true);
+        announcementBoardFixture.create(token, tenantId, "공지 제목", "공지 내용", true);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -37,10 +41,15 @@ class POST_specs {
   }
 
   @Test
-  void 인증_토큰이_없으면_401을_반환한다(@Autowired AnnouncementBoardFixture announcementBoardFixture) {
+  void 인증_토큰이_없으면_401을_반환한다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired AnnouncementBoardFixture announcementBoardFixture) {
+    // Arrange
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+
     // Act
     ApiResponse<AnnouncementBoardResponse> response =
-        announcementBoardFixture.create("", "공지 제목", "공지 내용", false);
+        announcementBoardFixture.create(null, context.workspaceId(), "공지 제목", "공지 내용", false);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -48,14 +57,16 @@ class POST_specs {
 
   @Test
   void 제목이_없으면_400을_반환한다(
-      @Autowired UserFixture userFixture,
+      @Autowired MemberFixture memberFixture,
       @Autowired AnnouncementBoardFixture announcementBoardFixture) {
     // Arrange
-    String token = userFixture.createUserAndGetToken();
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
 
     // Act
     ApiResponse<AnnouncementBoardResponse> response =
-        announcementBoardFixture.create(token, null, "공지 내용", false);
+        announcementBoardFixture.create(token, tenantId, null, "공지 내용", false);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -63,14 +74,35 @@ class POST_specs {
 
   @Test
   void pinned_값이_없으면_400을_반환한다(
-      @Autowired UserFixture userFixture,
+      @Autowired MemberFixture memberFixture,
       @Autowired AnnouncementBoardFixture announcementBoardFixture) {
     // Arrange
-    String token = userFixture.createUserAndGetToken();
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
 
     // Act
     ApiResponse<AnnouncementBoardResponse> response =
-        announcementBoardFixture.create(token, "공지 제목", "공지 내용", null);
+        announcementBoardFixture.create(token, tenantId, "공지 제목", "공지 내용", null);
+
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 인사_담당자가_아니면_생성할_수_없다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired AnnouncementBoardFixture announcementBoardFixture) {
+    // Arrange
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
+    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
+
+    // Act
+    ApiResponse<AnnouncementBoardResponse> response =
+        announcementBoardFixture.create(token, tenantId, "공지 제목", "공지 내용", false);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

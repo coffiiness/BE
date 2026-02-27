@@ -2,9 +2,9 @@ package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.AnnouncementBoardCreateRequest;
 import com.coffiness.calfit.api.v1.request.AnnouncementBoardUpdateRequest;
+import com.coffiness.calfit.api.v1.response.AnnouncementBoardListResponse;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.announcementBoard.AnnouncementBoard;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
@@ -75,22 +75,22 @@ public record AnnouncementBoardFixture(BaseFixture base) {
         Void.class);
   }
 
-  public ApiResponse<AnnouncementBoard[]> list(String token) {
-    return base.get("/api/v1/announcement-boards", token, AnnouncementBoard[].class);
+  public ApiResponse<AnnouncementBoardListResponse[]> list(String token) {
+    return base.get("/api/v1/announcement-boards", token, AnnouncementBoardListResponse[].class);
   }
 
-  public ApiResponse<AnnouncementBoard[]> list(String token, String tenantId) {
+  public ApiResponse<AnnouncementBoardListResponse[]> list(String token, String tenantId) {
     return exchangeWithTenant(
         "/api/v1/announcement-boards",
         HttpMethod.GET,
         null,
         token,
         tenantId,
-        AnnouncementBoard[].class);
+        AnnouncementBoardListResponse[].class);
   }
 
-  public ApiResponse<AnnouncementBoard[]> list() {
-    return base.get("/api/v1/announcement-boards", AnnouncementBoard[].class);
+  public ApiResponse<AnnouncementBoardListResponse[]> list() {
+    return base.get("/api/v1/announcement-boards", AnnouncementBoardListResponse[].class);
   }
 
   @SuppressWarnings("unchecked")
