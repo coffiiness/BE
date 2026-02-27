@@ -4,11 +4,10 @@ import com.coffiness.calfit.model.GoogleTokenModel;
 import com.coffiness.calfit.port.GoogleOAuthPort;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 /*
  * 구글 캘린더 연동 서비스 클래스
@@ -21,10 +20,10 @@ public class CalendarConnectService {
   private final GoogleOAuthPort googleOAuthPort;
   private final ExternalCalendarRepository externalCalendarRepository;
 
-  public void connectGoogleCalendar(String authCode, Long userId) {
+  public String connectGoogleCalendar(String authCode, String redirectUri, Long userId) {
 
     // 구글 토큰 발급 및 이메일 추출
-    GoogleTokenModel tokenModel = googleOAuthPort.exchangeToken(authCode);
+    GoogleTokenModel tokenModel = googleOAuthPort.exchangeToken(authCode, redirectUri);
     String googleEmail = tokenModel.email();
 
     // 토큰 만료 시간 계산
@@ -63,5 +62,7 @@ public class CalendarConnectService {
 
       externalCalendarRepository.save(newCalendar);
     }
+
+    return googleEmail;
   }
 }

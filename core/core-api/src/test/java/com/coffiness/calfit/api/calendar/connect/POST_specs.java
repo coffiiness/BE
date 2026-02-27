@@ -27,11 +27,11 @@ public class POST_specs {
     String token = userFixture.createUserAndGetToken();
     String validAuthCode = "dummy-auth-code";
 
-    given(googleOAuthPort.exchangeToken(validAuthCode))
+    given(googleOAuthPort.exchangeToken(validAuthCode, "http://localhost:5173/auth/callback"))
         .willReturn(new GoogleTokenModel("mock-access", "mock-refresh", 3600, "test@gmail.com"));
 
     // Act
-    ApiResponse<Void> response = calendarFixture.connectGoogleCalendar(token, validAuthCode);
+    ApiResponse<String> response = calendarFixture.connectGoogleCalendar(token, validAuthCode);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -45,7 +45,7 @@ public class POST_specs {
     String emptyAuthCode = "";
 
     // Act
-    ApiResponse<Void> response = calendarFixture.connectGoogleCalendar(token, emptyAuthCode);
+    ApiResponse<String> response = calendarFixture.connectGoogleCalendar(token, emptyAuthCode);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

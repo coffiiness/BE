@@ -11,9 +11,10 @@ public record CalendarFixture(BaseFixture base) {
     return new CalendarFixture(BaseFixture.create(environment, objectMapper));
   }
 
-  public ApiResponse<Void> connectGoogleCalendar(String token, String authCode) {
-    CalendarConnectRequest request = new CalendarConnectRequest(authCode);
+  public ApiResponse<String> connectGoogleCalendar(String token, String authCode) {
+    CalendarConnectRequest request =
+        new CalendarConnectRequest(authCode, "http://localhost:5173/auth/callback");
 
-    return base.post("/api/v1/calendars/google/connect", request, token, Void.class);
+    return base.post("/api/v1/calendars/google/connect", request, token, String.class);
   }
 }
