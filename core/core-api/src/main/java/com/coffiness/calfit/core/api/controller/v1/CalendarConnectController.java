@@ -18,11 +18,13 @@ public class CalendarConnectController {
   private final CalendarConnectService calendarConnectService;
 
   @PostMapping("/api/v1/calendars/google/connect")
-  public ApiResponse<?> connectGoogleCalendar(
+  public ApiResponse<String> connectGoogleCalendar(
       @Valid @RequestBody CalendarConnectRequest request,
       @AuthenticationPrincipal SecurityUser securityUser) {
-    calendarConnectService.connectGoogleCalendar(request.authCode(), securityUser.userId());
+    String googleEmail =
+        calendarConnectService.connectGoogleCalendar(
+            request.authCode(), request.redirectUri(), securityUser.userId());
 
-    return ApiResponse.success();
+    return ApiResponse.success(googleEmail);
   }
 }
