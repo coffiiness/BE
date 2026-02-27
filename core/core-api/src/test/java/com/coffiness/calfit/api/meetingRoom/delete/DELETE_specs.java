@@ -62,7 +62,8 @@ public class DELETE_specs {
     String token = context.hrToken();
     String tenantId = context.workspaceId();
     Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
-    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
+    memberFixture.updateMember(
+        memberId, new UpdateMemberRequest(MemberType.INTERVIEWER), token, tenantId);
     long meetingRoomId =
         createMeetingRoomAndGetId(meetingRoomFixture, token, tenantId, "회의실 A", 1, 5);
 
