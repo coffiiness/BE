@@ -5,5 +5,4 @@ import org.springframework.context.annotation.Configuration;
 
 @EnableFeignClients
 @Configuration
-public class GoogleCalendarConfig {
-}
+public class GoogleCalendarConfig {}

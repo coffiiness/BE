@@ -7,13 +7,13 @@ import org.springframework.core.env.Environment;
 
 public record CalendarFixture(BaseFixture base) {
 
-    public static CalendarFixture create(Environment environment, ObjectMapper objectMapper) {
-        return new CalendarFixture(BaseFixture.create(environment, objectMapper));
-    }
+  public static CalendarFixture create(Environment environment, ObjectMapper objectMapper) {
+    return new CalendarFixture(BaseFixture.create(environment, objectMapper));
+  }
 
-    public ApiResponse<Void> connectGoogleCalendar(String token, String authCode) {
-        CalendarConnectRequest request = new CalendarConnectRequest(authCode);
+  public ApiResponse<Void> connectGoogleCalendar(String token, String authCode) {
+    CalendarConnectRequest request = new CalendarConnectRequest(authCode);
 
-        return base.post("/api/v1/calendars/google/connect", request, token, Void.class);
-    }
+    return base.post("/api/v1/calendars/google/connect", request, token, Void.class);
+  }
 }

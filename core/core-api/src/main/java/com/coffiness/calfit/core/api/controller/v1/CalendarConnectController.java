@@ -15,18 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CalendarConnectController {
 
-    private final CalendarConnectService calendarConnectService;
+  private final CalendarConnectService calendarConnectService;
 
-    @PostMapping("/api/v1/calendars/google/connect")
-    public ApiResponse<?> connectGoogleCalendar(
-            @Valid @RequestBody CalendarConnectRequest request,
-            @AuthenticationPrincipal SecurityUser securityUser
-    ) {
-        calendarConnectService.connectGoogleCalendar(
-                request.authCode(),
-                securityUser.userId()
-        );
+  @PostMapping("/api/v1/calendars/google/connect")
+  public ApiResponse<?> connectGoogleCalendar(
+      @Valid @RequestBody CalendarConnectRequest request,
+      @AuthenticationPrincipal SecurityUser securityUser) {
+    calendarConnectService.connectGoogleCalendar(request.authCode(), securityUser.userId());
 
-        return ApiResponse.success();
-    }
+    return ApiResponse.success();
+  }
 }
