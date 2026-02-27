@@ -67,7 +67,8 @@ class DELETE_specs {
     long boardId =
         createBoardAndGetId(announcementBoardFixture, token, tenantId, "공지 A", "내용 A", true);
     Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
-    memberFixture.updateMember(memberId, new UpdateMemberRequest(MemberType.IVW), token, tenantId);
+    memberFixture.updateMember(
+        memberId, new UpdateMemberRequest(MemberType.INTERVIEWER), token, tenantId);
 
     // Act
     ApiResponse<Void> response = announcementBoardFixture.delete(token, tenantId, boardId);
