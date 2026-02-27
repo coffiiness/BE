@@ -8,11 +8,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GoogleOAuthClient implements GoogleOAuthPort {
@@ -25,10 +27,7 @@ public class GoogleOAuthClient implements GoogleOAuthPort {
   @Value("${spring.security.oauth2.client.registration.google.client-secret}")
   private String clientSecret;
 
-  @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
-  private String redirectUri;
-
-  public GoogleTokenModel exchangeToken(String authCode) {
+  public GoogleTokenModel exchangeToken(String authCode, String redirectUri) {
 
     MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
     formData.add("code", authCode);
