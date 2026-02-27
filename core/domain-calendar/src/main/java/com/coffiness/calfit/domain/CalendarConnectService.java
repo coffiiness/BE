@@ -47,6 +47,9 @@ public class CalendarConnectService {
 
       externalCalendarRepository.save(existingEmail);
     } else {
+      if (tokenModel.refreshToken() == null || tokenModel.refreshToken().isBlank()) {
+        throw new IllegalStateException("구글 리프레시 토큰이 발급되지 않았습니다.");
+      }
       // 최초 연동
       ExternalCalendarEntity newCalendar =
           ExternalCalendarEntity.builder()
