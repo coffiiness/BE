@@ -11,29 +11,33 @@ public class GroupEntity extends TenantBaseEntity {
   @Column(name = "name", nullable = false)
   private String name;
 
-  // 설명
-  @Column(name = "description")
-  private String description;
+  // 색상
+  @Column(name = "color")
+  private String color;
 
   protected GroupEntity() {
     super();
   }
 
-  private GroupEntity(String name, String description) {
+  private GroupEntity(String name, String color) {
     this.name = name;
-    this.description = description;
+    this.color = color;
+  }
+
+  public static GroupEntity create(String name, String color) {
+    return new GroupEntity(name, color);
   }
 
   public String getName() {
     return name;
   }
 
-  public String getDescription() {
-    return description;
+  public String getColor() {
+    return color;
   }
 
-  public void updateInfo(String name, String description) {
+  public void updateInfo(String name, String color) {
     this.name = name;
-    this.description = description;
+    this.color = color;
   }
 }

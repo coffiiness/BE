@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberStore;
@@ -16,11 +17,16 @@ public class MemberStoreImpl implements MemberStore {
   private final MemberRepository memberRepository;
 
   @Override
-  public Member save(String workspaceId, Long userId, MemberType memberType) {
+  public Member save(Long userId, MemberType memberType) {
     MemberEntity entity = MemberEntity.create(userId, memberType);
     MemberEntity saved = memberRepository.save(entity);
 
-    return new Member(saved.getId(), workspaceId, saved.getUserId(), saved.getMemberType());
+    return new Member(
+        saved.getId(),
+        saved.getTenantId(),
+        saved.getUserId(),
+        saved.getMemberType(),
+        saved.getGroupId());
   }
 
   @Override
@@ -39,5 +45,21 @@ public class MemberStoreImpl implements MemberStore {
             .findById(memberId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     entity.deleted();
+  }
+
+  @Override
+  public void assignGroup(Long memberId, Long groupId) {
+    MemberEntity entity =
+        memberRepository
+            .findById(memberId)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+    entity.assignGroup(groupId);
+  }
+
+  @Override
+  public void clearGroupFromMembers(Long groupId) {
+    memberRepository
+        .findByGroupIdAndStatus(groupId, EntityStatus.ACTIVE)
+        .forEach(member -> member.assignGroup(null));
   }
 }

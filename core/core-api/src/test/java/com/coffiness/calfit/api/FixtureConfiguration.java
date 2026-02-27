@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api;
 
 import com.coffiness.calfit.api.fixture.CalendarFixture;
+import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
@@ -35,5 +36,7 @@ public class FixtureConfiguration {
   @Scope("prototype")
   CalendarFixture calendarFixture(Environment environment, ObjectMapper objectMapper) {
     return CalendarFixture.create(environment, objectMapper);
+  MeetingRoomFixture meetingRoomFixture(Environment environment, ObjectMapper objectMapper) {
+    return MeetingRoomFixture.create(environment, objectMapper);
   }
 }
