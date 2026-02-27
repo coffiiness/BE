@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MeetingRoomRepository extends JpaRepository<MeetingRoomEntity, Long> {
 
-
   boolean existsByName(String name);
 
   Optional<MeetingRoomEntity> findByName(String name);
