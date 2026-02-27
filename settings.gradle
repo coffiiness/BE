@@ -19,6 +19,7 @@ include 'core:domain-finance'
 include 'core:domain-user'
 include 'core:domain-workspace'
 include 'core:domain-calendar'
+include 'core:domain-meeting-room'
 
 // Storage 모듈
 include 'storage:db-core'
