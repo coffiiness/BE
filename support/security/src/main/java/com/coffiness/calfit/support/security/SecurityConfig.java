@@ -40,6 +40,9 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
                     .permitAll()
+                    .requestMatchers(
+                        "/api/public/v1/applicants/signup", "/api/public/v1/applicants/login")
+                    .permitAll()
                     .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")

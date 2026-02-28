@@ -21,6 +21,7 @@ include 'core:domain-workspace'
 include 'core:domain-calendar'
 include 'core:domain-meeting-room'
 include 'core:domain-announcement-board'
+include 'core:domain-applicant'
 
 // Storage 모듈
 include 'storage:db-core'
