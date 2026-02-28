@@ -6,6 +6,8 @@ import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,11 +33,7 @@ public class MemberService {
   public MemberInfo getMember(String workspaceId, Long userId) {
     UserInfo user = userReader.getUser(userId);
     Member member = memberReader.getMember(workspaceId, userId);
-    Map<Long, String> groupNameMap =
-        member.groupId() != null
-            ? groupReader.getGroupNameMap(List.of(member.groupId()))
-            : Map.of();
-    return toMemberInfo(user, member, groupNameMap);
+    return toMemberInfo(user, member);
   }
 
   @Transactional(readOnly = true)
