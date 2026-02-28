@@ -26,6 +26,12 @@ public class ErrorMessage {
     this.data = data;
   }
 
+  public ErrorMessage(ErrorType errorType, String customCode, Object data) {
+    this.code = (customCode != null && !customCode.isBlank()) ? customCode : errorType.getCode().name();
+    this.message = errorType.getMessage();
+    this.data = data;
+  }
+
   public String getCode() {
     return code;
   }
