@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -27,6 +28,7 @@ public class ApplicantEntity extends TenantBaseEntity {
   @Column(name = "name", nullable = false)
   private String name;
 
+  @Builder
   private ApplicantEntity(String email, String password, String name) {
     this.email = email;
     this.password = password;
