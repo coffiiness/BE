@@ -40,6 +40,17 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 }
 
+def snippetsDir = file("$buildDir/generated-snippets")
+
+tasks.named('restDocsTest') {
+    outputs.dir snippetsDir
+}
+
+tasks.named('asciidoctor') {
+    inputs.dir snippetsDir
+    attributes 'snippets': snippetsDir
+}
+
 def jacocoTargetProjects = rootProject.subprojects.findAll { subproject ->
     !['tests', 'support'].any { excluded -> subproject.path.contains(excluded) }
 }
