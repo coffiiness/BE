@@ -47,7 +47,7 @@ public class GET_specs {
         // Act
         String startDate = now.toLocalDate().minusDays(1).toString();
         String endDate = now.toLocalDate().plusDays(7).toString();
-        ApiResponse<List<ScheduleResponse>> response = calendarFixture.readSchedules(token, startDate, endDate);
+        ApiResponse<List<ScheduleResponse>> response = calendarFixture.getSchedules(token, startDate, endDate);
 
         // Assert
         assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
