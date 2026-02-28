@@ -25,8 +25,8 @@ public record CalendarFixture(BaseFixture base) {
     return base.post("/api/v1/schedules", request, token, Void.class);
   }
 
-  public ApiResponse<List<ScheduleResponse>> readSchedules(String token, String startDate, String endDate) {
-      String url = String.format("/api/v1/schedules?startDate=&s&endDate=%s", startDate, endDate);
+  public ApiResponse<List<ScheduleResponse>> getSchedules(String token, String startDate, String endDate) {
+      String url = String.format("/api/v1/schedules?startDate=%s&endDate=%s", startDate, endDate);
 
       ApiResponse<ScheduleResponse[]> response = base.get(url, token, ScheduleResponse[].class);
 
