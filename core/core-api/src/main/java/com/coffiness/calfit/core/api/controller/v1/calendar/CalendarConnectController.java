@@ -1,4 +1,4 @@
-package com.coffiness.calfit.core.api.controller.v1;
+package com.coffiness.calfit.core.api.controller.v1.calendar;
 
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.CalendarConnectService;

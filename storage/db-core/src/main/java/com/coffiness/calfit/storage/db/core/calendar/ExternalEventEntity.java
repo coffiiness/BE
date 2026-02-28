@@ -3,7 +3,6 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.EventStatus;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
-import java.time.ZonedDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +10,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.TimeZoneColumn;
 import org.hibernate.annotations.TimeZoneStorage;
 import org.hibernate.annotations.TimeZoneStorageType;
+
+import java.time.ZonedDateTime;
 
 /*
  * 구글 캘린더 내부 개별 일정 엔티티
@@ -60,6 +61,9 @@ public class ExternalEventEntity extends TenantBaseEntity {
   @Column(name = "status", nullable = false, length = 20)
   private EventStatus status;
 
+  @Column(name = "is_busy", nullable = false)
+  private boolean isBusy;
+
   @Builder
   public ExternalEventEntity(
       String tenantId,
@@ -70,7 +74,8 @@ public class ExternalEventEntity extends TenantBaseEntity {
       ZonedDateTime startTime,
       ZonedDateTime endTime,
       boolean isAllDay,
-      EventStatus status) {
+      EventStatus status,
+      boolean isBusy) {
     super(tenantId);
     this.externalCalendarId = externalCalendarId;
     this.googleEventId = googleEventId;
@@ -80,5 +85,6 @@ public class ExternalEventEntity extends TenantBaseEntity {
     this.endTime = endTime;
     this.isAllDay = isAllDay;
     this.status = status;
+    this.isBusy = isBusy;
   }
 }
