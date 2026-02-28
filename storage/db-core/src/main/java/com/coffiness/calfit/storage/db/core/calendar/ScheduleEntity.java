@@ -3,11 +3,12 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /*
  * 내부 내 일정 캘린더 엔티티
@@ -43,6 +44,9 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Column(name = "room_id")
   private Long roomId;
 
+  @Column(name = "is_busy")
+  private boolean isBusy;
+
   @Column(name = "google_event_id", length = 255)
   private String googleEventId;
 
@@ -57,7 +61,8 @@ public class ScheduleEntity extends TenantBaseEntity {
       LocalDateTime endTime,
       boolean isAllDay,
       Long roomId,
-      String googleEventId) {
+      String googleEventId,
+      boolean isBusy) {
     super(tenantId);
     this.userId = userId;
     this.title = title;
@@ -68,5 +73,6 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.isAllDay = isAllDay;
     this.roomId = roomId;
     this.googleEventId = googleEventId;
+    this.isBusy = isBusy;
   }
 }

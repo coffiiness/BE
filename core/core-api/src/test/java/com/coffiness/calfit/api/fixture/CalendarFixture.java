@@ -2,6 +2,7 @@ package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.request.CalendarConnectRequest;
+import com.coffiness.calfit.request.ScheduleCreateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.env.Environment;
 
@@ -12,9 +13,12 @@ public record CalendarFixture(BaseFixture base) {
   }
 
   public ApiResponse<String> connectGoogleCalendar(String token, String authCode) {
-    CalendarConnectRequest request =
-        new CalendarConnectRequest(authCode, "http://localhost:5173/auth/callback");
+    CalendarConnectRequest request = new CalendarConnectRequest(authCode, "http://localhost:5173/auth/callback");
 
     return base.post("/api/v1/calendars/google/connect", request, token, String.class);
+  }
+
+  public ApiResponse<Void> createSchedule(String token, ScheduleCreateRequest request) {
+    return base.post("/api/v1/schedules", request, token, Void.class);
   }
 }
