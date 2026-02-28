@@ -1,4 +1,4 @@
-package com.coffiness.calfit.api.calendar.create;
+package com.coffiness.calfit.api.calendar.list;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
@@ -7,26 +7,28 @@ import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.response.ScheduleResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @CalfitApiTest
-@DisplayName("POST /api/v1/schedules")
-public class POST_specs {
+@DisplayName("GET /api/v1/schedules")
+public class GET_specs {
 
     @Test
-    void 필수_데이터를_입력하면_내_일정_생성에_성공한다(
+    void 특정_기간의_일정을_조회하면_리스트를_반환한다(
             @Autowired UserFixture userFixture,
             @Autowired CalendarFixture calendarFixture) {
 
         // Arrange
         String token = userFixture.createUserAndGetToken();
-        
+
         LocalDateTime now = LocalDateTime.now();
         ScheduleCreateRequest createRequest = new ScheduleCreateRequest(
                 "기획 회의",
@@ -39,11 +41,18 @@ public class POST_specs {
                 false
         );
 
+        ApiResponse<Void> createResponse = calendarFixture.createSchedule(token, createRequest);
+        assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
         // Act
-        ApiResponse<Void> response = calendarFixture.createSchedule(token, createRequest);
+        String startDate = now.toLocalDate().minusDays(1).toString();
+        String endDate = now.toLocalDate().plusDays(7).toString();
+        ApiResponse<List<ScheduleResponse>> response = calendarFixture.readSchedules(token, startDate, endDate);
 
         // Assert
         assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-
+        assertThat(response.getData()).isNotNull();
+        assertThat(response.getData().size()).isGreaterThan(0);
+        assertThat(response.getData().get(0).title()).isEqualTo("기획 회의");
     }
 }
