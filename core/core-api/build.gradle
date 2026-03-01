@@ -7,6 +7,7 @@ dependencies {
     implementation project(':core:domain-workspace')
     implementation project(':core:domain-meeting-room')
     implementation project(':core:domain-announcement-board')
+    implementation project(':core:domain-interview')
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
 

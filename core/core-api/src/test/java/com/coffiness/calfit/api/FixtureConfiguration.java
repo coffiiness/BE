@@ -2,6 +2,7 @@ package com.coffiness.calfit.api;
 
 import com.coffiness.calfit.api.fixture.AnnouncementBoardFixture;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
+import com.coffiness.calfit.api.fixture.InterviewFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
@@ -50,5 +51,11 @@ public class FixtureConfiguration {
   AnnouncementBoardFixture announcementBoardFixture(
       Environment environment, ObjectMapper objectMapper) {
     return AnnouncementBoardFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
+    return InterviewFixture.create(environment, objectMapper);
   }
 }
