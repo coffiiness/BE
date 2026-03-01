@@ -15,11 +15,14 @@ import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import jakarta.validation.Valid;
-import java.time.LocalDateTime;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +70,7 @@ public class ScheduleService {
     }
   }
 
+  @Transactional(readOnly = true)
   public List<ScheduleResponse> getSchedules(
       long userId, LocalDateTime startDate, LocalDateTime endDate) {
 
@@ -76,6 +80,7 @@ public class ScheduleService {
     return schedules.stream().map(ScheduleResponse::from).toList();
   }
 
+  @Transactional(readOnly = true)
   public ScheduleDetailResponse getDetailSchedule(long userId, Long scheduleId) {
 
     ScheduleEntity schedule =
@@ -88,19 +93,10 @@ public class ScheduleService {
             .map(ScheduleAttendeeEntity::getAttendeeId)
             .toList();
 
-    boolean isAttendee =
-        attendeeIds.stream()
-            .map(
-                memberId -> {
-                  // DB에 없는 ID 요청 시 방지
-                  try {
-                    return memberReader.getMemberById(memberId);
-                  } catch (Exception e) {
-                    return null;
-                  }
-                })
-            .filter(member -> member != null)
-            .anyMatch(member -> member.userId().equals(userId));
+    List<Member> members = memberReader.getMembersByIds(attendeeIds);
+
+      boolean isAttendee = members.stream()
+              .anyMatch(member -> member.userId().equals(userId));
 
     if (!schedule.getUserId().equals(userId) && !isAttendee) {
       throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
@@ -115,31 +111,27 @@ public class ScheduleService {
               .orElse("알 수 없는 장소");
     }
 
-    List<String> attendees =
-        attendeeIds.stream()
-            .map(
-                memberId -> {
-                  // 멤버 ID 추출
-                  Member member;
-                  try {
-                    member = memberReader.getMemberById(memberId);
-                  } catch (Exception e) {
-                    return "알 수 없는 멤버 (" + memberId + ")";
-                  }
+      List<Long> userIdsForAttendees = members.stream().map(Member::userId).toList();
+      Map<Long, UserInfo> userMap = userReader.getUsers(userIdsForAttendees).stream()
+              .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
 
+      Map<Long, Member> memberMap = members.stream()
+              .collect(Collectors.toMap(Member::id, m -> m, (m1, m2) -> m1));
+
+      List<String> attendees = attendeeIds.stream()
+              .map(memberId -> {
+                  Member member = memberMap.get(memberId);
                   if (member == null) {
-                    return "알 수 없는 멤버 (" + memberId + ")";
+                      return "알 수 없는 멤버 (" + memberId + ")";
                   }
-
                   // 유저 이름 추출
-                  UserInfo user = userReader.getUser(member.userId());
+                  UserInfo user = userMap.get(member.userId());
                   if (user == null || user.name() == null) {
-                    return "이름 없는 사용자";
+                      return "이름 없는 사용자";
                   }
-
                   return String.format("%s (%s)", user.name(), member.memberType().name());
-                })
-            .toList();
+              })
+              .toList();
 
     // 기본 내 일정은 지원자 이름이 없음
     String applicantName = null;
@@ -155,7 +147,7 @@ public class ScheduleService {
             .findById(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
-    if (schedule.getUserId().equals(userId)) {
+    if (!schedule.getUserId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 수정할 권한이 없습니다.");
     }
 
@@ -194,7 +186,7 @@ public class ScheduleService {
             .findById(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
-    if (schedule.getUserId().equals(userId)) {
+    if (!schedule.getUserId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 삭제할 권한이 없습니다.");
     }
 
