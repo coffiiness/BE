@@ -177,4 +177,19 @@ public class ScheduleService {
 
         return getDetailSchedule(userId, scheduleId);
     }
+
+    public void deleteSchedule(long userId, Long scheduleId) {
+
+        ScheduleEntity schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
+
+        if (schedule.getUserId() != userId) {
+            throw new IllegalArgumentException("해당 일정을 삭제할 권한이 없습니다.");
+        }
+
+        // 참석자 삭제
+        // TODO : 일정 내에 있는 참석자는 Hard vs Soft? Soft라면 Repository에 'DELETED' 검증이 되어야 할 것
+        scheduleAttendeeRepository.deleteByScheduleId(scheduleId);
+        schedule.deleted();
+    }
 }
