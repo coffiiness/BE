@@ -5,6 +5,7 @@ import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.request.ScheduleUpdateRequest;
 import com.coffiness.calfit.response.ScheduleDetailResponse;
 import com.coffiness.calfit.response.ScheduleResponse;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
@@ -13,6 +14,7 @@ import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -139,5 +141,40 @@ public class ScheduleService {
                 attendees,
                 applicantName
         );
+    }
+
+    public ScheduleDetailResponse updateSchedule(long userId, Long scheduleId, @Valid ScheduleUpdateRequest request) {
+
+        ScheduleEntity schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
+
+        if (schedule.getUserId() != userId) {
+            throw new IllegalArgumentException("해당 일정을 수정할 권한이 없습니다.");
+        }
+
+        schedule.update(
+                request.title(),
+                request.description(),
+                request.type(),
+                request.startTime(),
+                request.endTime(),
+                request.isAllDay() != null ? request.isAllDay() : false,
+                request.roomId(),
+                request.isBusy() != null ? request.isBusy() : true
+        );
+
+        scheduleAttendeeRepository.deleteByScheduleId(scheduleId);
+
+        if (request.attendeeIds() != null && !request.attendeeIds().isEmpty()) {
+            List<ScheduleAttendeeEntity> newAttendees = request.attendeeIds().stream()
+                    .map(attendeeId -> ScheduleAttendeeEntity.builder()
+                            .scheduleId(scheduleId)
+                            .attendeeId(attendeeId)
+                            .build()
+                    ).toList();
+            scheduleAttendeeRepository.saveAllAndFlush(newAttendees);
+        }
+
+        return getDetailSchedule(userId, scheduleId);
     }
 }

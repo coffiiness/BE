@@ -3,6 +3,7 @@ package com.coffiness.calfit.core.api.controller.v1.calendar;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.request.ScheduleUpdateRequest;
 import com.coffiness.calfit.response.ScheduleDetailResponse;
 import com.coffiness.calfit.response.ScheduleResponse;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
@@ -63,8 +64,20 @@ public class ScheduleController {
         long userId = user.userId();
 
         ScheduleDetailResponse response = scheduleService.getDetailSchedule(userId, scheduleId);
-
         return ApiResponse.success(response);
 
+    }
+
+    @PutMapping("/api/v1/schedules/{scheduleId}")
+    public ApiResponse<ScheduleDetailResponse> updateSchedule(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable("scheduleId") Long scheduleId,
+            @Valid @RequestBody ScheduleUpdateRequest request
+    ) {
+
+        long userId = user.userId();
+
+        ScheduleDetailResponse response = scheduleService.updateSchedule(userId, scheduleId, request);
+        return ApiResponse.success(response);
     }
 }
