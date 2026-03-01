@@ -36,4 +36,3 @@ include 'support:email'
 // Client 모듈
 include 'clients:client-example'
 include 'clients:google-calendar'
-include 'core:domain-announcment-board'
