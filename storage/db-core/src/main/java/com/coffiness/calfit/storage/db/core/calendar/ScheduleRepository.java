@@ -12,7 +12,8 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
     @Query("SELECT s FROM ScheduleEntity s " +
             "WHERE s.userId = :userId " +
             "AND s.startTime <= :endDate " +
-            "AND s.endTime >= :startDate")
+            "AND s.endTime >= :startDate " +
+            "AND s.status = 'ACTIVE'")
     List<ScheduleEntity> findOverlappingSchedules(
             @Param("userId") long userId,
             @Param("startDate") LocalDateTime startDate,

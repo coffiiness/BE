@@ -80,4 +80,15 @@ public class ScheduleController {
         ScheduleDetailResponse response = scheduleService.updateSchedule(userId, scheduleId, request);
         return ApiResponse.success(response);
     }
+
+    @DeleteMapping("/api/v1/schedules/{scheduleId}")
+    public ApiResponse<Void> deleteSchedule(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable("scheduleId") Long scheduleId) {
+
+        long userId = user.userId();
+
+        scheduleService.deleteSchedule(userId, scheduleId);
+        return ApiResponse.success(null);
+    }
 }
