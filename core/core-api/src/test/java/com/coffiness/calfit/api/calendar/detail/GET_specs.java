@@ -13,8 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @CalfitApiTest
 @DisplayName("GET /api/v1/schedules/{scheduleId}")
@@ -37,7 +38,8 @@ public class GET_specs {
                 now.plusDays(2).plusHours(2),
                 false,
                 null,
-                false
+                false,
+                null
         );
         calendarFixture.createSchedule(token, createRequest);
 
@@ -54,4 +56,45 @@ public class GET_specs {
         assertThat(response.getData().title()).isEqualTo("상세 조회용 테스트 회의");
 
     }
+
+    @Test
+    void 특정_일정의_단건_상세_정보를_조회한다(
+            @Autowired UserFixture userFixture,
+            @Autowired CalendarFixture calendarFixture) {
+
+        // Arrange
+        String token = userFixture.createUserAndGetToken();
+
+        Long myUserId = 1L;
+
+        LocalDateTime now = LocalDateTime.now();
+        ScheduleCreateRequest request = new ScheduleCreateRequest(
+                "상세 조회용 참석자 테스트",
+                "참석자가 잘 들어가는지 테스트.",
+                ScheduleType.MEETING,
+                now.plusDays(2),
+                now.plusDays(2).plusHours(2),
+                false,
+                null,
+                false,
+                List.of(myUserId, 999L)
+        );
+        calendarFixture.createSchedule(token, request);
+
+        String startDate = now.toLocalDate().toString();
+        String endDate = now.toLocalDate().plusDays(5).toString();
+        Long targetScheduleId = calendarFixture.getSchedules(token, startDate, endDate).getData().get(0).id();
+
+        // Act
+        ApiResponse<ScheduleDetailResponse> response = calendarFixture.getDetailSchedule(token, targetScheduleId);
+
+        // Assert
+        assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+        assertThat(response.getData()).isNotNull();
+        assertThat(response.getData().title()).isEqualTo("상세 조회용 참석자 테스트");
+        assertThat(response.getData().attendeeIds()).hasSize(2);
+        assertThat(response.getData().attendeeIds()).contains(myUserId, 999L);
+        assertThat(response.getData().attendees()).hasSize(2);
+    }
+
 }
