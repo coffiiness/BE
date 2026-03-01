@@ -75,4 +75,25 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.googleEventId = googleEventId;
     this.isBusy = isBusy;
   }
+
+    public void update(
+            String title,
+            String description,
+            ScheduleType type,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            boolean isAllDay,
+            Long roomId,
+            boolean isBusy
+    ) {
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.isAllDay = isAllDay;
+        this.roomId = roomId;
+        this.isBusy = isBusy;
+    }
+
 }
