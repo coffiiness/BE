@@ -58,4 +58,9 @@ public class MemberReaderImpl implements MemberReader {
         entity.getMemberType(),
         entity.getGroupId());
   }
+
+  @Override
+  public List<Member> getMembersByIds(List<Long> memberIds) {
+    return memberRepository.findAllById(memberIds).stream().map(this::toWorkspaceMember).toList();
+  }
 }
