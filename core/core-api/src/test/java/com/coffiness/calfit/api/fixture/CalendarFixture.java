@@ -3,6 +3,7 @@ package com.coffiness.calfit.api.fixture;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.request.CalendarConnectRequest;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.request.ScheduleUpdateRequest;
 import com.coffiness.calfit.response.ScheduleDetailResponse;
 import com.coffiness.calfit.response.ScheduleResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,17 +28,23 @@ public record CalendarFixture(BaseFixture base) {
   }
 
   public ApiResponse<List<ScheduleResponse>> getSchedules(String token, String startDate, String endDate) {
-      String url = String.format("/api/v1/schedules?startDate=%s&endDate=%s", startDate, endDate);
+    String url = String.format("/api/v1/schedules?startDate=%s&endDate=%s", startDate, endDate);
 
-      ApiResponse<ScheduleResponse[]> response = base.get(url, token, ScheduleResponse[].class);
+    ApiResponse<ScheduleResponse[]> response = base.get(url, token, ScheduleResponse[].class);
 
-      // TODO : 에러 났을 때 에러 반환 로직 필요 (Response에 ErrorType 부재)
+    // TODO : 에러 났을 때 에러 반환 로직 필요 (Response에 ErrorType 부재)
 
-      return ApiResponse.success(List.of(response.getData()));
+    return ApiResponse.success(List.of(response.getData()));
   }
 
   public ApiResponse<ScheduleDetailResponse> getDetailSchedule(String token, Long scheduleId) {
-      String url = String.format("/api/v1/schedules/%d", scheduleId);
-      return base.get(url, token, ScheduleDetailResponse.class);
+    String url = String.format("/api/v1/schedules/%d", scheduleId);
+    return base.get(url, token, ScheduleDetailResponse.class);
+  }
+
+  public ApiResponse<Void> updateSchedule(String token, Long scheduleId, ScheduleUpdateRequest request) {
+    String url = String.format("/api/v1/schedules/%d", scheduleId);
+
+    return base.put(url, request, token, Void.class);
   }
 }
