@@ -15,14 +15,13 @@ import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -95,8 +94,7 @@ public class ScheduleService {
 
     List<Member> members = memberReader.getMembersByIds(attendeeIds);
 
-      boolean isAttendee = members.stream()
-              .anyMatch(member -> member.userId().equals(userId));
+    boolean isAttendee = members.stream().anyMatch(member -> member.userId().equals(userId));
 
     if (!schedule.getUserId().equals(userId) && !isAttendee) {
       throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
@@ -111,27 +109,30 @@ public class ScheduleService {
               .orElse("알 수 없는 장소");
     }
 
-      List<Long> userIdsForAttendees = members.stream().map(Member::userId).toList();
-      Map<Long, UserInfo> userMap = userReader.getUsers(userIdsForAttendees).stream()
-              .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
+    List<Long> userIdsForAttendees = members.stream().map(Member::userId).toList();
+    Map<Long, UserInfo> userMap =
+        userReader.getUsers(userIdsForAttendees).stream()
+            .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
 
-      Map<Long, Member> memberMap = members.stream()
-              .collect(Collectors.toMap(Member::id, m -> m, (m1, m2) -> m1));
+    Map<Long, Member> memberMap =
+        members.stream().collect(Collectors.toMap(Member::id, m -> m, (m1, m2) -> m1));
 
-      List<String> attendees = attendeeIds.stream()
-              .map(memberId -> {
+    List<String> attendees =
+        attendeeIds.stream()
+            .map(
+                memberId -> {
                   Member member = memberMap.get(memberId);
                   if (member == null) {
-                      return "알 수 없는 멤버 (" + memberId + ")";
+                    return "알 수 없는 멤버 (" + memberId + ")";
                   }
                   // 유저 이름 추출
                   UserInfo user = userMap.get(member.userId());
                   if (user == null || user.name() == null) {
-                      return "이름 없는 사용자";
+                    return "이름 없는 사용자";
                   }
                   return String.format("%s (%s)", user.name(), member.memberType().name());
-              })
-              .toList();
+                })
+            .toList();
 
     // 기본 내 일정은 지원자 이름이 없음
     String applicantName = null;

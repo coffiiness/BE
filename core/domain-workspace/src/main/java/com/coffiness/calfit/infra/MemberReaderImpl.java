@@ -7,12 +7,11 @@ import com.coffiness.calfit.storage.db.core.member.MemberEntity;
 import com.coffiness.calfit.storage.db.core.member.MemberRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -60,10 +59,8 @@ public class MemberReaderImpl implements MemberReader {
         entity.getGroupId());
   }
 
-    @Override
-    public List<Member> getMembersByIds(List<Long> memberIds) {
-        return memberRepository.findAllById(memberIds).stream()
-                .map(this::toWorkspaceMember)
-                .toList();
-    }
+  @Override
+  public List<Member> getMembersByIds(List<Long> memberIds) {
+    return memberRepository.findAllById(memberIds).stream().map(this::toWorkspaceMember).toList();
+  }
 }
