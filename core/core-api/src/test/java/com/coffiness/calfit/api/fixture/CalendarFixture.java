@@ -47,4 +47,10 @@ public record CalendarFixture(BaseFixture base) {
 
     return base.put(url, request, token, Void.class);
   }
+
+  public ApiResponse<Void> deleteSchedule(String token, Long scheduleId) {
+      String url = String.format("/api/v1/schedules/%d", scheduleId);
+
+      return base.delete(url, token, Void.class);
+  }
 }
