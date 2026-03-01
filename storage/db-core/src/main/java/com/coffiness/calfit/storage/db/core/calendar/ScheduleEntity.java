@@ -84,6 +84,11 @@ public class ScheduleEntity extends TenantBaseEntity {
       boolean isAllDay,
       Long roomId,
       boolean isBusy) {
+
+    if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+      throw new IllegalArgumentException("종료 시간은 시작 시간보다 이후여야 합니다.");
+    }
+
     this.title = title;
     this.description = description;
     this.type = type;

@@ -102,7 +102,7 @@ public class ScheduleService {
             .filter(member -> member != null)
             .anyMatch(member -> member.userId().equals(userId));
 
-    if (schedule.getUserId() != userId && !isAttendee) {
+    if (!schedule.getUserId().equals(userId) && !isAttendee) {
       throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
     }
 
@@ -155,7 +155,7 @@ public class ScheduleService {
             .findById(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
-    if (schedule.getUserId() != userId) {
+    if (schedule.getUserId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 수정할 권한이 없습니다.");
     }
 
@@ -194,7 +194,7 @@ public class ScheduleService {
             .findById(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
-    if (schedule.getUserId() != userId) {
+    if (schedule.getUserId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 삭제할 권한이 없습니다.");
     }
 

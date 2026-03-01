@@ -15,4 +15,11 @@ public record ScheduleCreateRequest(
     Boolean isAllDay,
     Long roomId,
     Boolean isBusy,
-    List<Long> attendeeIds) {}
+    List<Long> attendeeIds) {
+
+  public ScheduleCreateRequest {
+    if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+      throw new IllegalArgumentException("종료 시간은 시작 시간보다 이후여야 합니다.");
+    }
+  }
+}
