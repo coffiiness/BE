@@ -3,6 +3,7 @@ package com.coffiness.calfit.api.fixture;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.request.CalendarConnectRequest;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.response.ScheduleDetailResponse;
 import com.coffiness.calfit.response.ScheduleResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.env.Environment;
@@ -33,5 +34,10 @@ public record CalendarFixture(BaseFixture base) {
       // TODO : 에러 났을 때 에러 반환 로직 필요 (Response에 ErrorType 부재)
 
       return ApiResponse.success(List.of(response.getData()));
+  }
+
+  public ApiResponse<ScheduleDetailResponse> getDetailSchedule(String token, Long scheduleId) {
+      String url = String.format("/api/v1/schedules/%d", scheduleId);
+      return base.get(url, token, ScheduleDetailResponse.class);
   }
 }
