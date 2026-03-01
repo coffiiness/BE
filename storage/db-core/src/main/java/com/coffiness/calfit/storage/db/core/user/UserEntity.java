@@ -38,6 +38,10 @@ public class UserEntity extends BaseEntity {
     return new UserEntity(email, password, name, UserRole.MEMBER);
   }
 
+  public static UserEntity createAdmin(String email, String password, String name) {
+    return new UserEntity(email, password, name, UserRole.ADMIN);
+  }
+
   public String getEmail() {
     return email;
   }
