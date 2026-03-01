@@ -3,12 +3,11 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 /*
  * 내부 내 일정 캘린더 엔티티
@@ -76,24 +75,22 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.isBusy = isBusy;
   }
 
-    public void update(
-            String title,
-            String description,
-            ScheduleType type,
-            LocalDateTime startTime,
-            LocalDateTime endTime,
-            boolean isAllDay,
-            Long roomId,
-            boolean isBusy
-    ) {
-        this.title = title;
-        this.description = description;
-        this.type = type;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.isAllDay = isAllDay;
-        this.roomId = roomId;
-        this.isBusy = isBusy;
-    }
-
+  public void update(
+      String title,
+      String description,
+      ScheduleType type,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      boolean isAllDay,
+      Long roomId,
+      boolean isBusy) {
+    this.title = title;
+    this.description = description;
+    this.type = type;
+    this.startTime = startTime;
+    this.endTime = endTime;
+    this.isAllDay = isAllDay;
+    this.roomId = roomId;
+    this.isBusy = isBusy;
+  }
 }

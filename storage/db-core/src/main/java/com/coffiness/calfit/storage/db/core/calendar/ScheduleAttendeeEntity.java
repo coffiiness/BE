@@ -10,24 +10,24 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /*
-* 일정-참석자간 맵핑 테이블
-* */
+ * 일정-참석자간 맵핑 테이블
+ * */
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "schedule_attendees")
 public class ScheduleAttendeeEntity extends TenantBaseEntity {
 
-    @Column(name = "schedule_id", nullable = false)
-    private Long scheduleId;
+  @Column(name = "schedule_id", nullable = false)
+  private Long scheduleId;
 
-    @Column(name = "attendee_id", nullable = false)
-    private Long attendeeId;
+  @Column(name = "attendee_id", nullable = false)
+  private Long attendeeId;
 
-    @Builder
-    public ScheduleAttendeeEntity(String tenantId, Long scheduleId, Long attendeeId) {
-        super(tenantId);
-        this.scheduleId = scheduleId;
-        this.attendeeId = attendeeId;
-    }
+  @Builder
+  public ScheduleAttendeeEntity(String tenantId, Long scheduleId, Long attendeeId) {
+    super(tenantId);
+    this.scheduleId = scheduleId;
+    this.attendeeId = attendeeId;
+  }
 }
