@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @CalfitApiTest
 @DisplayName("GET /api/v1/schedules")
@@ -38,7 +38,8 @@ public class GET_specs {
                 now.plusDays(1).plusHours(1),
                 false,
                 null,
-                false
+                false,
+                List.of(1L, 2L)
         );
 
         ApiResponse<Void> createResponse = calendarFixture.createSchedule(token, createRequest);

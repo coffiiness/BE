@@ -3,6 +3,7 @@ package com.coffiness.calfit.core.api.controller.v1.calendar;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.response.ScheduleDetailResponse;
 import com.coffiness.calfit.response.ScheduleResponse;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
@@ -51,5 +52,19 @@ public class ScheduleController {
         List<ScheduleResponse> response = scheduleService.getSchedules(userId, startDateTime, endDateTime);
 
         return ApiResponse.success(response);
+    }
+
+    @GetMapping("/api/v1/schedules/{scheduleId}")
+    public ApiResponse<ScheduleDetailResponse> getDetailSchedule(
+            @AuthenticationPrincipal SecurityUser user,
+            @PathVariable("scheduleId") Long scheduleId
+    ) {
+
+        long userId = user.userId();
+
+        ScheduleDetailResponse response = scheduleService.getDetailSchedule(userId, scheduleId);
+
+        return ApiResponse.success(response);
+
     }
 }
