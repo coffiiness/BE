@@ -2,6 +2,11 @@ package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.InterviewAutoAssignRequest;
 import com.coffiness.calfit.api.v1.request.InterviewCreateRequest;
+import com.coffiness.calfit.api.v1.request.InterviewInvitationDeclineRequest;
+import com.coffiness.calfit.api.v1.request.InterviewInvitationSendRequest;
+import com.coffiness.calfit.api.v1.response.InterviewInvitationAcceptResponse;
+import com.coffiness.calfit.api.v1.response.InterviewInvitationDeclineResponse;
+import com.coffiness.calfit.api.v1.response.InterviewInvitationResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.interview.command.model.InterviewRound;
@@ -85,6 +90,39 @@ public record InterviewFixture(BaseFixture base) {
         token,
         tenantId,
         InterviewResponse.class);
+  }
+
+  public ApiResponse<InterviewInvitationResponse> sendInvitation(
+      String token, String tenantId, Long interviewScheduleId, String message) {
+    return exchangeWithTenant(
+        "/api/v1/interviews/" + interviewScheduleId + "/invitations",
+        HttpMethod.POST,
+        new InterviewInvitationSendRequest(message),
+        token,
+        tenantId,
+        InterviewInvitationResponse.class);
+  }
+
+  public ApiResponse<InterviewInvitationAcceptResponse> acceptInvitation(
+      String token, String tenantId, Long interviewScheduleId) {
+    return exchangeWithTenant(
+        "/api/v1/interviews/" + interviewScheduleId + "/invitations/accept",
+        HttpMethod.POST,
+        null,
+        token,
+        tenantId,
+        InterviewInvitationAcceptResponse.class);
+  }
+
+  public ApiResponse<InterviewInvitationDeclineResponse> declineInvitation(
+      String token, String tenantId, Long interviewScheduleId, String reason) {
+    return exchangeWithTenant(
+        "/api/v1/interviews/" + interviewScheduleId + "/invitations/decline",
+        HttpMethod.POST,
+        new InterviewInvitationDeclineRequest(reason),
+        token,
+        tenantId,
+        InterviewInvitationDeclineResponse.class);
   }
 
   @SuppressWarnings("unchecked")

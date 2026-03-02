@@ -6,7 +6,7 @@ import com.coffiness.calfit.domain.interview.command.model.InterviewSchedule;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// 면접 일정 응답 DTO
+// 면접 일정 응답 DTO (초기 생성 시 status=PENDING, 전원 수락 시 status=CONFIRMED)
 public record InterviewResponse(
     Long id,
     Long recruitmentId,

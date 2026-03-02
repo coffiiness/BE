@@ -1,10 +1,19 @@
 package com.coffiness.calfit.infra.interview;
 
+import com.coffiness.calfit.core.enums.InterviewStatus;
+import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.domain.interview.command.model.TimeWindow;
 import com.coffiness.calfit.domain.interview.port.InterviewAvailabilityPort;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
-import java.sql.Timestamp;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantRepository;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
+import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEntity;
+import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +26,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class InterviewAvailabilityAdapter implements InterviewAvailabilityPort {
 
-  private final EntityManager entityManager;
+  private final ScheduleRepository scheduleRepository;
+  private final InterviewScheduleInterviewerRepository interviewerRepository;
+  private final InterviewScheduleApplicantRepository applicantRepository;
+  private final InterviewScheduleRepository interviewScheduleRepository;
+  private final MeetingRoomReservationRepository meetingRoomReservationRepository;
 
   @Override
   public List<TimeWindow> getInterviewerBusyWindows(
@@ -28,42 +41,18 @@ public class InterviewAvailabilityAdapter implements InterviewAvailabilityPort {
 
     List<TimeWindow> result = new ArrayList<>();
 
-    Query scheduleQuery =
-        entityManager.createNativeQuery(
-            "SELECT s.start_time, s.end_time "
-                + "FROM schedule s "
-                + "WHERE s.tenant_id = :tenantId "
-                + "AND s.user_id IN (:userIds) "
-                + "AND s.start_time < :toTime "
-                + "AND s.end_time > :fromTime");
-    scheduleQuery.setParameter("tenantId", tenantId);
-    scheduleQuery.setParameter("userIds", interviewerIds);
-    scheduleQuery.setParameter("fromTime", from);
-    scheduleQuery.setParameter("toTime", to);
-
-    List<Object[]> scheduleRows = scheduleQuery.getResultList();
-    for (Object[] row : scheduleRows) {
-      LocalDateTime start = toLocalDateTime(row[0]);
-      LocalDateTime end = toLocalDateTime(row[1]);
-      result.add(new TimeWindow(start, end));
+    List<ScheduleEntity> schedules =
+        scheduleRepository.findAllByTenantIdAndUserIdInAndStartTimeBeforeAndEndTimeAfter(
+            tenantId, interviewerIds, to, from);
+    for (ScheduleEntity schedule : schedules) {
+      result.add(new TimeWindow(schedule.getStartTime(), schedule.getEndTime()));
     }
 
-    Query interviewQuery =
-        entityManager.createNativeQuery(
-            "SELECT i.scheduled_at, i.durationMinutes "
-                + "FROM interview_schedules i "
-                + "JOIN interview_schedule_interviewers m "
-                + "ON m.interview_schedule_id = i.id AND m.tenant_id = i.tenant_id "
-                + "WHERE i.tenant_id = :tenantId "
-                + "AND m.user_id IN (:userIds) "
-                + "AND i.status <> 'CANCELLED' "
-                + "AND i.scheduled_at < :toTime");
-    interviewQuery.setParameter("tenantId", tenantId);
-    interviewQuery.setParameter("userIds", interviewerIds);
-    interviewQuery.setParameter("toTime", to);
-
-    List<Object[]> interviewRows = interviewQuery.getResultList();
-    appendInterviewRows(result, interviewRows, from);
+    List<InterviewScheduleInterviewerEntity> mappings =
+        interviewerRepository.findAllByTenantIdAndUserIdIn(tenantId, interviewerIds);
+    List<Long> scheduleIds =
+        mappings.stream().map(InterviewScheduleInterviewerEntity::getInterviewScheduleId).toList();
+    appendInterviewWindows(result, tenantId, scheduleIds, from, to);
     return result;
   }
 
@@ -75,23 +64,11 @@ public class InterviewAvailabilityAdapter implements InterviewAvailabilityPort {
     }
 
     List<TimeWindow> result = new ArrayList<>();
-
-    Query interviewQuery =
-        entityManager.createNativeQuery(
-            "SELECT i.scheduled_at, i.durationMinutes "
-                + "FROM interview_schedules i "
-                + "JOIN interview_schedule_applicants a "
-                + "ON a.interview_schedule_id = i.id AND a.tenant_id = i.tenant_id "
-                + "WHERE i.tenant_id = :tenantId "
-                + "AND a.applicant_id IN (:applicantIds) "
-                + "AND i.status <> 'CANCELLED' "
-                + "AND i.scheduled_at < :toTime");
-    interviewQuery.setParameter("tenantId", tenantId);
-    interviewQuery.setParameter("applicantIds", applicantIds);
-    interviewQuery.setParameter("toTime", to);
-
-    List<Object[]> interviewRows = interviewQuery.getResultList();
-    appendInterviewRows(result, interviewRows, from);
+    List<InterviewScheduleApplicantEntity> mappings =
+        applicantRepository.findAllByTenantIdAndApplicantIdIn(tenantId, applicantIds);
+    List<Long> scheduleIds =
+        mappings.stream().map(InterviewScheduleApplicantEntity::getInterviewScheduleId).toList();
+    appendInterviewWindows(result, tenantId, scheduleIds, from, to);
     return result;
   }
 
@@ -102,51 +79,42 @@ public class InterviewAvailabilityAdapter implements InterviewAvailabilityPort {
       return Map.of();
     }
 
-    Query reservationQuery =
-        entityManager.createNativeQuery(
-            "SELECT r.meeting_room_id, r.start_datetime, r.end_datetime "
-                + "FROM meeting_room_reservations r "
-                + "WHERE r.tenant_id = :tenantId "
-                + "AND r.meeting_room_id IN (:roomIds) "
-                + "AND r.status = 'RESERVED' "
-                + "AND r.start_datetime < :toTime "
-                + "AND r.end_datetime > :fromTime");
-    reservationQuery.setParameter("tenantId", tenantId);
-    reservationQuery.setParameter("roomIds", meetingRoomIds);
-    reservationQuery.setParameter("fromTime", from);
-    reservationQuery.setParameter("toTime", to);
+    List<MeetingRoomReservationEntity> reservations =
+        meetingRoomReservationRepository
+            .findAllByTenantIdAndMeetingRoomIdInAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+                tenantId, meetingRoomIds, MeetingRoomStatus.RESERVED, to, from);
 
-    List<Object[]> rows = reservationQuery.getResultList();
     Map<Long, List<TimeWindow>> result = new HashMap<>();
-    for (Object[] row : rows) {
-      Long roomId = ((Number) row[0]).longValue();
-      LocalDateTime start = toLocalDateTime(row[1]);
-      LocalDateTime end = toLocalDateTime(row[2]);
+    for (MeetingRoomReservationEntity reservation : reservations) {
+      Long roomId = reservation.getMeetingRoomId();
+      LocalDateTime start = reservation.getStartDatetime();
+      LocalDateTime end = reservation.getEndDatetime();
       result.computeIfAbsent(roomId, key -> new ArrayList<>()).add(new TimeWindow(start, end));
     }
 
     return result;
   }
 
-  private void appendInterviewRows(
-      List<TimeWindow> target, List<Object[]> rows, LocalDateTime fromLocal) {
-    for (Object[] row : rows) {
-      LocalDateTime start = toLocalDateTime(row[0]);
-      int duration = ((Number) row[1]).intValue();
-      LocalDateTime end = start.plusMinutes(duration);
-      if (end.isAfter(fromLocal)) {
+  private void appendInterviewWindows(
+      List<TimeWindow> target,
+      String tenantId,
+      List<Long> scheduleIds,
+      LocalDateTime from,
+      LocalDateTime to) {
+    if (scheduleIds.isEmpty()) {
+      return;
+    }
+
+    List<InterviewScheduleEntity> schedules =
+        interviewScheduleRepository.findAllByTenantIdAndIdInAndStatusNotAndScheduledAtBefore(
+            tenantId, scheduleIds, InterviewStatus.CANCELLED, to);
+
+    for (InterviewScheduleEntity schedule : schedules) {
+      LocalDateTime start = schedule.getScheduledAt();
+      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+      if (end.isAfter(from)) {
         target.add(new TimeWindow(start, end));
       }
     }
-  }
-
-  private LocalDateTime toLocalDateTime(Object value) {
-    if (value instanceof LocalDateTime ldt) {
-      return ldt;
-    }
-    if (value instanceof Timestamp ts) {
-      return ts.toLocalDateTime();
-    }
-    return LocalDateTime.parse(value.toString().replace(' ', 'T'));
   }
 }

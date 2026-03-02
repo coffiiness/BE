@@ -2,10 +2,14 @@ package com.coffiness.calfit.domain.interview;
 
 import com.coffiness.calfit.domain.interview.command.InterviewAutoAssignCommand;
 import com.coffiness.calfit.domain.interview.command.InterviewCreateCommand;
+import com.coffiness.calfit.domain.interview.command.model.InterviewInvitationAcceptResult;
+import com.coffiness.calfit.domain.interview.command.model.InterviewInvitationDeclineResult;
+import com.coffiness.calfit.domain.interview.command.model.InterviewInvitationResult;
 import com.coffiness.calfit.domain.interview.command.model.InterviewSchedule;
 import com.coffiness.calfit.domain.interview.command.model.MeetingRoomCandidate;
 import com.coffiness.calfit.domain.interview.command.model.TimeWindow;
 import com.coffiness.calfit.domain.interview.port.InterviewAvailabilityPort;
+import com.coffiness.calfit.domain.interview.port.InterviewInvitationPort;
 import com.coffiness.calfit.domain.interview.port.InterviewScheduleStorePort;
 import com.coffiness.calfit.domain.interview.port.MeetingRoomQueryPort;
 import com.coffiness.calfit.domain.interview.port.MemberAuthorizationPort;
@@ -23,6 +27,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class InterviewScheduleService {
 
+  // 면접 흐름:
+  // 1) 라운드/면접관/지원자/회의실/일시 선택
+  // 2) PENDING 상태의 임시 면접 일정 생성
+  // 3) 면접관에게 일정 확정 요청(초대) 발송
+  // 4) 면접관이 수락/거절 응답
+  // 5) 면접관 전원 수락 시 CONFIRMED로 최종 확정
+
   // HR 권한 확인 포트
   private final MemberAuthorizationPort memberAuthorizationPort;
   // 면접관/지원자/회의실 바쁜 시간 조회 포트
@@ -31,8 +42,10 @@ public class InterviewScheduleService {
   private final MeetingRoomQueryPort meetingRoomQueryPort;
   // 면접 일정 저장 포트
   private final InterviewScheduleStorePort interviewScheduleStorePort;
+  // 면접 초대장 발송 포트
+  private final InterviewInvitationPort interviewInvitationPort;
 
-  // 지정된 시간/회의실로 면접 일정 생성
+  // 지정된 조건으로 PENDING 상태의 임시 면접 일정 생성
   @Transactional
   public InterviewSchedule createInterviewSchedule(
       String tenantId, Long userId, InterviewCreateCommand command) {
@@ -93,11 +106,52 @@ public class InterviewScheduleService {
         }
 
         InterviewCreateCommand createCommand = command.toCreateCommand(room.id(), cursor);
-        return interviewScheduleStorePort.create(tenantId, userId, createCommand);
+        try {
+          return interviewScheduleStorePort.create(tenantId, userId, createCommand);
+        } catch (CoreException e) {
+          // 동시성 충돌(이미 선점) 시 다음 슬롯/회의실로 재시도
+          if (e.getErrorType() == ErrorType.VALIDATION_ERROR) {
+            continue;
+          }
+          throw e;
+        }
       }
     }
 
     throw new CoreException(ErrorType.NOT_FOUND);
+  }
+
+  // 임시(PENDING) 면접 일정에 대해 면접관 확정 요청 초대장 발송
+  @Transactional
+  public InterviewInvitationResult sendInvitations(
+      String tenantId, Long userId, Long interviewScheduleId, String message) {
+    assertHrMember(tenantId, userId);
+    if (interviewScheduleId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    return interviewInvitationPort.sendInvitations(
+        tenantId, userId, interviewScheduleId, normalizeMessage(message));
+  }
+
+  // 면접관 초대 수락 처리 (전원 수락 시 CONFIRMED)
+  @Transactional
+  public InterviewInvitationAcceptResult acceptInvitation(
+      String tenantId, Long userId, Long interviewScheduleId) {
+    if (tenantId == null || tenantId.isBlank() || userId == null || interviewScheduleId == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return interviewInvitationPort.acceptInvitation(tenantId, userId, interviewScheduleId);
+  }
+
+  // 면접관 초대 거절 처리 (거절 시 재조율을 위해 PENDING 유지)
+  @Transactional
+  public InterviewInvitationDeclineResult declineInvitation(
+      String tenantId, Long userId, Long interviewScheduleId, String declineReason) {
+    if (tenantId == null || tenantId.isBlank() || userId == null || interviewScheduleId == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return interviewInvitationPort.declineInvitation(
+        tenantId, userId, interviewScheduleId, normalizeMessage(declineReason));
   }
 
   // 참가자 일정 겹침 검증
@@ -183,5 +237,13 @@ public class InterviewScheduleService {
     if (command.slotMinutes() != null && command.slotMinutes() <= 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+  }
+
+  private String normalizeMessage(String message) {
+    if (message == null) {
+      return null;
+    }
+    String trimmed = message.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 }
