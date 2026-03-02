@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecruitmentService {
 
   private final RecruitmentStore recruitmentStore;
+  private final RecruitmentHistoryAppender recruitmentHistoryAppender;
 
   public Long createRecruitment(long userId, RecruitmentCreateRequest request) {
 
@@ -48,8 +50,15 @@ public class RecruitmentService {
             request.interviewerIds(),
             stages);
 
-    recruitmentStore.store(newRecruitment);
+    Recruitment saveRecruitment = recruitmentStore.store(newRecruitment);
 
-    return newRecruitment.id();
+    recruitmentHistoryAppender.append(
+        saveRecruitment.id(),
+        saveRecruitment.creatorId(),
+        RecruitmentActionType.RECRUITMENT_CREATED,
+        "공고 생성",
+        saveRecruitment);
+
+    return saveRecruitment.id();
   }
 }
