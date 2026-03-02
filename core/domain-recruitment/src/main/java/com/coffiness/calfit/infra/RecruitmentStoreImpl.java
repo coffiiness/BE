@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.domain.recruitment.Recruitment;
 import com.coffiness.calfit.domain.recruitment.RecruitmentStore;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
@@ -78,6 +79,15 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
               .toList();
       recruitmentReferenceGroupRepository.saveAll(referenceGroupEntities);
     }
+
+    RecruitmentHistoryEntity historyEntity =
+        RecruitmentHistoryEntity.builder()
+            .recruitmentId(newId)
+            .actorId(entity.getCreatorId())
+            .recruitmentActionType(RecruitmentActionType.RECRUITMENT_CREATED)
+            .build();
+
+    recruitmentHistoryRepository.save(historyEntity);
 
     return new Recruitment(
         newId,
