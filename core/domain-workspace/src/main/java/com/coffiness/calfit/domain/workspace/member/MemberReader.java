@@ -44,4 +44,12 @@ public interface MemberReader {
    * @return groupId → memberCount 맵
    */
   Map<Long, Long> getGroupMemberCountMap(List<Long> groupIds);
+
+  /**
+   * memberId 리스트로 여러 멤버를 한 번에 조회
+   *
+   * @param memberIds 멤버 고유 ID 목록
+   * @return 멤버 정보 리스트
+   */
+  List<Member> getMembersByIds(List<Long> memberIds);
 }
