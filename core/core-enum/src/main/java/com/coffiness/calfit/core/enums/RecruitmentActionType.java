@@ -1,5 +1,8 @@
 package com.coffiness.calfit.core.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum RecruitmentActionType {
   STAGE_CREATED("단계 생성"),
   STAGE_UPDATED("단계 설정 수정"),
