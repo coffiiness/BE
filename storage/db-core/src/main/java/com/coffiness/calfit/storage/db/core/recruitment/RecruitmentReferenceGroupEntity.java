@@ -21,12 +21,12 @@ public class RecruitmentReferenceGroupEntity extends TenantBaseEntity {
   @Column(name = "recruitment_id", nullable = false)
   private Long recruitmentId;
 
-  @Column(name = "team_id", nullable = false)
-  private Long teamId;
+  @Column(name = "group_id", nullable = false)
+  private Long groupId;
 
   @Builder
-  public RecruitmentReferenceGroupEntity(Long recruitmentId, Long teamId) {
+  public RecruitmentReferenceGroupEntity(Long recruitmentId, Long groupId) {
     this.recruitmentId = recruitmentId;
-    this.teamId = teamId;
+    this.groupId = groupId;
   }
 }
