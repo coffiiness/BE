@@ -15,6 +15,6 @@ public record RecruitmentCreateRequest(
     Integer minExperienceYears,
     Integer maxExperienceYears,
     Long leadGroupId,
-    List<Long> referenceTeamIds,
+    List<Long> referenceGroupIds,
     List<Long> interviewerIds,
     List<RecruitmentStageRequest> stages) {}

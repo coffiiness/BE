@@ -29,7 +29,7 @@ public class RecruitmentEntity extends TenantBaseEntity {
   // 공고 상태(대기, 진행중, 닫힘)
   @Enumerated(EnumType.STRING)
   @Column(name = "recruitment_status", nullable = false)
-  private RecruitmentStatus status;
+  private RecruitmentStatus recruitmentStatus;
 
   // 채용 인원
   @Column(name = "target_count", nullable = false)
@@ -73,7 +73,7 @@ public class RecruitmentEntity extends TenantBaseEntity {
   public RecruitmentEntity(
       Long creatorId,
       String title,
-      RecruitmentStatus status,
+      RecruitmentStatus recruitmentStatus,
       int targetCount,
       LocalDateTime startDate,
       LocalDateTime endDate,
@@ -85,7 +85,7 @@ public class RecruitmentEntity extends TenantBaseEntity {
       Long leadGroupId) {
     this.creatorId = creatorId;
     this.title = title;
-    this.status = status;
+    this.recruitmentStatus = recruitmentStatus;
     this.targetCount = targetCount;
     this.startDate = startDate;
     this.endDate = endDate;
