@@ -1,11 +1,6 @@
 package com.coffiness.calfit.api;
 
-import com.coffiness.calfit.api.fixture.AnnouncementBoardFixture;
-import com.coffiness.calfit.api.fixture.CalendarFixture;
-import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
-import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.fixture.UserFixture;
-import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.fixture.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -50,5 +45,11 @@ public class FixtureConfiguration {
   AnnouncementBoardFixture announcementBoardFixture(
       Environment environment, ObjectMapper objectMapper) {
     return AnnouncementBoardFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  BillingFixture billingFixture(Environment environment, ObjectMapper objectMapper) {
+    return BillingFixture.create(environment, objectMapper);
   }
 }
