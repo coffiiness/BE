@@ -1,5 +1,6 @@
 package com.coffiness.calfit.storage.db.core.recruitment;
 
+import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
@@ -42,6 +43,32 @@ public class RecruitmentEntity extends TenantBaseEntity {
   @Column(name = "end_date")
   private LocalDateTime endDate;
 
+  // 지원서 템플릿 ID
+  @Column(name = "application_template_id", nullable = false)
+  private Long applicationTemplateId;
+
+  // 채용 상세 내용
+  @Lob
+  @Column(name = "contents")
+  private String contents;
+
+  // 경력 구분
+  @Enumerated(EnumType.STRING)
+  @Column(name = "carrer_type", nullable = false)
+  private CareerType careerType;
+
+  // 최소 경력 연차
+  @Column(name = "min_experience_years")
+  private Integer minExperienceYears;
+
+  // 최대 경력 연차
+  @Column(name = "max_experience_years")
+  private Integer maxExperienceYears;
+
+  // 담당 조직 ID
+  @Column(name = "lead_group_id", nullable = false)
+  private Long leadGroupId;
+
   @Builder
   public RecruitmentEntity(
       Long creatorId,
@@ -49,12 +76,24 @@ public class RecruitmentEntity extends TenantBaseEntity {
       RecruitmentStatus status,
       int targetCount,
       LocalDateTime startDate,
-      LocalDateTime endDate) {
+      LocalDateTime endDate,
+      Long applicationTemplateId,
+      String contents,
+      CareerType careerType,
+      Integer minExperienceYears,
+      Integer maxExperienceYears,
+      Long leadGroupId) {
     this.creatorId = creatorId;
     this.title = title;
     this.status = status;
     this.targetCount = targetCount;
     this.startDate = startDate;
     this.endDate = endDate;
+    this.applicationTemplateId = applicationTemplateId;
+    this.contents = contents;
+    this.careerType = careerType;
+    this.minExperienceYears = minExperienceYears;
+    this.maxExperienceYears = maxExperienceYears;
+    this.leadGroupId = leadGroupId;
   }
 }
