@@ -60,6 +60,9 @@ public class ExternalEventEntity extends TenantBaseEntity {
   @Column(name = "status", nullable = false, length = 20)
   private EventStatus status;
 
+  @Column(name = "is_busy", nullable = false)
+  private boolean isBusy;
+
   @Builder
   public ExternalEventEntity(
       String tenantId,
@@ -70,7 +73,8 @@ public class ExternalEventEntity extends TenantBaseEntity {
       ZonedDateTime startTime,
       ZonedDateTime endTime,
       boolean isAllDay,
-      EventStatus status) {
+      EventStatus status,
+      boolean isBusy) {
     super(tenantId);
     this.externalCalendarId = externalCalendarId;
     this.googleEventId = googleEventId;
@@ -80,5 +84,6 @@ public class ExternalEventEntity extends TenantBaseEntity {
     this.endTime = endTime;
     this.isAllDay = isAllDay;
     this.status = status;
+    this.isBusy = isBusy;
   }
 }
