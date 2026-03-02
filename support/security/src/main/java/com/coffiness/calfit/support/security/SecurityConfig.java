@@ -24,9 +24,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final CorsProperties corsProperties;
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CorsProperties corsProperties) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    this.corsProperties = corsProperties;
   }
 
   @Bean
@@ -46,6 +48,12 @@ public class SecurityConfig {
                     .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
+                    .permitAll()
+                    .requestMatchers(
+                            "/api/application-files/health",
+                            "/api/application-files/presign-upload",
+                            "/api/application-files/complete",
+                            "/api/application-files/*/presign-download")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
@@ -76,7 +84,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+    configuration.setAllowedOrigins(corsProperties.allowedOrigins());
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);

@@ -44,7 +44,13 @@ services:
       - STORAGE_DATABASE_CORE_DB_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-calfit}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
       - STORAGE_DATABASE_CORE_DB_USERNAME=${MYSQL_USER:-calfit}
       - STORAGE_DATABASE_CORE_DB_PASSWORD=${MYSQL_PASSWORD}
+      - AWS_REGION=ap-northeast-2
+      - S3_APPLICANT_BUCKET=calfit-applicant
+      - S3_KEY_PREFIX=uploads/prod
+      - PRESIGN_EXPIRE_MINUTES=5
+      - CORS_ALLOWED_ORIGINS=https://calfit.co.kr
       - JAVA_OPTS=-Xms256m -Xmx512m
+
     volumes:
       - ./logs:/app/logs
     ports:
