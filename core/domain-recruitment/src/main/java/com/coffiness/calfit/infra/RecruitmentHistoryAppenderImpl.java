@@ -46,6 +46,7 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
             .actorId(actorId)
             .recruitmentId(recruitmentId)
             .reason(reason)
+            .recruitmentActionType(actionType)
             .changeLog(changeLog)
             .stageId(null)
             .build();
