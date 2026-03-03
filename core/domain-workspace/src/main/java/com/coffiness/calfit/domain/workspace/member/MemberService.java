@@ -6,8 +6,6 @@ import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
-import com.coffiness.calfit.support.error.CoreException;
-import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,7 +31,13 @@ public class MemberService {
   public MemberInfo getMember(String workspaceId, Long userId) {
     UserInfo user = userReader.getUser(userId);
     Member member = memberReader.getMember(workspaceId, userId);
-    return toMemberInfo(user, member);
+
+    Map<Long, String> groupNameMap =
+            member.groupId() == null
+                    ? Map.of()
+                    : groupReader.getGroupNameMap(List.of(member.groupId()));
+
+    return toMemberInfo(user, member, groupNameMap);
   }
 
   @Transactional(readOnly = true)
@@ -42,16 +46,16 @@ public class MemberService {
 
     List<Long> userIds = members.stream().map(Member::userId).toList();
     Map<Long, UserInfo> userMap =
-        userReader.getUsers(userIds).stream().collect(Collectors.toMap(UserInfo::id, u -> u));
+            userReader.getUsers(userIds).stream().collect(Collectors.toMap(UserInfo::id, u -> u));
 
     List<Long> groupIds =
-        members.stream().map(Member::groupId).filter(gid -> gid != null).distinct().toList();
+            members.stream().map(Member::groupId).filter(gid -> gid != null).distinct().toList();
     Map<Long, String> groupNameMap =
-        groupIds.isEmpty() ? Map.of() : groupReader.getGroupNameMap(groupIds);
+            groupIds.isEmpty() ? Map.of() : groupReader.getGroupNameMap(groupIds);
 
     return members.stream()
-        .map(member -> toMemberInfo(userMap.get(member.userId()), member, groupNameMap))
-        .toList();
+            .map(member -> toMemberInfo(userMap.get(member.userId()), member, groupNameMap))
+            .toList();
   }
 
   @Transactional
@@ -81,11 +85,11 @@ public class MemberService {
   private MemberInfo toMemberInfo(UserInfo user, Member member, Map<Long, String> groupNameMap) {
     String groupName = member.groupId() != null ? groupNameMap.get(member.groupId()) : null;
     return new MemberInfo(
-        member.id(),
-        user.name(),
-        user.createdAt(),
-        user.recentAt(),
-        groupName,
-        member.memberType());
+            member.id(),
+            user.name(),
+            user.createdAt(),
+            user.recentAt(),
+            groupName,
+            member.memberType());
   }
 }

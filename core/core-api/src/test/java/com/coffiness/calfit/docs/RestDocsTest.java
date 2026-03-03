@@ -18,6 +18,7 @@ import org.springframework.web.accept.ContentNegotiationManager;
 import org.springframework.web.accept.FixedContentNegotiationStrategy;
 import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @Tag("restdocs")
 @ExtendWith(RestDocumentationExtension.class)
@@ -33,37 +34,54 @@ public abstract class RestDocsTest {
   }
 
   protected void setUpMockMvc(
-      Object controller, RestDocumentationContextProvider restDocumentation) {
-    setUpMockMvc(controller, restDocumentation, (HandlerMethodArgumentResolver[]) null);
+          Object controller, RestDocumentationContextProvider restDocumentation) {
+    setUpMockMvc(controller, restDocumentation, null, (HandlerMethodArgumentResolver[]) null);
   }
 
   protected void setUpMockMvc(
-      Object controller,
-      RestDocumentationContextProvider restDocumentation,
-      HandlerMethodArgumentResolver... argumentResolvers) {
+          Object controller,
+          RestDocumentationContextProvider restDocumentation,
+          HandlerMethodArgumentResolver... argumentResolvers) {
+    setUpMockMvc(controller, restDocumentation, null, argumentResolvers);
+  }
+
+  protected void setUpMockMvc(
+          Object controller,
+          RestDocumentationContextProvider restDocumentation,
+          Object controllerAdvice,
+          HandlerMethodArgumentResolver... argumentResolvers) {
+
     MappingJackson2HttpMessageConverter converter =
-        new MappingJackson2HttpMessageConverter(objectMapper);
+            new MappingJackson2HttpMessageConverter(objectMapper);
     converter.setDefaultCharset(StandardCharsets.UTF_8);
 
     ContentNegotiationManager contentNegotiationManager =
-        new ContentNegotiationManager(
-            new FixedContentNegotiationStrategy(MediaType.APPLICATION_JSON));
+            new ContentNegotiationManager(
+                    new FixedContentNegotiationStrategy(MediaType.APPLICATION_JSON));
 
     CharacterEncodingFilter characterEncodingFilter = new CharacterEncodingFilter();
     characterEncodingFilter.setEncoding("UTF-8");
     characterEncodingFilter.setForceEncoding(true);
 
+    LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+    validator.afterPropertiesSet();
+
     var builder =
-        MockMvcBuilders.standaloneSetup(controller)
-            .apply(
-                MockMvcRestDocumentation.documentationConfiguration(restDocumentation)
-                    .uris()
-                    .withScheme("https")
-                    .withHost("api.calfit.com")
-                    .withPort(443))
-            .setMessageConverters(converter)
-            .setContentNegotiationManager(contentNegotiationManager)
-            .addFilters(characterEncodingFilter);
+            MockMvcBuilders.standaloneSetup(controller)
+                    .apply(
+                            MockMvcRestDocumentation.documentationConfiguration(restDocumentation)
+                                    .uris()
+                                    .withScheme("https")
+                                    .withHost("api.calfit.com")
+                                    .withPort(443))
+                    .setMessageConverters(converter)
+                    .setContentNegotiationManager(contentNegotiationManager)
+                    .addFilters(characterEncodingFilter)
+                    .setValidator(validator);
+
+    if (controllerAdvice != null) {
+      builder.setControllerAdvice(controllerAdvice);
+    }
 
     if (argumentResolvers != null) {
       builder.setCustomArgumentResolvers(argumentResolvers);
@@ -74,9 +92,9 @@ public abstract class RestDocsTest {
 
   private ObjectMapper createObjectMapper() {
     return new ObjectMapper()
-        .registerModule(new JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS);
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS);
   }
 
   protected String toJson(Object object) throws Exception {
