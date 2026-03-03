@@ -48,4 +48,17 @@ public class RecruitmentController {
 
     return ApiResponse.success(response);
   }
+
+  //  @GetMapping("/api/v1/recruitments/{recruitmentId")
+  //    public ApiResponse<RecruitmentDetailResponse> getRecruitmentDetail(
+  //            @AuthenticationPrincipal SecurityUser user,
+  //            @PathVariable Long recruitmentId
+  //  ) {
+  //      long userId = user.userId();
+  //
+  //      RecruitmentDetailResponse response =
+  //              recruitmentService.getRecruitmentDetail(userId, recruitmentId);
+  //
+  //      return ApiResponse.success(response);
+  //  }
 }
