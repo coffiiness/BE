@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -29,5 +30,17 @@ public record RecruitmentFixture(BaseFixture base) {
       String token, Long recruitmentId) {
     String url = String.format("/api/v1/recruitments/%s", recruitmentId);
     return base.get(url, token, RecruitmentDetailResponse.class);
+  }
+
+  public ApiResponse<List<InterviewScheduleResponse>> getRecruitmentSchedule(
+      String token, Long recruitmentId, String yearMonth) {
+
+    String url =
+        String.format(
+            "/api/v1/recruitments/%s/interview-schedules?yearMonth=%s", recruitmentId, yearMonth);
+    ApiResponse<InterviewScheduleResponse[]> response =
+        base.get(url, token, InterviewScheduleResponse[].class);
+
+    return ApiResponse.success(List.of(response.getData()));
   }
 }
