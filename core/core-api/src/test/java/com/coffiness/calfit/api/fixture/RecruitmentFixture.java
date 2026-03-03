@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,5 +23,11 @@ public record RecruitmentFixture(BaseFixture base) {
         base.get("/api/v1/recruitments", token, RecruitmentListResponse[].class);
 
     return ApiResponse.success(List.of(response.getData()));
+  }
+
+  public ApiResponse<RecruitmentDetailResponse> getRecruitmentDetail(
+      String token, Long recruitmentId) {
+    String url = String.format("/api/v1/recruitments/%s", recruitmentId);
+    return base.get(url, token, RecruitmentDetailResponse.class);
   }
 }
