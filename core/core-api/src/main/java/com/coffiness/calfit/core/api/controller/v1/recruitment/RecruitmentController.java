@@ -6,6 +6,7 @@ import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
+import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
@@ -45,8 +46,11 @@ public class RecruitmentController {
           Pageable pageable) {
     long userId = user.userId();
 
-    List<RecruitmentListResponse> response =
+    List<RecruitmentListInfo> infos =
         recruitmentService.getRecruitmentList(userId, recruitmentStatus, pageable);
+
+    List<RecruitmentListResponse> response =
+        infos.stream().map(RecruitmentListResponse::from).toList();
 
     return ApiResponse.success(response);
   }

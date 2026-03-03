@@ -1,7 +1,6 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
-import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.util.List;
@@ -68,12 +67,10 @@ public class RecruitmentService {
   }
 
   @Transactional(readOnly = true)
-  public List<RecruitmentListResponse> getRecruitmentList(
+  public List<RecruitmentListInfo> getRecruitmentList(
       long userId, RecruitmentStatus recruitmentStatus, Pageable pageable) {
 
-    return recruitmentReader.readList(recruitmentStatus, pageable).stream()
-        .map(RecruitmentListResponse::from)
-        .toList();
+    return recruitmentReader.readList(recruitmentStatus, pageable);
   }
 
   @Transactional(readOnly = true)
