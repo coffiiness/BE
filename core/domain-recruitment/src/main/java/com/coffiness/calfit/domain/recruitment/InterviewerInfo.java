@@ -1,4 +1,7 @@
 package com.coffiness.calfit.domain.recruitment;
 
-public record InterviewerInfo(Long memberId, String name, boolean enable // 체크 상태
+/*
+ * 면접관 정보
+ * */
+public record InterviewerInfo(Long memberId, String name, boolean enabled // 체크 상태
     ) {}

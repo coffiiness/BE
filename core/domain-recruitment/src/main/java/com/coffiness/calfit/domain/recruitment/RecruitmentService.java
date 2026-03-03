@@ -75,4 +75,11 @@ public class RecruitmentService {
         .map(RecruitmentListResponse::from)
         .toList();
   }
+
+  @Transactional(readOnly = true)
+  public RecruitmentDetailInfo getRecruitmentDetail(long userId, Long recruitmentId) {
+
+    // TODO : 이 멤버가 이 채용 공고를 볼 권한이 있는지 + 멤버를 매개변수로 받고 user로 변환하는 로직
+    return recruitmentReader.readDetail(recruitmentId);
+  }
 }

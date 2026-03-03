@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface RecruitmentReader {
 
   List<RecruitmentListInfo> readList(RecruitmentStatus recruitmentStatus, Pageable pageable);
+
+  RecruitmentDetailInfo readDetail(Long recruitmentId);
 }

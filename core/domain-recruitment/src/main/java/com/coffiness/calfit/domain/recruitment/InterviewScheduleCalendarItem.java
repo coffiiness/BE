@@ -3,7 +3,7 @@ package com.coffiness.calfit.domain.recruitment;
 import java.time.LocalDateTime;
 
 /*
- * 채용 공고 상세 오른쪽 카드
+ * 채용 공고 상세 캘린더
  * */
 public record InterviewScheduleCalendarItem(
     Long id,
