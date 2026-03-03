@@ -43,6 +43,9 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Column(name = "room_id")
   private Long roomId;
 
+  @Column(name = "is_busy")
+  private boolean isBusy;
+
   @Column(name = "google_event_id", length = 255)
   private String googleEventId;
 
@@ -57,7 +60,8 @@ public class ScheduleEntity extends TenantBaseEntity {
       LocalDateTime endTime,
       boolean isAllDay,
       Long roomId,
-      String googleEventId) {
+      String googleEventId,
+      boolean isBusy) {
     super(tenantId);
     this.userId = userId;
     this.title = title;
@@ -68,5 +72,30 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.isAllDay = isAllDay;
     this.roomId = roomId;
     this.googleEventId = googleEventId;
+    this.isBusy = isBusy;
+  }
+
+  public void update(
+      String title,
+      String description,
+      ScheduleType type,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      boolean isAllDay,
+      Long roomId,
+      boolean isBusy) {
+
+    if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+      throw new IllegalArgumentException("종료 시간은 시작 시간보다 이후여야 합니다.");
+    }
+
+    this.title = title;
+    this.description = description;
+    this.type = type;
+    this.startTime = startTime;
+    this.endTime = endTime;
+    this.isAllDay = isAllDay;
+    this.roomId = roomId;
+    this.isBusy = isBusy;
   }
 }
