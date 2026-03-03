@@ -50,10 +50,10 @@ public class SecurityConfig {
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
                     .permitAll()
                     .requestMatchers(
-                            "/api/application-files/health",
-                            "/api/application-files/presign-upload",
-                            "/api/application-files/complete",
-                            "/api/application-files/*/presign-download")
+                            "/api/v1/application-files/health",
+                            "/api/v1/application-files/presign-upload",
+                            "/api/v1/application-files/complete",
+                            "/api/v1/application-files/*/presign-download")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

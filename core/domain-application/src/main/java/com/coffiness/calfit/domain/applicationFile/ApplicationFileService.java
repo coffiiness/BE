@@ -7,6 +7,8 @@ import com.coffiness.calfit.api.v1.response.PresignDownloadResponse;
 import com.coffiness.calfit.api.v1.response.PresignUploadResponse;
 import com.coffiness.calfit.core.enums.UploadStatus;
 import com.coffiness.calfit.storage.db.core.application.*;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,7 +49,7 @@ public class ApplicationFileService {
 
     private void validateApplicant(Long requesterUserId, Long applicantId) {
         if (requesterUserId == null || !requesterUserId.equals(applicantId)) {
-            throw new IllegalArgumentException("지원자 본인만 업로드 할 수 있습니다.");
+            throw new CoreException(ErrorType.UNAUTHORIZED, "APPLICANT_MISMATCH", null);
         }
     }
     private void validateRecruiterCanAccess(Long requesterUserId, Long applicationId){
@@ -104,12 +106,12 @@ public class ApplicationFileService {
     @Transactional
     public CompleteUploadResponse completeUpload(CompleteUploadRequest req, Long requesterUserId) {
         ApplicationFileEntity file = applicationFileRepository.findById(req.fileId())
-                .orElseThrow(() -> new IllegalArgumentException("fileId가 유효하지 않습니다."));
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "FILE_NOT_FOUND", null));
 
         validateApplicant(requesterUserId, file.getApplicantId());
 
         if (file.getUploadStatus() != UploadStatus.PENDING) {
-            throw new IllegalStateException("PENDING 상태의 파일만 완료 처리할 수 있습니다.");
+            throw new CoreException(ErrorType.VALIDATION_ERROR, "UPLOAD_NOT_PENDING", null);
         }
 
         HeadObjectResponse head = s3Client.headObject(
@@ -127,10 +129,10 @@ public class ApplicationFileService {
     @Transactional(readOnly = true)
     public PresignDownloadResponse presignDownload(Long fileId, Long requesterUserId, String role) {
         ApplicationFileEntity file = applicationFileRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("fileId가 유효하지 않습니다."));
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "FILE_NOT_FOUND", null));
 
         if (file.getUploadStatus() != UploadStatus.ACTIVE) {
-            throw new IllegalStateException("업로드 완료된(ACTIVE) 파일만 다운로드할 수 있습니다.");
+            throw new CoreException(ErrorType.VALIDATION_ERROR, "UPLOAD_NOT_ACTIVE", null);
         }
 
         if ("APPLICANT".equalsIgnoreCase(role)) {
@@ -138,7 +140,7 @@ public class ApplicationFileService {
         } else if ("RECRUITER".equalsIgnoreCase(role)) {
             validateRecruiterCanAccess(requesterUserId, file.getApplicationId());
         } else {
-            throw new IllegalArgumentException("role은 APPLICANT 또는 RECRUITER 여야 합니다.");
+            throw new CoreException(ErrorType.VALIDATION_ERROR, "ROLE_INVALID", null);
         }
 
         String encoded = URLEncoder.encode(file.getOriginalFilename(), StandardCharsets.UTF_8);

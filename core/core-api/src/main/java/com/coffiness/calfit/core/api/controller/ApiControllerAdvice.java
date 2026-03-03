@@ -27,7 +27,14 @@ public class ApiControllerAdvice {
   public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException e) {
     log.info("IllegalArgumentException : {}", e.getMessage());
     return new ResponseEntity<>(
-        ApiResponse.error(ErrorType.UNAUTHORIZED), ErrorType.UNAUTHORIZED.getStatus());
+        ApiResponse.error(ErrorType.VALIDATION_ERROR), ErrorType.VALIDATION_ERROR.getStatus());
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
+    log.info("IllegalStateException : {}", e.getMessage());
+    return new ResponseEntity<>(
+        ApiResponse.error(ErrorType.VALIDATION_ERROR), ErrorType.VALIDATION_ERROR.getStatus());
   }
 
   @ExceptionHandler(CoreException.class)

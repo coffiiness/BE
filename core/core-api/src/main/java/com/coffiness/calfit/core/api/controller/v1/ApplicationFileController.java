@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/application-files")
+@RequestMapping("/api/v1/application-files")
 public class ApplicationFileController {
 
     private final ApplicationFileService service;
