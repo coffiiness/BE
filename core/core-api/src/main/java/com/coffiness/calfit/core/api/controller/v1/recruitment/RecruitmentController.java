@@ -1,17 +1,20 @@
 package com.coffiness.calfit.core.api.controller.v1.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
+import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,5 +33,19 @@ public class RecruitmentController {
     Long RecruitmentId = recruitmentService.createRecruitment(userId, request);
 
     return ApiResponse.success(RecruitmentId);
+  }
+
+  @GetMapping("/api/v1/recruitments")
+  public ApiResponse<List<RecruitmentListResponse>> getRecruitmentList(
+      @AuthenticationPrincipal SecurityUser user,
+      @RequestParam(required = false) RecruitmentStatus recruitmentStatus,
+      @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable) {
+    long userId = user.userId();
+
+    List<RecruitmentListResponse> response =
+        recruitmentService.getRecruitmentList(userId, recruitmentStatus, pageable);
+
+    return ApiResponse.success(response);
   }
 }
