@@ -1,6 +1,8 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
+import com.coffiness.calfit.domain.recruitment.InterviewerInfo;
+import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentReader;
 import com.coffiness.calfit.domain.user.UserInfo;
@@ -136,5 +138,82 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   assigneeInfos);
             })
         .toList();
+  }
+
+  @Override
+  public RecruitmentDetailInfo readDetail(Long recruitmentId) {
+    // TODO: 에러 처리 (CoreException) 추후 삽입
+    RecruitmentEntity entity =
+        recruitmentRepository
+            .findById(recruitmentId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
+
+    // Group Name  가져오기
+    String groupName = "부서 미지정";
+    if (entity.getLeadGroupId() != null) {
+      Map<Long, String> groupNameMap =
+          groupReader.getGroupNameMap(List.of(entity.getLeadGroupId()));
+      groupName = groupNameMap.getOrDefault(entity.getLeadGroupId(), "부서 미지정");
+    }
+
+    // 면접관 정보 매핑
+    List<RecruitmentInterviewerEntity> interviewers =
+        recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId);
+
+    List<Long> memberIds =
+        interviewers.stream()
+            .map(RecruitmentInterviewerEntity::getMemberId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+    Map<Long, Long> memberIdToUserIdMap =
+        memberReader.getMembersByIds(memberIds).stream()
+            .filter(m -> m.userId() != null)
+            .collect(Collectors.toMap(Member::id, Member::userId));
+
+    List<Long> userIds = memberIdToUserIdMap.values().stream().distinct().toList();
+    Map<Long, String> userNameMap =
+        userReader.getUsers(userIds).stream()
+            .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
+
+    List<InterviewerInfo> interviewerInfos =
+        interviewers.stream()
+            .filter(i -> i.getMemberId() != null)
+            .map(
+                i -> {
+                  Long memberId = i.getMemberId();
+                  Long userId = memberIdToUserIdMap.get(memberId);
+                  String name =
+                      userId != null
+                          ? userNameMap.getOrDefault(userId, "알 수 없는 사용자")
+                          : "알 수 없는 사용자";
+                  // 체크박스는 우선 true
+                  return new InterviewerInfo(memberId, name, true);
+                })
+            .toList();
+
+    // D-Day 및 링크 URL
+    int dDay =
+        (int)
+            java.time.temporal.ChronoUnit.DAYS.between(
+                java.time.LocalDate.now(), entity.getEndDate().toLocalDate());
+    String shareUrl = "https://careers.nexus.ai/jobs/" + recruitmentId;
+
+    return new RecruitmentDetailInfo(
+        entity.getId(),
+        entity.getTitle(),
+        groupName,
+        entity.getCareerType(),
+        entity.getMinExperienceYears(),
+        entity.getMaxExperienceYears(),
+        entity.getStartDate(),
+        entity.getEndDate(),
+        0, // TODO: 지원자 모듈 완성 시 연동
+        0, // TODO: processingInterview
+        dDay,
+        shareUrl,
+        entity.getRecruitmentStatus(),
+        interviewerInfos);
   }
 }
