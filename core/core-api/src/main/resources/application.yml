@@ -12,9 +12,16 @@ spring:
 
 # JWT 설정
 jwt:
-  secret: my-super-secret-key-for-jwt-token-generation-must-be-at-least-256-bits
+  secret: ${JWT_SECRET:}
   access-token-expiration: 3600000   # 1시간 (ms)
   refresh-token-expiration: 604800000 # 7일 (ms)
+
+# 토스페이먼츠 설정
+toss:
+  payments:
+    client-key: ${TOSS_CLIENT_KEY:}
+    secret-key: ${TOSS_SECRET_KEY:}
+    api-base-url: https://api.tosspayments.com
 
 server:
   tomcat:

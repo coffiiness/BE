@@ -1,5 +1,6 @@
 package com.coffiness.calfit.domain.billing.subscription;
 
+import com.coffiness.calfit.core.enums.PlanType;
 import com.coffiness.calfit.core.enums.SubscriptionStatus;
 import java.util.List;
 import java.util.Optional;
@@ -18,4 +19,6 @@ public interface SubscriptionReader {
   long countByStatus(SubscriptionStatus status);
 
   long getMrr();
+
+  List<Subscription> findActiveByPlanType(PlanType planType);
 }
