@@ -1,6 +1,7 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.PlanType;
 import com.coffiness.calfit.core.enums.SubscriptionStatus;
 import com.coffiness.calfit.domain.billing.subscription.Subscription;
 import com.coffiness.calfit.domain.billing.subscription.SubscriptionReader;
@@ -55,6 +56,16 @@ public class SubscriptionReaderImpl implements SubscriptionReader {
   public long getMrr() {
     return subscriptionRepository.sumMonthlyAmountBySubscriptionStatus(
         EntityStatus.ACTIVE, SubscriptionStatus.ACTIVE);
+  }
+
+  @Override
+  public List<Subscription> findActiveByPlanType(PlanType planType) {
+    return subscriptionRepository
+        .findByPlanTypeAndSubscriptionStatusAndStatus(
+            planType, SubscriptionStatus.ACTIVE, EntityStatus.ACTIVE)
+        .stream()
+        .map(this::toSubscription)
+        .toList();
   }
 
   private Subscription toSubscription(SubscriptionEntity entity) {
