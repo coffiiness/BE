@@ -11,6 +11,15 @@ public interface InterviewRepository {
   record InterviewerBusySlotRow(
       Long interviewerId, Long interviewScheduleId, LocalDateTime start, LocalDateTime end) {}
 
+  record InterviewScheduleCalendarRow(
+      Long interviewScheduleId,
+      LocalDateTime startAt,
+      LocalDateTime endAt,
+      Long interviewerMemberId,
+      String interviewerName,
+      String applicantName,
+      String description) {}
+
   boolean isHrMember(Long userId);
 
   int getMeetingRoomCapacity(Long meetingRoomId);
@@ -20,6 +29,9 @@ public interface InterviewRepository {
 
   List<InterviewerBusySlotRow> findInterviewerBusySlots(
       List<Long> interviewerIds, LocalDateTime from, LocalDateTime to);
+
+  List<InterviewScheduleCalendarRow> getSchedulesByRecruitmentId(
+      Long recruitmentId, LocalDateTime from, LocalDateTime to);
 
   Long createConfirmedSchedule(
       Long userId,

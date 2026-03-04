@@ -1,10 +1,7 @@
-package com.coffiness.calfit.domain.recruitment;
+package com.coffiness.calfit.domain.interview;
 
 import java.time.LocalDateTime;
 
-/*
- * 채용 공고 상세 캘린더
- * */
 public record InterviewScheduleCalendarItem(
     Long id,
     LocalDateTime startAt,

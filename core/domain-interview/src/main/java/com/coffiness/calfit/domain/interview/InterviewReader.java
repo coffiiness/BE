@@ -15,4 +15,7 @@ public interface InterviewReader {
 
   List<InterviewAvailability.InterviewerBusySlot> findInterviewerBusySlots(
       List<Long> interviewerIds, LocalDateTime from, LocalDateTime to);
+
+  List<InterviewScheduleCalendarItem> getSchedulesByRecruitmentId(
+      Long recruitmentId, LocalDateTime from, LocalDateTime to);
 }
