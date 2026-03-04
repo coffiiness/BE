@@ -11,6 +11,7 @@ dependencies {
     implementation project(':core:domain-interview')
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
+    implementation project(':core:domain-recruitment')
 
     // 지원 모듈
     implementation project(':support:monitoring')
