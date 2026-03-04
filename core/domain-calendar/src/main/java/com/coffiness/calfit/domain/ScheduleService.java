@@ -125,17 +125,22 @@ public class ScheduleService {
         new Schedule(
             schedule.id(),
             schedule.userId(),
-            request.title(),
-            request.description(),
-            request.type(),
-            request.startTime(),
-            request.endTime(),
+            request.title() != null ? request.title() : schedule.title(),
+            request.description() != null ? request.description() : schedule.description(),
+            request.type() != null ? request.type() : schedule.type(),
+            request.startTime() != null ? request.startTime() : schedule.startTime(),
+            request.endTime() != null ? request.endTime() : schedule.endTime(),
             request.isAllDay() != null ? request.isAllDay() : schedule.isAllDay(),
-            request.roomId(),
+            request.roomId() != null ? request.roomId() : schedule.roomId(),
             request.isBusy() != null ? request.isBusy() : schedule.isBusy(),
             schedule.googleEventId());
 
-    scheduleStore.update(updatedSchedule, request.attendeeIds());
+    List<Long> updatedAttendeeIds =
+        request.attendeeIds() != null
+            ? request.attendeeIds()
+            : scheduleReader.readAttendeeIds(scheduleId);
+
+    scheduleStore.update(updatedSchedule, updatedAttendeeIds);
 
     return getDetailSchedule(userId, scheduleId);
   }
