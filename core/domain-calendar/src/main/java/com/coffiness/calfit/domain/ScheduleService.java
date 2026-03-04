@@ -1,18 +1,10 @@
 package com.coffiness.calfit.domain;
 
-import com.coffiness.calfit.domain.user.UserInfo;
-import com.coffiness.calfit.domain.user.UserReader;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
-import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
-import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +18,6 @@ public class ScheduleService {
 
   private final ScheduleReader scheduleReader;
   private final ScheduleStore scheduleStore;
-  private final MeetingRoomRepository meetingRoomRepository;
-
-  private final MemberReader memberReader;
-  private final UserReader userReader;
 
   public void createSchedule(Long userId, ScheduleCreateRequest request) {
     Schedule newSchedule =
@@ -61,55 +49,8 @@ public class ScheduleService {
   @Transactional(readOnly = true)
   public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
 
-    Schedule schedule = scheduleReader.read(scheduleId);
-    List<Long> attendeeIds = scheduleReader.readAttendeeIds(scheduleId);
-
-    List<Member> members = memberReader.getMembersByIds(attendeeIds);
-
-    boolean isAttendee = members.stream().anyMatch(member -> member.userId().equals(userId));
-
-    if (!schedule.userId().equals(userId) && !isAttendee) {
-      throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
-    }
-
-    String location = "지정된 장소 없음";
-    if (schedule.roomId() != null) {
-      location =
-          meetingRoomRepository
-              .findById(schedule.roomId())
-              .map(MeetingRoomEntity::getName)
-              .orElse("알 수 없는 장소");
-    }
-
-    List<Long> userIdsForAttendees = members.stream().map(Member::userId).toList();
-    Map<Long, UserInfo> userMap =
-        userReader.getUsers(userIdsForAttendees).stream()
-            .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
-
-    Map<Long, Member> memberMap =
-        members.stream().collect(Collectors.toMap(Member::id, m -> m, (m1, m2) -> m1));
-
-    List<String> attendees =
-        attendeeIds.stream()
-            .map(
-                memberId -> {
-                  Member member = memberMap.get(memberId);
-                  if (member == null) {
-                    return "알 수 없는 멤버 (" + memberId + ")";
-                  }
-                  // 유저 이름 추출
-                  UserInfo user = userMap.get(member.userId());
-                  if (user == null || user.name() == null) {
-                    return "이름 없는 사용자";
-                  }
-                  return String.format("%s (%s)", user.name(), member.memberType().name());
-                })
-            .toList();
-
-    // 기본 내 일정은 지원자 이름이 없음
-    String applicantName = null;
-
-    return ScheduleDetailInfo.of(schedule, location, attendeeIds, attendees, applicantName);
+    // TODO : 이 멤버가 이 일정을 볼 권한이 있는지 검증
+    return scheduleReader.readDetail(scheduleId);
   }
 
   public ScheduleDetailInfo updateSchedule(

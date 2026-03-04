@@ -11,4 +11,6 @@ public interface ScheduleReader {
   Schedule read(Long scheduleId);
 
   List<Long> readAttendeeIds(Long scheduleId);
+
+  ScheduleDetailInfo readDetail(Long scheduleId);
 }
