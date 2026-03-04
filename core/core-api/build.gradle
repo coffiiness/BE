@@ -8,6 +8,7 @@ dependencies {
     implementation project(':core:domain-meeting-room')
     implementation project(':core:domain-announcment-board')
     implementation project(':core:domain-billing')
+    implementation project(':core:domain-payment')
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
 

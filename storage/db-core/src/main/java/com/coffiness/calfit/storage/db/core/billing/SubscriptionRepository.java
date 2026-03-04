@@ -1,6 +1,7 @@
 package com.coffiness.calfit.storage.db.core.billing;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.PlanType;
 import com.coffiness.calfit.core.enums.SubscriptionStatus;
 import java.util.List;
 import java.util.Optional;
@@ -49,4 +50,7 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
 
   List<SubscriptionEntity> findBySubscriptionStatusAndStatusOrderByCreatedAtDesc(
       SubscriptionStatus subscriptionStatus, EntityStatus entityStatus);
+
+  List<SubscriptionEntity> findByPlanTypeAndSubscriptionStatusAndStatus(
+      PlanType planType, SubscriptionStatus subscriptionStatus, EntityStatus entityStatus);
 }

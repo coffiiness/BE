@@ -28,23 +28,18 @@ public class DashboardService {
     long trialCount = subscriptionReader.countByStatus(SubscriptionStatus.TRIAL);
     long cancelledCount = subscriptionReader.countByStatus(SubscriptionStatus.CANCELLED);
 
-    // MRR growth vs previous month
     List<MonthlyRevenue> revenueHistory = invoiceReader.getMonthlyRevenue();
     double mrrGrowth = computeGrowth(revenueHistory, year, month);
 
-    // Cost for this month
     Map<com.coffiness.calfit.core.enums.CostCategory, Long> costSummary =
         costReader.getSummaryByCategory(year, month);
     long totalCost = costSummary.values().stream().mapToLong(Long::longValue).sum();
 
-    // Cost growth vs previous month
     List<MonthlyCostTotal> costHistory = costReader.getMonthlyTrend();
     double costGrowth = computeCostGrowth(costHistory, year, month);
 
-    // New this month = subscriptions created this month with ACTIVE/TRIAL
-    // Simple count by active + trial
     long subscribers = activeCount + trialCount;
-    long newThisMonth = 0; // simplified — actual implementation would need createdAt filter
+    long newThisMonth = 0;
 
     return new DashboardSummary(
         mrr, mrrGrowth, subscribers, newThisMonth, 0.0, 0.0, totalCost, costGrowth);

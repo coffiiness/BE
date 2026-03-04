@@ -52,4 +52,10 @@ public class FixtureConfiguration {
   BillingFixture billingFixture(Environment environment, ObjectMapper objectMapper) {
     return BillingFixture.create(environment, objectMapper);
   }
+
+  @Bean
+  @Scope("prototype")
+  PaymentFixture paymentFixture(Environment environment, ObjectMapper objectMapper) {
+    return PaymentFixture.create(environment, objectMapper);
+  }
 }
