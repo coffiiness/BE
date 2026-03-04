@@ -42,7 +42,7 @@ public class RecruitmentHistoryEntity extends TenantBaseEntity {
   @Column(name = "change_log", columnDefinition = "json")
   private Map<String, Object> changeLog;
 
-  // 시행 이후(Optional)
+  // 시행 이유(Optional)
   @Column(name = "reason")
   private String reason;
 
