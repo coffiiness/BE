@@ -1,6 +1,6 @@
 package com.coffiness.calfit.infra;
 
-import com.coffiness.calfit.domain.InterviewAvailability;
+import com.coffiness.calfit.domain.interview.InterviewAvailability;
 import com.coffiness.calfit.domain.interview.InterviewReader;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
 import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;

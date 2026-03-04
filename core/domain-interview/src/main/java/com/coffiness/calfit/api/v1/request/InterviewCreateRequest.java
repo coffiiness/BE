@@ -1,7 +1,6 @@
 package com.coffiness.calfit.api.v1.request;
 
-import com.coffiness.calfit.domain.interview.command.InterviewCreateCommand;
-import com.coffiness.calfit.domain.interview.command.InterviewRound;
+import com.coffiness.calfit.core.enums.InterviewRound;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -16,18 +15,4 @@ public record InterviewCreateRequest(
     @NotNull Long meetingRoomId,
     @NotNull LocalDateTime scheduledAt,
     @NotNull Integer durationMinutes,
-    String memo) {
-
-  public InterviewCreateCommand toCommand() {
-    return new InterviewCreateCommand(
-        recruitmentId,
-        recruitmentStageId,
-        round,
-        interviewerIds,
-        applicantIds,
-        meetingRoomId,
-        scheduledAt,
-        durationMinutes,
-        memo);
-  }
-}
+    String memo) {}

@@ -1,6 +1,6 @@
 package com.coffiness.calfit.api.v1.response;
 
-import com.coffiness.calfit.domain.InterviewAvailability;
+import com.coffiness.calfit.domain.interview.InterviewAvailability;
 import java.time.LocalDateTime;
 
 public record MeetingRoomBusySlotResponse(

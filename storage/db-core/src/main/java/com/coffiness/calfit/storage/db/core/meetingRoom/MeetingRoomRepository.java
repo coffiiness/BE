@@ -10,9 +10,15 @@ public interface MeetingRoomRepository extends JpaRepository<MeetingRoomEntity, 
 
   boolean existsByName(String name);
 
+  boolean existsByTenantIdAndName(String tenantId, String name);
+
   Optional<MeetingRoomEntity> findByName(String name);
 
+  Optional<MeetingRoomEntity> findByTenantIdAndName(String tenantId, String name);
+
   List<MeetingRoomEntity> findAllByOrderByNameAsc();
+
+  List<MeetingRoomEntity> findAllByTenantIdOrderByNameAsc(String tenantId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   Optional<MeetingRoomEntity> findByTenantIdAndId(String tenantId, Long id);

@@ -1,8 +1,8 @@
 package com.coffiness.calfit.api.v1.response;
 
+import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.core.enums.InterviewStatus;
-import com.coffiness.calfit.domain.Interview;
-import com.coffiness.calfit.domain.interview.command.InterviewRound;
+import com.coffiness.calfit.domain.interview.Interview;
 import java.time.LocalDateTime;
 import java.util.List;
 

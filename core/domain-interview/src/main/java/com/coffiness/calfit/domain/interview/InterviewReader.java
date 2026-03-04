@@ -1,6 +1,5 @@
 package com.coffiness.calfit.domain.interview;
 
-import com.coffiness.calfit.domain.InterviewAvailability;
 import java.time.LocalDateTime;
 import java.util.List;
 

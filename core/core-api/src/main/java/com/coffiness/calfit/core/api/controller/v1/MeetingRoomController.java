@@ -1,10 +1,13 @@
 package com.coffiness.calfit.core.api.controller.v1;
 
 import com.coffiness.calfit.api.v1.request.MeetingRoomCreateRequest;
+import com.coffiness.calfit.api.v1.request.MeetingRoomReservationCreateRequest;
 import com.coffiness.calfit.api.v1.request.MeetingRoomUpdateRequest;
+import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
@@ -61,5 +64,33 @@ public class MeetingRoomController {
     meetingRoomService.delete(id, userId);
 
     return ApiResponse.success();
+  }
+
+  /* 회의실 예약 */
+  @PostMapping("/{meetingRoomId}/reservations")
+  public ApiResponse<MeetingRoomReservationResponse> reserve(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long meetingRoomId,
+      @Valid @RequestBody MeetingRoomReservationCreateRequest request) {
+
+    Long userId = user.userId();
+    MeetingRoomReservation reservation =
+        meetingRoomService.reserve(
+            userId, meetingRoomId, request.startDatetime(), request.endDatetime());
+
+    return ApiResponse.success(MeetingRoomReservationResponse.from(reservation));
+  }
+
+  /* 회의실 예약 취소 */
+  @DeleteMapping("/{meetingRoomId}/reservations/{reservationId}")
+  public ApiResponse<MeetingRoomReservationResponse> cancelReservation(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long meetingRoomId,
+      @PathVariable Long reservationId) {
+
+    Long userId = user.userId();
+    MeetingRoomReservation canceled =
+        meetingRoomService.cancelReservation(userId, meetingRoomId, reservationId);
+    return ApiResponse.success(MeetingRoomReservationResponse.from(canceled));
   }
 }

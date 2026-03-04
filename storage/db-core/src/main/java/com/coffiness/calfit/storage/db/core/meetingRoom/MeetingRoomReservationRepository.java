@@ -3,6 +3,7 @@ package com.coffiness.calfit.storage.db.core.meetingRoom;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MeetingRoomReservationRepository
@@ -21,4 +22,7 @@ public interface MeetingRoomReservationRepository
           MeetingRoomStatus status,
           LocalDateTime to,
           LocalDateTime from);
+
+  Optional<MeetingRoomReservationEntity> findByTenantIdAndIdAndMeetingRoomIdAndStatus(
+      String tenantId, Long id, Long meetingRoomId, MeetingRoomStatus status);
 }

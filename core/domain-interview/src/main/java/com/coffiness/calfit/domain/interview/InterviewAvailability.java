@@ -1,4 +1,4 @@
-package com.coffiness.calfit.domain;
+package com.coffiness.calfit.domain.interview;
 
 import java.time.LocalDateTime;
 import java.util.List;

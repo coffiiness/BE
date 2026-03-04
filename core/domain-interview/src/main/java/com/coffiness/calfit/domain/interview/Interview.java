@@ -1,7 +1,7 @@
-package com.coffiness.calfit.domain;
+package com.coffiness.calfit.domain.interview;
 
+import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.core.enums.InterviewStatus;
-import com.coffiness.calfit.domain.interview.command.InterviewRound;
 import java.time.LocalDateTime;
 import java.util.List;
 

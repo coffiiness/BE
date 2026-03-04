@@ -85,7 +85,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
                 reservation ->
                     new MeetingRoomBusySlotRow(
                         reservation.getMeetingRoomId(),
-                        reservation.getInterviewScheduleId(),
+                        reservation.getInterviewScheduleId() != null
+                            ? reservation.getInterviewScheduleId()
+                            : reservation.getId(),
                         reservation.getStartDatetime(),
                         reservation.getEndDatetime()))
             .toList();

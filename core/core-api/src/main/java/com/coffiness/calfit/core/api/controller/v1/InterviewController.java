@@ -4,9 +4,9 @@ import com.coffiness.calfit.api.v1.request.InterviewCreateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewAvailabilityResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.Interview;
-import com.coffiness.calfit.domain.InterviewAvailability;
-import com.coffiness.calfit.domain.InterviewService;
+import com.coffiness.calfit.domain.interview.Interview;
+import com.coffiness.calfit.domain.interview.InterviewAvailability;
+import com.coffiness.calfit.domain.interview.InterviewService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
@@ -52,7 +52,18 @@ public class InterviewController {
 
     Long userId = user.userId();
 
-    Interview interview = interviewService.create(userId, request.toCommand());
+    Interview interview =
+        interviewService.create(
+            userId,
+            request.recruitmentId(),
+            request.recruitmentStageId(),
+            request.round(),
+            request.interviewerIds(),
+            request.applicantIds(),
+            request.meetingRoomId(),
+            request.scheduledAt(),
+            request.durationMinutes(),
+            request.memo());
     return ApiResponse.success(InterviewResponse.from(interview));
   }
 }
