@@ -79,4 +79,12 @@ public class RecruitmentService {
     // TODO : 이 멤버가 이 채용 공고를 볼 권한이 있는지 + 멤버를 매개변수로 받고 user로 변환하는 로직
     return recruitmentReader.readDetail(recruitmentId);
   }
+
+  @Transactional(readOnly = true)
+  public List<InterviewScheduleCalendarItem> getInterviewSchedules(
+      long userId, Long recruitmentId, String yearMonth) {
+    // TODO: domain-interview 모듈의 InterviewReader 가 완성되면 연결
+    // return interviewReader.getSchedulesByRecruitmentId(recruitmentId, yearMonth);
+    return List.of();
+  }
 }
