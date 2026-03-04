@@ -1,6 +1,6 @@
 package com.coffiness.calfit.storage.db.core.recruitment;
 
-import com.coffiness.calfit.core.enums.RecruitmentProcessType;
+import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
  * 채용 단계 엔티티
  * */
 @Entity
-@Table(name = "recruitment_processes")
+@Table(name = "recruitment_stages")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class RecruitmentProcessEntity extends TenantBaseEntity {
+public class RecruitmentStageEntity extends TenantBaseEntity {
 
   // 채용 ID
   @Column(name = "recruitment_id", nullable = false)
@@ -32,11 +32,11 @@ public class RecruitmentProcessEntity extends TenantBaseEntity {
   // 채용 단계 유형
   @Enumerated(EnumType.STRING)
   @Column(name = "stage_type", nullable = false)
-  private RecruitmentProcessType stageType;
+  private RecruitmentStageType stageType;
 
   @Builder
-  public RecruitmentProcessEntity(
-      Long recruitmentId, String stageName, Integer stageStep, RecruitmentProcessType stageType) {
+  public RecruitmentStageEntity(
+      Long recruitmentId, String stageName, Integer stageStep, RecruitmentStageType stageType) {
     this.recruitmentId = recruitmentId;
     this.stageName = stageName;
     this.stageStep = stageStep;
