@@ -71,7 +71,7 @@ public class PaymentService {
     Subscription subscription =
         subscriptionReader
             .findByWorkspaceId(workspaceId)
-            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+            .orElseGet(() -> subscriptionStore.createTrialSubscription(workspaceId));
 
     subscriptionStore.activate(subscription.id(), PlanType.ENTERPRISE, ENTERPRISE_MONTHLY_AMOUNT);
 
