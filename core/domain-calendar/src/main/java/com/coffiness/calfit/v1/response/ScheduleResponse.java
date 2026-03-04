@@ -12,7 +12,8 @@ public record ScheduleResponse(
     String endTime,
     ScheduleType type,
     String description,
-    Long roomId) {
+    Long roomId,
+    boolean isBusy) {
 
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -26,6 +27,7 @@ public record ScheduleResponse(
         info.endTime().format(TIME_FORMATTER),
         info.type(),
         info.description(),
-        info.roomId());
+        info.roomId(),
+        info.isBusy());
   }
 }

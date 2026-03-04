@@ -130,9 +130,9 @@ public class ScheduleService {
             request.type(),
             request.startTime(),
             request.endTime(),
-            request.isAllDay() != null ? request.isAllDay() : false,
+            request.isAllDay() != null ? request.isAllDay() : schedule.isAllDay(),
             request.roomId(),
-            request.isBusy() != null ? request.isBusy() : true,
+            request.isBusy() != null ? request.isBusy() : schedule.isBusy(),
             schedule.googleEventId());
 
     scheduleStore.update(updatedSchedule, request.attendeeIds());

@@ -10,7 +10,8 @@ public record ScheduleInfo(
     LocalDateTime endTime,
     ScheduleType type,
     String description,
-    Long roomId) {
+    Long roomId,
+    boolean isBusy) {
 
   public static ScheduleInfo from(Schedule schedule) {
     return new ScheduleInfo(
@@ -20,6 +21,7 @@ public record ScheduleInfo(
         schedule.endTime(),
         schedule.type(),
         schedule.description(),
-        schedule.roomId());
+        schedule.roomId(),
+        schedule.isBusy());
   }
 }
