@@ -29,16 +29,22 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
     if (recruitmentSnapShot != null) {
       changeLog.put("title", recruitmentSnapShot.title());
       changeLog.put("targetCount", recruitmentSnapShot.targetCount());
-      changeLog.put("status", recruitmentSnapShot.status().name());
-      changeLog.put("careerType", recruitmentSnapShot.careerType().name());
+      changeLog.put(
+          "status",
+          recruitmentSnapShot.status() != null ? recruitmentSnapShot.status().name() : null);
+      changeLog.put(
+          "careerType",
+          recruitmentSnapShot.careerType() != null
+              ? recruitmentSnapShot.careerType().name()
+              : null);
       changeLog.put(
           "startDate",
           recruitmentSnapShot.startDate() != null
               ? recruitmentSnapShot.startDate().toString()
-              : "");
+              : null);
       changeLog.put(
           "endDate",
-          recruitmentSnapShot.endDate() != null ? recruitmentSnapShot.endDate().toString() : "");
+          recruitmentSnapShot.endDate() != null ? recruitmentSnapShot.endDate().toString() : null);
     }
 
     RecruitmentHistoryEntity entity =

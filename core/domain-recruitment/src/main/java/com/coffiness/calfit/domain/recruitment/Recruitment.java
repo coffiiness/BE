@@ -44,6 +44,25 @@ public record Recruitment(
         throw new IllegalArgumentException("경력직 채용의 경우 경력 연차 범위가 필요합니다.");
       }
     }
+    if (careerType == null) {
+      throw new IllegalArgumentException("경력 구분 지정은 필수입니다.");
+    }
+
+    if (careerType == CareerType.EXPERIENCED) {
+      if (minExperienceYears == null || maxExperienceYears == null) {
+        throw new IllegalArgumentException("경력직 채용의 경우 최소 및 최대 경력 연차가 모두 필요합니다.");
+      }
+      if (minExperienceYears < 0 || maxExperienceYears < 0) {
+        throw new IllegalArgumentException("경력 연차는 0년 이상이어야 합니다.");
+      }
+      if (minExperienceYears > maxExperienceYears) {
+        throw new IllegalArgumentException("최소 경력 연차는 최대 경력 연차보다 클 수 없습니다.");
+      }
+    } else {
+      if (minExperienceYears != null || maxExperienceYears != null) {
+        throw new IllegalArgumentException("경력직이 아닌 채용은 경력 연차 범위를 가질 수 없습니다.");
+      }
+    }
   }
 
   // 채용 공고 상세 수정

@@ -54,7 +54,7 @@ public class RecruitmentEntity extends TenantBaseEntity {
 
   // 경력 구분
   @Enumerated(EnumType.STRING)
-  @Column(name = "carrer_type", nullable = false)
+  @Column(name = "career_type", nullable = false)
   private CareerType careerType;
 
   // 최소 경력 연차
