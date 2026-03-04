@@ -1,10 +1,12 @@
 package com.coffiness.calfit.core.api.controller.v1.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.domain.recruitment.InterviewScheduleCalendarItem;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
@@ -63,5 +65,21 @@ public class RecruitmentController {
     RecruitmentDetailInfo info = recruitmentService.getRecruitmentDetail(userId, recruitmentId);
 
     return ApiResponse.success(RecruitmentDetailResponse.from(info));
+  }
+
+  @GetMapping("/api/v1/recruitments/{recruitmentId}/interview-schedules")
+  public ApiResponse<List<InterviewScheduleResponse>> getInterviewSchedule(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long recruitmentId,
+      @RequestParam String yearMonth) {
+    long userId = user.userId();
+
+    List<InterviewScheduleCalendarItem> items =
+        recruitmentService.getInterviewSchedules(userId, recruitmentId, yearMonth);
+
+    List<InterviewScheduleResponse> response =
+        items.stream().map(InterviewScheduleResponse::from).toList();
+
+    return ApiResponse.success(response);
   }
 }
