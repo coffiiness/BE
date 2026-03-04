@@ -1,11 +1,11 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.request.CalendarConnectRequest;
-import com.coffiness.calfit.request.ScheduleCreateRequest;
-import com.coffiness.calfit.request.ScheduleUpdateRequest;
-import com.coffiness.calfit.response.ScheduleDetailResponse;
-import com.coffiness.calfit.response.ScheduleResponse;
+import com.coffiness.calfit.v1.request.CalendarConnectRequest;
+import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
+import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
+import com.coffiness.calfit.v1.response.ScheduleResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.springframework.core.env.Environment;

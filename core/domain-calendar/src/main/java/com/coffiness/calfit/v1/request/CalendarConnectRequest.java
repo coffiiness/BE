@@ -1,4 +1,4 @@
-package com.coffiness.calfit.request;
+package com.coffiness.calfit.v1.request;
 
 import jakarta.validation.constraints.NotBlank;
 

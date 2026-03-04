@@ -1,4 +1,4 @@
-package com.coffiness.calfit.response;
+package com.coffiness.calfit.v1.response;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.domain.ScheduleInfo;
