@@ -57,6 +57,7 @@ public class FixtureConfiguration {
   @Scope("prototype")
   RecruitmentFixture recruitmentFixture(Environment environment, ObjectMapper objectMapper) {
     return RecruitmentFixture.create(environment, objectMapper);
+  }
 
   @Bean
   @Scope("prototype")
