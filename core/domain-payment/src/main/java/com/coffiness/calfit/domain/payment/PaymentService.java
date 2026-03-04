@@ -66,7 +66,7 @@ public class PaymentService {
   public Optional<Payment> upgradeToEnterprise(String workspaceId) {
     BillingKeyInfo billingKeyInfo =
         billingKeyReader
-            .findActiveByWorkspaceId(workspaceId)
+            .findActiveByWorkspaceIdWithLock(workspaceId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
     Subscription subscription =
@@ -83,59 +83,27 @@ public class PaymentService {
       return Optional.empty();
     }
 
-    var invoice =
-        invoiceStore.createPendingInvoice(
-            subscription.id(), workspaceId, now.getYear(), now.getMonthValue());
-
-    String orderId = generateOrderId(workspaceId);
-    Payment payment =
-        paymentStore.createPayment(
-            workspaceId,
-            subscription.id(),
-            invoice.id(),
-            billingKeyInfo.billingKey(),
-            orderId,
-            ENTERPRISE_MONTHLY_AMOUNT);
-
-    PaymentResponse tossResponse =
-        tossPaymentClient.chargeBillingKey(
-            billingKeyInfo.billingKey(),
-            billingKeyInfo.customerKey(),
-            orderId,
-            ENTERPRISE_MONTHLY_AMOUNT,
-            ORDER_NAME);
-
-    if ("DONE".equals(tossResponse.status())) {
-      payment = paymentStore.markSuccess(payment.id(), tossResponse.paymentKey());
-      eventPublisher.publishEvent(
-          PaymentCompletedEvent.of(invoice.id(), subscription.id(), ENTERPRISE_MONTHLY_AMOUNT));
-    } else {
-      String failMessage =
-          tossResponse.failureMessage() != null ? tossResponse.failureMessage() : "결제 실패";
-      payment = paymentStore.markFailed(payment.id(), failMessage, LocalDateTime.now().plusDays(3));
-      eventPublisher.publishEvent(
-          PaymentFailedEvent.of(invoice.id(), subscription.id(), failMessage));
-    }
-
-    return Optional.of(payment);
+    return Optional.of(chargePayment(workspaceId, subscription.id(), billingKeyInfo, now));
   }
 
   @Transactional
   public void downgradeToFree(String workspaceId) {
-    Subscription subscription =
-        subscriptionReader
-            .findByWorkspaceId(workspaceId)
-            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+    Subscription subscription = subscriptionReader.findByWorkspaceId(workspaceId).orElse(null);
 
-    subscriptionStore.cancel(subscription.id());
-    subscriptionStore.activate(subscription.id(), PlanType.BUSINESS, 0L);
+    if (subscription == null) {
+      Subscription trial = subscriptionStore.createTrialSubscription(workspaceId);
+      subscriptionStore.activate(trial.id(), PlanType.BUSINESS, 0L);
+    } else {
+      subscriptionStore.cancel(subscription.id());
+      subscriptionStore.activate(subscription.id(), PlanType.BUSINESS, 0L);
+    }
   }
 
   @Transactional
   public Payment processMonthlyBilling(String workspaceId) {
     BillingKeyInfo billingKeyInfo =
         billingKeyReader
-            .findActiveByWorkspaceId(workspaceId)
+            .findActiveByWorkspaceIdWithLock(workspaceId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
     Subscription subscription =
@@ -143,44 +111,7 @@ public class PaymentService {
             .findByWorkspaceId(workspaceId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    var invoice =
-        invoiceStore.createPendingInvoice(
-            subscription.id(),
-            workspaceId,
-            LocalDate.now().getYear(),
-            LocalDate.now().getMonthValue());
-
-    String orderId = generateOrderId(workspaceId);
-    Payment payment =
-        paymentStore.createPayment(
-            workspaceId,
-            subscription.id(),
-            invoice.id(),
-            billingKeyInfo.billingKey(),
-            orderId,
-            ENTERPRISE_MONTHLY_AMOUNT);
-
-    PaymentResponse tossResponse =
-        tossPaymentClient.chargeBillingKey(
-            billingKeyInfo.billingKey(),
-            billingKeyInfo.customerKey(),
-            orderId,
-            ENTERPRISE_MONTHLY_AMOUNT,
-            ORDER_NAME);
-
-    if ("DONE".equals(tossResponse.status())) {
-      payment = paymentStore.markSuccess(payment.id(), tossResponse.paymentKey());
-      eventPublisher.publishEvent(
-          PaymentCompletedEvent.of(invoice.id(), subscription.id(), ENTERPRISE_MONTHLY_AMOUNT));
-    } else {
-      String failMessage =
-          tossResponse.failureMessage() != null ? tossResponse.failureMessage() : "결제 실패";
-      payment = paymentStore.markFailed(payment.id(), failMessage, LocalDateTime.now().plusDays(3));
-      eventPublisher.publishEvent(
-          PaymentFailedEvent.of(invoice.id(), subscription.id(), failMessage));
-    }
-
-    return payment;
+    return chargePayment(workspaceId, subscription.id(), billingKeyInfo, LocalDate.now());
   }
 
   @Transactional
@@ -244,6 +175,47 @@ public class PaymentService {
             .findByWorkspaceId(workspaceId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     subscriptionStore.updateStatus(subscription.id(), SubscriptionStatus.SUSPENDED);
+  }
+
+  private Payment chargePayment(
+      String workspaceId,
+      Long subscriptionId,
+      BillingKeyInfo billingKeyInfo,
+      LocalDate billingDate) {
+    var invoice =
+        invoiceStore.createPendingInvoice(
+            subscriptionId, workspaceId, billingDate.getYear(), billingDate.getMonthValue());
+
+    String orderId = generateOrderId(workspaceId);
+    Payment payment =
+        paymentStore.createPayment(
+            workspaceId,
+            subscriptionId,
+            invoice.id(),
+            billingKeyInfo.billingKey(),
+            orderId,
+            ENTERPRISE_MONTHLY_AMOUNT);
+
+    PaymentResponse tossResponse =
+        tossPaymentClient.chargeBillingKey(
+            billingKeyInfo.billingKey(),
+            billingKeyInfo.customerKey(),
+            orderId,
+            ENTERPRISE_MONTHLY_AMOUNT,
+            ORDER_NAME);
+
+    if ("DONE".equals(tossResponse.status())) {
+      payment = paymentStore.markSuccess(payment.id(), tossResponse.paymentKey());
+      eventPublisher.publishEvent(
+          PaymentCompletedEvent.of(invoice.id(), subscriptionId, ENTERPRISE_MONTHLY_AMOUNT));
+    } else {
+      String failMessage =
+          tossResponse.failureMessage() != null ? tossResponse.failureMessage() : "결제 실패";
+      payment = paymentStore.markFailed(payment.id(), failMessage, LocalDateTime.now().plusDays(3));
+      eventPublisher.publishEvent(PaymentFailedEvent.of(invoice.id(), subscriptionId, failMessage));
+    }
+
+    return payment;
   }
 
   private String generateOrderId(String workspaceId) {

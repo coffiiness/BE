@@ -22,6 +22,13 @@ public class BillingKeyReaderImpl implements BillingKeyReader {
         .map(this::toBillingKeyInfo);
   }
 
+  @Override
+  public Optional<BillingKeyInfo> findActiveByWorkspaceIdWithLock(String workspaceId) {
+    return billingKeyRepository
+        .findByWorkspaceIdAndActiveIsTrueAndStatus(workspaceId, EntityStatus.ACTIVE)
+        .map(this::toBillingKeyInfo);
+  }
+
   private BillingKeyInfo toBillingKeyInfo(BillingKeyEntity entity) {
     return new BillingKeyInfo(
         entity.getId(),
