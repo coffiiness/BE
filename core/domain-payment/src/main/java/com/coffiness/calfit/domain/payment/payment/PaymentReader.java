@@ -12,4 +12,6 @@ public interface PaymentReader {
   long countByWorkspaceId(String workspaceId);
 
   List<Payment> findRetryablePayments();
+
+  boolean existsSuccessfulPaymentInMonth(String workspaceId, int year, int month);
 }

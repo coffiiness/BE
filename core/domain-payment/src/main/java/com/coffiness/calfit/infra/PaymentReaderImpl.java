@@ -6,6 +6,7 @@ import com.coffiness.calfit.domain.payment.payment.Payment;
 import com.coffiness.calfit.domain.payment.payment.PaymentReader;
 import com.coffiness.calfit.storage.db.core.payment.PaymentEntity;
 import com.coffiness.calfit.storage.db.core.payment.PaymentRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +48,14 @@ public class PaymentReaderImpl implements PaymentReader {
         .stream()
         .map(this::toPayment)
         .toList();
+  }
+
+  @Override
+  public boolean existsSuccessfulPaymentInMonth(String workspaceId, int year, int month) {
+    LocalDateTime start = LocalDate.of(year, month, 1).atStartOfDay();
+    LocalDateTime end = start.plusMonths(1);
+    return paymentRepository.existsByWorkspaceIdAndPaymentStatusAndPaidAtBetweenAndStatus(
+        workspaceId, PaymentStatus.SUCCESS, start, end, EntityStatus.ACTIVE);
   }
 
   private Payment toPayment(PaymentEntity entity) {

@@ -16,4 +16,11 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
       PaymentStatus paymentStatus, LocalDateTime now, EntityStatus status);
 
   long countByWorkspaceIdAndStatus(String workspaceId, EntityStatus status);
+
+  boolean existsByWorkspaceIdAndPaymentStatusAndPaidAtBetweenAndStatus(
+      String workspaceId,
+      PaymentStatus paymentStatus,
+      LocalDateTime paidAtStart,
+      LocalDateTime paidAtEnd,
+      EntityStatus status);
 }

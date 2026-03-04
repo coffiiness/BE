@@ -11,6 +11,7 @@ import com.coffiness.calfit.domain.payment.toss.TossPaymentProperties;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,8 +43,8 @@ public class PaymentController {
   @PostMapping("/upgrade")
   public ApiResponse<PaymentResultResponse> upgradeToEnterprise() {
     String workspaceId = TenantContext.getTenantId();
-    Payment payment = paymentService.upgradeToEnterprise(workspaceId);
-    return ApiResponse.success(PaymentResultResponse.from(payment));
+    Optional<Payment> payment = paymentService.upgradeToEnterprise(workspaceId);
+    return ApiResponse.success(payment.map(PaymentResultResponse::from).orElse(null));
   }
 
   @PostMapping("/downgrade")

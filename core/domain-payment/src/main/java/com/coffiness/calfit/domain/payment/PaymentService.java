@@ -22,6 +22,7 @@ import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,7 @@ public class PaymentService {
   }
 
   @Transactional
-  public Payment upgradeToEnterprise(String workspaceId) {
+  public Optional<Payment> upgradeToEnterprise(String workspaceId) {
     BillingKeyInfo billingKeyInfo =
         billingKeyReader
             .findActiveByWorkspaceId(workspaceId)
@@ -75,12 +76,16 @@ public class PaymentService {
 
     subscriptionStore.activate(subscription.id(), PlanType.ENTERPRISE, ENTERPRISE_MONTHLY_AMOUNT);
 
+    LocalDate now = LocalDate.now();
+    if (paymentReader.existsSuccessfulPaymentInMonth(
+        workspaceId, now.getYear(), now.getMonthValue())) {
+      log.info("[Payment] 이번 달 이미 결제 완료. 구독만 활성화: workspaceId={}", workspaceId);
+      return Optional.empty();
+    }
+
     var invoice =
         invoiceStore.createPendingInvoice(
-            subscription.id(),
-            workspaceId,
-            LocalDate.now().getYear(),
-            LocalDate.now().getMonthValue());
+            subscription.id(), workspaceId, now.getYear(), now.getMonthValue());
 
     String orderId = generateOrderId(workspaceId);
     Payment payment =
@@ -112,7 +117,7 @@ public class PaymentService {
           PaymentFailedEvent.of(invoice.id(), subscription.id(), failMessage));
     }
 
-    return payment;
+    return Optional.of(payment);
   }
 
   @Transactional
