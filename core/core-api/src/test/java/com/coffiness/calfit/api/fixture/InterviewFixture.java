@@ -2,11 +2,6 @@ package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.InterviewAutoAssignRequest;
 import com.coffiness.calfit.api.v1.request.InterviewCreateRequest;
-import com.coffiness.calfit.api.v1.request.InterviewInvitationDeclineRequest;
-import com.coffiness.calfit.api.v1.request.InterviewInvitationSendRequest;
-import com.coffiness.calfit.api.v1.response.InterviewInvitationAcceptResponse;
-import com.coffiness.calfit.api.v1.response.InterviewInvitationDeclineResponse;
-import com.coffiness.calfit.api.v1.response.InterviewInvitationResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.interview.command.model.InterviewRound;
