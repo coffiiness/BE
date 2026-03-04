@@ -14,6 +14,7 @@ public record Schedule(
     LocalDateTime endTime,
     boolean isAllDay,
     Long roomId,
+    boolean isBusy,
     String googleEventId) {
 
   public Schedule {
@@ -49,10 +50,12 @@ public record Schedule(
         this.endTime,
         this.isAllDay,
         this.roomId,
+        this.isBusy,
         newGoogleEventId);
   }
 
-  public Schedule updateDetails(String newTitle, String newDescription, Long newRoomId) {
+  public Schedule updateDetails(
+      String newTitle, String newDescription, Long newRoomId, boolean newIsBusy) {
     return new Schedule(
         this.id,
         this.userId,
@@ -63,6 +66,7 @@ public record Schedule(
         this.endTime,
         this.isAllDay,
         newRoomId,
+        newIsBusy,
         this.googleEventId);
   }
 
@@ -78,6 +82,7 @@ public record Schedule(
         newEndTime,
         newIsAllDay,
         this.roomId,
+        this.isBusy,
         this.googleEventId);
   }
 }

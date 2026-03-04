@@ -10,7 +10,6 @@ dependencies {
     implementation project(':core:domain-billing')
     implementation project(':core:domain-interview')
     implementation project(':core:domain-payment')
-    implementation project(':core:domain-vote')
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
     implementation project(':core:domain-recruitment')
