@@ -1,0 +1,112 @@
+package com.coffiness.calfit.infra;
+
+import com.coffiness.calfit.domain.Schedule;
+import com.coffiness.calfit.domain.ScheduleStore;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeRepository;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class ScheduleStoreImpl implements ScheduleStore {
+
+  private final ScheduleRepository scheduleRepository;
+  private final ScheduleAttendeeRepository scheduleAttendeeRepository;
+
+  @Override
+  public Schedule store(Schedule schedule, List<Long> attendeeIds) {
+    ScheduleEntity entity =
+        ScheduleEntity.builder()
+            .userId(schedule.userId())
+            .title(schedule.title())
+            .description(schedule.description())
+            .startTime(schedule.startTime())
+            .endTime(schedule.endTime())
+            .isAllDay(schedule.isAllDay())
+            .roomId(schedule.roomId())
+            .type(schedule.type())
+            .isBusy(schedule.isBusy())
+            .googleEventId(schedule.googleEventId())
+            .build();
+
+    ScheduleEntity savedEntity = scheduleRepository.save(entity);
+
+    if (attendeeIds != null && !attendeeIds.isEmpty()) {
+      List<ScheduleAttendeeEntity> attendees =
+          attendeeIds.stream()
+              .map(
+                  attendeeId ->
+                      ScheduleAttendeeEntity.builder()
+                          .scheduleId(savedEntity.getId())
+                          .attendeeId(attendeeId)
+                          .build())
+              .toList();
+      scheduleAttendeeRepository.saveAll(attendees);
+    }
+
+    return toDomain(savedEntity);
+  }
+
+  @Override
+  public void update(Schedule schedule, List<Long> attendeeIds) {
+    ScheduleEntity entity =
+        scheduleRepository
+            .findById(schedule.id())
+            .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
+
+    entity.update(
+        schedule.title(),
+        schedule.description(),
+        schedule.type(),
+        schedule.startTime(),
+        schedule.endTime(),
+        schedule.isAllDay(),
+        schedule.roomId(),
+        schedule.isBusy());
+
+    scheduleAttendeeRepository.deleteByScheduleId(schedule.id());
+
+    if (attendeeIds != null && !attendeeIds.isEmpty()) {
+      List<ScheduleAttendeeEntity> newAttendees =
+          attendeeIds.stream()
+              .map(
+                  attendeeId ->
+                      ScheduleAttendeeEntity.builder()
+                          .scheduleId(schedule.id())
+                          .attendeeId(attendeeId)
+                          .build())
+              .toList();
+      scheduleAttendeeRepository.saveAllAndFlush(newAttendees);
+    }
+  }
+
+  @Override
+  public void delete(Schedule schedule) {
+    ScheduleEntity entity =
+        scheduleRepository
+            .findById(schedule.id())
+            .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
+
+    scheduleAttendeeRepository.deleteByScheduleId(schedule.id());
+    entity.deleted();
+  }
+
+  private Schedule toDomain(ScheduleEntity entity) {
+    return new Schedule(
+        entity.getId(),
+        entity.getUserId(),
+        entity.getTitle(),
+        entity.getDescription(),
+        entity.getType(),
+        entity.getStartTime(),
+        entity.getEndTime(),
+        entity.isAllDay(),
+        entity.getRoomId(),
+        entity.isBusy(),
+        entity.getGoogleEventId());
+  }
+}

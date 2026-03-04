@@ -2,8 +2,8 @@ package com.coffiness.calfit.core.api.controller.v1.calendar;
 
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.CalendarConnectService;
-import com.coffiness.calfit.request.CalendarConnectRequest;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
+import com.coffiness.calfit.v1.request.CalendarConnectRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

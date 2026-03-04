@@ -1,12 +1,14 @@
 package com.coffiness.calfit.core.api.controller.v1.calendar;
 
 import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.domain.ScheduleDetailInfo;
+import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.domain.ScheduleService;
-import com.coffiness.calfit.request.ScheduleCreateRequest;
-import com.coffiness.calfit.request.ScheduleUpdateRequest;
-import com.coffiness.calfit.response.ScheduleDetailResponse;
-import com.coffiness.calfit.response.ScheduleResponse;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
+import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
+import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
+import com.coffiness.calfit.v1.response.ScheduleResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,8 +50,9 @@ public class ScheduleController {
     LocalDateTime startDateTime = startDate.atStartOfDay();
     LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay().minusNanos(1);
 
-    List<ScheduleResponse> response =
-        scheduleService.getSchedules(userId, startDateTime, endDateTime);
+    List<ScheduleInfo> infos = scheduleService.getSchedules(userId, startDateTime, endDateTime);
+
+    List<ScheduleResponse> response = infos.stream().map(ScheduleResponse::from).toList();
 
     return ApiResponse.success(response);
   }
@@ -60,7 +63,9 @@ public class ScheduleController {
 
     long userId = user.userId();
 
-    ScheduleDetailResponse response = scheduleService.getDetailSchedule(userId, scheduleId);
+    ScheduleDetailInfo info = scheduleService.getDetailSchedule(userId, scheduleId);
+    ScheduleDetailResponse response = ScheduleDetailResponse.from(info);
+
     return ApiResponse.success(response);
   }
 
@@ -72,8 +77,9 @@ public class ScheduleController {
 
     long userId = user.userId();
 
-    ScheduleDetailResponse response = scheduleService.updateSchedule(userId, scheduleId, request);
-    return ApiResponse.success(response);
+    ScheduleDetailInfo info = scheduleService.updateSchedule(userId, scheduleId, request);
+
+    return ApiResponse.success(ScheduleDetailResponse.from(info));
   }
 
   @DeleteMapping("/api/v1/schedules/{scheduleId}")

@@ -8,7 +8,7 @@ import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
-import com.coffiness.calfit.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

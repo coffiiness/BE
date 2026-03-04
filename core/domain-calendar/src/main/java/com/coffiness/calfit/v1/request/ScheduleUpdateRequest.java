@@ -1,4 +1,4 @@
-package com.coffiness.calfit.request;
+package com.coffiness.calfit.v1.request;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
 import jakarta.validation.constraints.NotBlank;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record ScheduleCreateRequest(
+public record ScheduleUpdateRequest(
     @NotBlank(message = "일정 제목은 필수입니다.") String title,
     String description,
     @NotNull(message = "일정 타입은 필수입니다.") ScheduleType type,
@@ -15,11 +15,4 @@ public record ScheduleCreateRequest(
     Boolean isAllDay,
     Long roomId,
     Boolean isBusy,
-    List<Long> attendeeIds) {
-
-  public ScheduleCreateRequest {
-    if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
-      throw new IllegalArgumentException("종료 시간은 시작 시간보다 이후여야 합니다.");
-    }
-  }
-}
+    List<Long> attendeeIds) {}
