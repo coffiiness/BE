@@ -1,7 +1,7 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
-import com.coffiness.calfit.domain.recruitment.InterviewerInfo;
+import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentReader;

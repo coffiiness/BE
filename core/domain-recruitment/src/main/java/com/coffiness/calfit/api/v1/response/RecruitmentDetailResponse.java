@@ -2,7 +2,7 @@ package com.coffiness.calfit.api.v1.response;
 
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
-import com.coffiness.calfit.domain.recruitment.InterviewerInfo;
+import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import java.time.LocalDateTime;
 import java.util.List;

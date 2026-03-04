@@ -75,6 +75,11 @@ public class InterviewScheduleEntity extends TenantBaseEntity {
     this.status = InterviewStatus.COMPLETED;
   }
 
+  // 대기 상태로 변경
+  public void pending() {
+    this.status = InterviewStatus.PENDING;
+  }
+
   // 면접 종료 시간 계산
   public LocalDateTime getEndTime() {
     return this.scheduledAt.plusMinutes(this.durationMinutes);

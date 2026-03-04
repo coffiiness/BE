@@ -1,6 +1,6 @@
 package com.coffiness.calfit.api.v1.response;
 
-import com.coffiness.calfit.domain.recruitment.InterviewScheduleCalendarItem;
+import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
 import java.time.LocalDateTime;
 
 public record InterviewScheduleResponse(

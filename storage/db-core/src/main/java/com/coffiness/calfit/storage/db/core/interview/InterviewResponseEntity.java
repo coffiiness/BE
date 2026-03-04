@@ -34,4 +34,34 @@ public class InterviewResponseEntity extends TenantBaseEntity {
   // 거절 사유
   @Column(name = "decline_reason", nullable = false)
   private String declineReason;
+
+  public InterviewResponseEntity(
+      Long interviewScheduleId,
+      Long userId,
+      InterviewResponseStatus responseStatus,
+      LocalDateTime respondedAt,
+      String declineReason) {
+    this.interviewScheduleId = interviewScheduleId;
+    this.userId = userId;
+    this.responseStatus = responseStatus;
+    this.respondedAt = respondedAt;
+    this.declineReason = declineReason == null ? "" : declineReason;
+  }
+
+  public static InterviewResponseEntity accepted(Long interviewScheduleId, Long userId) {
+    return new InterviewResponseEntity(
+        interviewScheduleId, userId, InterviewResponseStatus.ACCEPTED, LocalDateTime.now(), "");
+  }
+
+  public void accept() {
+    this.responseStatus = InterviewResponseStatus.ACCEPTED;
+    this.respondedAt = LocalDateTime.now();
+    this.declineReason = "";
+  }
+
+  public void decline(String reason) {
+    this.responseStatus = InterviewResponseStatus.DECLINED;
+    this.respondedAt = LocalDateTime.now();
+    this.declineReason = reason == null ? "" : reason;
+  }
 }

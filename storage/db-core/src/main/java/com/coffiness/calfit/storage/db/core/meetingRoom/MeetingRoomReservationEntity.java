@@ -22,8 +22,8 @@ public class MeetingRoomReservationEntity extends TenantBaseEntity {
   @Column(name = "user_id", nullable = false)
   private Long userId;
 
-  // 면접 일정 id
-  @Column(name = "interview_schedule_id", nullable = false)
+  // 면접 일정 id (면접 예약이 아닌 경우 null 가능)
+  @Column(name = "interview_schedule_id", nullable = true)
   private Long interviewScheduleId;
 
   // 예약한 시간(시작)
@@ -53,5 +53,9 @@ public class MeetingRoomReservationEntity extends TenantBaseEntity {
     this.startDatetime = startDatetime;
     this.endDatetime = endDatetime;
     this.status = status;
+  }
+
+  public void cancel() {
+    this.status = MeetingRoomStatus.DELETED;
   }
 }
