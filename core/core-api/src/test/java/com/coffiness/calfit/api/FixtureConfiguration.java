@@ -55,6 +55,11 @@ public class FixtureConfiguration {
 
   @Bean
   @Scope("prototype")
+  RecruitmentFixture recruitmentFixture(Environment environment, ObjectMapper objectMapper) {
+    return RecruitmentFixture.create(environment, objectMapper);
+
+  @Bean
+  @Scope("prototype")
   PaymentFixture paymentFixture(Environment environment, ObjectMapper objectMapper) {
     return PaymentFixture.create(environment, objectMapper);
   }
