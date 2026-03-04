@@ -6,8 +6,6 @@ import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.request.ScheduleCreateRequest;
 import com.coffiness.calfit.request.ScheduleUpdateRequest;
-import com.coffiness.calfit.response.ScheduleDetailResponse;
-import com.coffiness.calfit.response.ScheduleResponse;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import jakarta.validation.Valid;
@@ -52,16 +50,16 @@ public class ScheduleService {
   }
 
   @Transactional(readOnly = true)
-  public List<ScheduleResponse> getSchedules(
+  public List<ScheduleInfo> getSchedules(
       long userId, LocalDateTime startDate, LocalDateTime endDate) {
 
     List<Schedule> schedules = scheduleReader.findOverlappingSchedules(userId, startDate, endDate);
 
-    return schedules.stream().map(ScheduleResponse::from).toList();
+    return schedules.stream().map(ScheduleInfo::from).toList();
   }
 
   @Transactional(readOnly = true)
-  public ScheduleDetailResponse getDetailSchedule(long userId, Long scheduleId) {
+  public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
 
     Schedule schedule = scheduleReader.read(scheduleId);
     List<Long> attendeeIds = scheduleReader.readAttendeeIds(scheduleId);
@@ -111,10 +109,10 @@ public class ScheduleService {
     // 기본 내 일정은 지원자 이름이 없음
     String applicantName = null;
 
-    return ScheduleDetailResponse.of(schedule, location, attendeeIds, attendees, applicantName);
+    return ScheduleDetailInfo.of(schedule, location, attendeeIds, attendees, applicantName);
   }
 
-  public ScheduleDetailResponse updateSchedule(
+  public ScheduleDetailInfo updateSchedule(
       long userId, Long scheduleId, @Valid ScheduleUpdateRequest request) {
 
     Schedule schedule = scheduleReader.read(scheduleId);

@@ -1,7 +1,7 @@
 package com.coffiness.calfit.response;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
-import com.coffiness.calfit.domain.Schedule;
+import com.coffiness.calfit.domain.ScheduleInfo;
 import java.time.format.DateTimeFormatter;
 
 public record ScheduleResponse(
@@ -17,15 +17,15 @@ public record ScheduleResponse(
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
-  public static ScheduleResponse from(Schedule schedule) {
+  public static ScheduleResponse from(ScheduleInfo info) {
     return new ScheduleResponse(
-        schedule.id(),
-        schedule.title(),
-        schedule.startTime().format(DATE_FORMATTER),
-        schedule.startTime().format(TIME_FORMATTER),
-        schedule.endTime().format(TIME_FORMATTER),
-        schedule.type(),
-        schedule.description(),
-        schedule.roomId());
+        info.id(),
+        info.title(),
+        info.startTime().format(DATE_FORMATTER),
+        info.startTime().format(TIME_FORMATTER),
+        info.endTime().format(TIME_FORMATTER),
+        info.type(),
+        info.description(),
+        info.roomId());
   }
 }
