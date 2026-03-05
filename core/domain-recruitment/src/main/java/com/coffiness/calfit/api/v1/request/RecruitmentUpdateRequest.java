@@ -2,11 +2,14 @@ package com.coffiness.calfit.api.v1.request;
 
 import com.coffiness.calfit.core.enums.CareerType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record RecruitmentCreateRequest(
+public record RecruitmentUpdateRequest(
     @NotBlank(message = "제목은 필수입니다.") @Size(max = 100, message = "제목은 100자 이하여야 합니다.") String title,
     int targetCount,
     @NotNull(message = "채용 공고 템플릿은 필수입니다.") Long applicationTemplateId,
