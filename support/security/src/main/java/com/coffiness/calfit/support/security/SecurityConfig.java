@@ -23,82 +23,82 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
-  private final JwtAuthenticationFilter jwtAuthenticationFilter;
-  private final CorsProperties corsProperties;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsProperties corsProperties;
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CorsProperties corsProperties) {
-    this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    this.corsProperties = corsProperties;
-  }
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CorsProperties corsProperties) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.corsProperties = corsProperties;
+    }
 
-  @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    return http.csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
-                    .permitAll()
-                    .requestMatchers(
-                        "/api/public/v1/applicants/signup", "/api/public/v1/applicants/login")
-                    .permitAll()
-                    .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
-                    .permitAll()
-                    .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
-                    .permitAll()
-                    .requestMatchers(
-                            "/api/v1/application-files/health",
-                            "/api/v1/application-files/presign-upload",
-                            "/api/v1/application-files/complete",
-                            "/api/v1/application-files/*/presign-download")
-                    .permitAll()
-                    .requestMatchers("/api/v1/admin/**")
-                    .hasRole("ADMIN")
-                    .anyRequest()
-                    .authenticated())
-        .exceptionHandling(
-            ex ->
-                ex.authenticationEntryPoint(
-                        (request, response, authException) -> {
-                          response.setStatus(401);
-                          response.setContentType("application/json;charset=UTF-8");
-                          response
-                              .getWriter()
-                              .write(
-                                  "{\"result\":\"ERROR\",\"data\":null,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Unauthorized\",\"data\":null}}");
-                        })
-                    .accessDeniedHandler(
-                        (request, response, accessDeniedException) -> {
-                          response.setStatus(403);
-                          response.setContentType("application/json;charset=UTF-8");
-                          response
-                              .getWriter()
-                              .write(
-                                  "{\"result\":\"ERROR\",\"data\":null,\"error\":{\"code\":\"FORBIDDEN\",\"message\":\"Forbidden\",\"data\":null}}");
-                        }))
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .build();
-  }
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http.csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+            .sessionManagement(
+                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(
+                auth ->
+                    auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
+                        .permitAll()
+                        .requestMatchers(
+                            "/api/public/v1/applicants/signup", "/api/public/v1/applicants/login")
+                        .permitAll()
+                        .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
+                        .permitAll()
+                        .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
+                        .permitAll()
+                        .requestMatchers(
+                                "/api/v1/application-files/health",
+                                "/api/v1/application-files/presign-upload",
+                                "/api/v1/application-files/complete",
+                                "/api/v1/application-files/*/presign-download")
+                        .permitAll()
+                        .requestMatchers("/api/v1/admin/**")
+                        .hasRole("ADMIN")
+                        .anyRequest()
+                        .authenticated())
+            .exceptionHandling(
+                ex ->
+                    ex.authenticationEntryPoint(
+                            (request, response, authException) -> {
+                                response.setStatus(401);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response
+                                        .getWriter()
+                                        .write(
+                                                "{\"result\":\"ERROR\",\"data\":null,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Unauthorized\",\"data\":null}}");
+                            })
+                            .accessDeniedHandler(
+                                (request, response, accessDeniedException) -> {
+                                response.setStatus(403);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response
+                                    .getWriter()
+                                    .write(
+                                        "{\"result\":\"ERROR\",\"data\":null,\"error\":{\"code\":\"FORBIDDEN\",\"message\":\"Forbidden\",\"data\":null}}");
+                                }))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
 
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(corsProperties.allowedOrigins());
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-    configuration.setAllowedHeaders(List.of("*"));
-    configuration.setAllowCredentials(true);
-    configuration.setMaxAge(3600L);
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(corsProperties.allowedOrigins());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
-  }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
-  @Bean
-  public PasswordEncoder passwordEncoder() {
+    @Bean
+    public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 }

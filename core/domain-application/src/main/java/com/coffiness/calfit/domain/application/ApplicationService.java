@@ -1,12 +1,21 @@
 package com.coffiness.calfit.domain.application;
 
 import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
+import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
+import com.coffiness.calfit.api.v1.response.ApplicationFileResponse;
+import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
+import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.UploadStatus;
 import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationFileEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationFileRepository;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +27,7 @@ public class ApplicationService {
   private static final String DEFAULT_TENANT = "default";
 
   private final ApplicationRepository applicationRepository;
+  private final ApplicationFileRepository applicationFileRepository;
 
   @Transactional
   public Long create(ApplicationCreateRequest request, Long requesterUserId) {
@@ -47,6 +57,38 @@ public class ApplicationService {
 
     ApplicationEntity saved = applicationRepository.save(entity);
     return saved.getId();
+  }
+
+  @Transactional(readOnly = true)
+  public List<ApplicationSummaryResponse> listByRecruitment(Long recruitmentId) {
+    requireTenant();
+    List<ApplicationEntity> entities =
+        applicationRepository.findByRecruitmentIdAndStatus(recruitmentId, EntityStatus.ACTIVE);
+    return entities.stream().map(ApplicationSummaryResponse::from).collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<ApplicationSummaryResponse> listAll() {
+    requireTenant();
+    List<ApplicationEntity> entities = applicationRepository.findByStatus(EntityStatus.ACTIVE);
+    return entities.stream().map(ApplicationSummaryResponse::from).collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public ApplicationDetailResponse getDetail(Long applicationId) {
+    requireTenant();
+    ApplicationEntity entity =
+        applicationRepository
+            .findByIdAndStatus(applicationId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "APPLICATION_NOT_FOUND", null));
+
+    List<ApplicationFileEntity> files =
+        applicationFileRepository.findByApplicationIdAndStatusAndUploadStatus(
+            applicationId, EntityStatus.ACTIVE, UploadStatus.ACTIVE);
+    List<ApplicationFileResponse> fileResponses =
+        files.stream().map(ApplicationFileResponse::from).collect(Collectors.toList());
+
+    return ApplicationDetailResponse.from(entity, fileResponses);
   }
 
   private void requireTenant() {
