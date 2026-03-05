@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.RecruitmentFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
@@ -24,10 +25,14 @@ public class GET_specs {
 
   @Test
   void 채용공고_목록_조회에_성공한다(
-      @Autowired UserFixture userFixture, @Autowired RecruitmentFixture recruitmentFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired RecruitmentFixture recruitmentFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    var workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
 
     List<RecruitmentStageRequest> stages1 =
         List.of(
@@ -69,16 +74,16 @@ public class GET_specs {
             null,
             null,
             1L,
-            List.of(),
-            List.of(),
+            List.of(1L),
+            List.of(3L),
             stages2);
 
-    recruitmentFixture.createRecruitment(token, request1);
-    recruitmentFixture.createRecruitment(token, request2);
+    recruitmentFixture.createRecruitment(token, tenantId, request1);
+    recruitmentFixture.createRecruitment(token, tenantId, request2);
 
     // Act
     ApiResponse<List<RecruitmentListResponse>> response =
-        recruitmentFixture.getRecruitmentList(token);
+        recruitmentFixture.getRecruitmentList(token, tenantId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);

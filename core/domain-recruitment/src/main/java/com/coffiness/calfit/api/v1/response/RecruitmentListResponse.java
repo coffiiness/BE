@@ -15,6 +15,7 @@ public record RecruitmentListResponse(
     CareerType careerType,
     Integer minExperienceYears,
     Integer maxExperienceYears,
+    LocalDateTime startDate, // 시작일 (게시 전 여부 판단용)
     LocalDateTime endDate, // D-DAY 계산용 마감일
     RecruitmentStatus status, // 상태 뱃지 표시용 상태
     List<StageSummary> stages, // 단계별 정보
@@ -29,6 +30,7 @@ public record RecruitmentListResponse(
         info.careerType(),
         info.minExperienceYears(),
         info.maxExperienceYears(),
+        info.startDate(),
         info.endDate(),
         info.recruitmentStatus(),
         info.stages().stream()

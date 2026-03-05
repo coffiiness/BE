@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.RecruitmentFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -24,10 +26,14 @@ public class GET_specs {
 
   @Test
   void 채용공고의_월별_면접_일정_조회에_성공한다(
-      @Autowired UserFixture userFixture, @Autowired RecruitmentFixture recruitmentFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired RecruitmentFixture recruitmentFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
 
     LocalDateTime now = LocalDateTime.now();
 
@@ -53,15 +59,16 @@ public class GET_specs {
             List.of(101L, 102L),
             stages);
 
-    ApiResponse<Void> createResponse = recruitmentFixture.createRecruitment(token, request);
+    recruitmentFixture.createRecruitment(token, tenantId, request);
 
-    Long recruitmentId = recruitmentFixture.getRecruitmentList(token).getData().get(0).id();
+    Long recruitmentId =
+        recruitmentFixture.getRecruitmentList(token, tenantId).getData().get(0).id();
 
     String yearMonth = "2026-03";
 
     // Act
     ApiResponse<List<InterviewScheduleResponse>> response =
-        recruitmentFixture.getRecruitmentSchedule(token, recruitmentId, yearMonth);
+        recruitmentFixture.getRecruitmentSchedule(token, tenantId, recruitmentId, yearMonth);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);

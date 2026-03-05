@@ -40,8 +40,8 @@ public class InterviewScheduleEntity extends TenantBaseEntity {
 
   // 인터뷰 상태
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false)
-  private InterviewStatus status;
+  @Column(name = "interview_status", nullable = false)
+  private InterviewStatus interviewStatus;
 
   public InterviewScheduleEntity(
       Long recruitmentId,
@@ -50,34 +50,34 @@ public class InterviewScheduleEntity extends TenantBaseEntity {
       LocalDateTime scheduledAt,
       Integer durationMinutes,
       String memo,
-      InterviewStatus status) {
+      InterviewStatus interviewStatus) {
     this.recruitmentId = recruitmentId;
     this.recruitmentStageId = recruitmentStageId;
     this.meetingRoomId = meetingRoomId;
     this.scheduledAt = scheduledAt;
     this.durationMinutes = durationMinutes;
     this.memo = memo;
-    this.status = status;
+    this.interviewStatus = interviewStatus;
   }
 
   // 확정 상태로 변경
   public void confirm() {
-    this.status = InterviewStatus.CONFIRMED;
+    this.interviewStatus = InterviewStatus.CONFIRMED;
   }
 
   // 취소 상태로 변경
   public void cancel() {
-    this.status = InterviewStatus.CANCELLED;
+    this.interviewStatus = InterviewStatus.CANCELLED;
   }
 
   // 완료 상태로 변경
   public void complete() {
-    this.status = InterviewStatus.COMPLETED;
+    this.interviewStatus = InterviewStatus.COMPLETED;
   }
 
   // 대기 상태로 변경
   public void pending() {
-    this.status = InterviewStatus.PENDING;
+    this.interviewStatus = InterviewStatus.PENDING;
   }
 
   // 면접 종료 시간 계산

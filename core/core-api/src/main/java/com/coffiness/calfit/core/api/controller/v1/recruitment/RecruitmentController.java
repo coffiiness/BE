@@ -4,6 +4,7 @@ import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
+import com.coffiness.calfit.core.api.facade.recruitment.RecruitmentFacade;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class RecruitmentController {
 
   private final RecruitmentService recruitmentService;
+  private final RecruitmentFacade recruitmentFacade;
 
   @ResponseStatus(HttpStatus.CREATED)
   @PostMapping("/api/v1/recruitments")
@@ -77,7 +79,7 @@ public class RecruitmentController {
     long userId = user.userId();
 
     List<InterviewScheduleCalendarItem> items =
-        recruitmentService.getInterviewSchedules(userId, recruitmentId, yearMonth);
+        recruitmentFacade.getInterviewSchedule(userId, recruitmentId, yearMonth);
 
     List<InterviewScheduleResponse> response =
         items.stream().map(InterviewScheduleResponse::from).toList();
