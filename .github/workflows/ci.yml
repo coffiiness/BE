@@ -199,6 +199,7 @@ jobs:
             echo "${{ secrets.ENV_FILE_BASE64 }}" | base64 -d > .env
 
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/final-backend:latest
+            sudo docker-compose down
             sudo docker-compose up -d
 
             sudo docker image prune -f
