@@ -15,4 +15,7 @@ public interface MeetingRoomReader {
       Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime);
 
   MeetingRoomReservation getActiveReservation(Long meetingRoomId, Long reservationId);
+
+  List<MeetingRoomReservation> getActiveReservations(
+      LocalDateTime fromDatetime, LocalDateTime toDatetime);
 }

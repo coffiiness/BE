@@ -78,7 +78,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     String tenantId = requireTenantId();
     List<MeetingRoomBusySlotRow> result =
         meetingRoomReservationRepository
-            .findAllByTenantIdAndMeetingRoomIdInAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+            .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
                 tenantId, meetingRoomIds, MeetingRoomStatus.RESERVED, to, from)
             .stream()
             .map(
@@ -309,7 +309,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .interviewScheduleId(saved.getId())
             .startDatetime(scheduledAt)
             .endDatetime(end)
-            .status(MeetingRoomStatus.RESERVED)
+            .reservationStatus(MeetingRoomStatus.RESERVED)
             .build();
     meetingRoomReservationRepository.save(reservation);
 
@@ -353,7 +353,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     String tenantId = requireTenantId();
     long roomConflict =
         meetingRoomReservationRepository
-            .countByTenantIdAndMeetingRoomIdAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+            .countByTenantIdAndMeetingRoomIdAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
                 tenantId, meetingRoomId, MeetingRoomStatus.RESERVED, end, start);
     return roomConflict > 0;
   }

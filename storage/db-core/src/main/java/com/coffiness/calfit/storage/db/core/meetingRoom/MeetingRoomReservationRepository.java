@@ -8,21 +8,21 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MeetingRoomReservationRepository
     extends JpaRepository<MeetingRoomReservationEntity, Long> {
-  long countByTenantIdAndMeetingRoomIdAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+  long countByTenantIdAndMeetingRoomIdAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
       String tenantId,
       Long meetingRoomId,
-      MeetingRoomStatus status,
+      MeetingRoomStatus reservationStatus,
       LocalDateTime endTime,
       LocalDateTime startTime);
 
   List<MeetingRoomReservationEntity>
-      findAllByTenantIdAndMeetingRoomIdInAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+      findAllByTenantIdAndMeetingRoomIdInAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
           String tenantId,
           List<Long> meetingRoomIds,
-          MeetingRoomStatus status,
+          MeetingRoomStatus reservationStatus,
           LocalDateTime to,
           LocalDateTime from);
 
-  Optional<MeetingRoomReservationEntity> findByTenantIdAndIdAndMeetingRoomIdAndStatus(
-      String tenantId, Long id, Long meetingRoomId, MeetingRoomStatus status);
+  Optional<MeetingRoomReservationEntity> findByTenantIdAndIdAndMeetingRoomIdAndReservationStatus(
+      String tenantId, Long id, Long meetingRoomId, MeetingRoomStatus reservationStatus);
 }

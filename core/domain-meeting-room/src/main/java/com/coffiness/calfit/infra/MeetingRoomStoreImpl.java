@@ -68,7 +68,7 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
                 .interviewScheduleId(null)
                 .startDatetime(startDatetime)
                 .endDatetime(endDatetime)
-                .status(MeetingRoomStatus.RESERVED)
+                .reservationStatus(MeetingRoomStatus.RESERVED)
                 .build());
     return toReservation(saved);
   }
@@ -79,7 +79,7 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
     String tenantId = requireTenantId();
     MeetingRoomReservationEntity entity =
         reservationRepository
-            .findByTenantIdAndIdAndMeetingRoomIdAndStatus(
+            .findByTenantIdAndIdAndMeetingRoomIdAndReservationStatus(
                 tenantId, reservationId, meetingRoomId, MeetingRoomStatus.RESERVED)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     entity.cancel();
@@ -93,7 +93,7 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
         entity.getUserId(),
         entity.getStartDatetime(),
         entity.getEndDatetime(),
-        entity.getStatus());
+        entity.getReservationStatus());
   }
 
   private String requireTenantId() {

@@ -50,7 +50,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
       Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
     String tenantId = requireTenantId();
     return reservationRepository
-        .countByTenantIdAndMeetingRoomIdAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+        .countByTenantIdAndMeetingRoomIdAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
             tenantId, meetingRoomId, MeetingRoomStatus.RESERVED, endDatetime, startDatetime);
   }
 
@@ -59,10 +59,34 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
     String tenantId = requireTenantId();
     MeetingRoomReservationEntity entity =
         reservationRepository
-            .findByTenantIdAndIdAndMeetingRoomIdAndStatus(
+            .findByTenantIdAndIdAndMeetingRoomIdAndReservationStatus(
                 tenantId, reservationId, meetingRoomId, MeetingRoomStatus.RESERVED)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     return toReservation(entity);
+  }
+
+  @Override
+  public List<MeetingRoomReservation> getActiveReservations(
+      LocalDateTime fromDatetime, LocalDateTime toDatetime) {
+    String tenantId = requireTenantId();
+    if (fromDatetime == null || toDatetime == null || !fromDatetime.isBefore(toDatetime)) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    List<Long> meetingRoomIds =
+        meetingRoomRepository.findAllByStatusOrderByNameAsc(EntityStatus.ACTIVE).stream()
+            .map(MeetingRoomEntity::getId)
+            .toList();
+    if (meetingRoomIds.isEmpty()) {
+      return List.of();
+    }
+
+    return reservationRepository
+        .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
+            tenantId, meetingRoomIds, MeetingRoomStatus.RESERVED, toDatetime, fromDatetime)
+        .stream()
+        .map(this::toReservation)
+        .toList();
   }
 
   private MeetingRoom toMeetingRoom(MeetingRoomEntity entity) {
@@ -76,7 +100,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
         entity.getUserId(),
         entity.getStartDatetime(),
         entity.getEndDatetime(),
-        entity.getStatus());
+        entity.getReservationStatus());
   }
 
   private String requireTenantId() {

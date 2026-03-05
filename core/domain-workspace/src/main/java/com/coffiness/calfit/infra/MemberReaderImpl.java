@@ -20,7 +20,11 @@ public class MemberReaderImpl implements MemberReader {
 
   @Override
   public Member getMember(String workspaceId, Long userId) {
-    MemberEntity entity = memberRepository.findByTenantIdAndUserId(workspaceId, userId);
+    MemberEntity entity =
+        memberRepository.findByTenantIdAndUserIdAndStatus(workspaceId, userId, EntityStatus.ACTIVE);
+    if (entity == null) {
+      return null;
+    }
     return toWorkspaceMember(entity);
   }
 

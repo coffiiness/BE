@@ -41,6 +41,12 @@ public class MeetingRoomService {
     return meetingRoomReader.getMeetingRooms();
   }
 
+  @Transactional(readOnly = true)
+  public List<MeetingRoomReservation> listReservations(
+      LocalDateTime fromDatetime, LocalDateTime toDatetime) {
+    return meetingRoomReader.getActiveReservations(fromDatetime, toDatetime);
+  }
+
   @Transactional
   public MeetingRoomReservation reserve(
       Long userId, Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
