@@ -1,8 +1,10 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -79,6 +81,52 @@ public class RecruitmentService {
 
     // TODO : 이 멤버가 이 채용 공고를 볼 권한이 있는지 + 멤버를 매개변수로 받고 user로 변환하는 로직
     return recruitmentReader.readDetail(recruitmentId);
+  }
+
+  public Recruitment updateRecruitment(
+      long memberId, Long recruitmentId, RecruitmentUpdateRequest request) {
+
+    Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+    if (recruitment == null) {
+      throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
+    }
+
+    // 채용 게시일이 현재 날짜보다 지났다면 채용 공고 수정 불가
+    recruitment.validateUpdatable(LocalDateTime.now());
+
+    List<RecruitmentStage> newStages =
+        request.stages() == null
+            ? List.of()
+            : request.stages().stream()
+                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
+                .toList();
+
+    Recruitment updatedRecruitment =
+        recruitment.updateDetails(
+            request.title(),
+            request.contents(),
+            request.targetCount(),
+            request.startDate(),
+            request.endDate(),
+            request.applicationTemplateId(),
+            request.careerType(),
+            request.minExperienceYears(),
+            request.maxExperienceYears(),
+            request.leadGroupId(),
+            request.referenceGroupIds(),
+            request.interviewerIds(),
+            newStages);
+
+    Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
+
+    recruitmentHistoryAppender.append(
+        updatedRecruitment.id(),
+        memberId,
+        RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
+        "채용 공고 수정",
+        updatedRecruitment);
+
+    return savedRecruitment;
   }
 
   public void assertCanAccess(long memberId, Long recruitmentId) {

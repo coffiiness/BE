@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
@@ -32,6 +33,12 @@ public record RecruitmentFixture(BaseFixture base) {
       String token, Long recruitmentId) {
     String url = String.format("/api/v1/recruitments/%s", recruitmentId);
     return base.get(url, token, RecruitmentDetailResponse.class);
+  }
+
+  public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
+      String token, Long recruitmentId, RecruitmentUpdateRequest request) {
+    String url = String.format("/api/v1/recruitments/%s", recruitmentId);
+    return base.put(url, request, token, RecruitmentDetailResponse.class);
   }
 
   // ==================== tenantId 지원 메서드  ====================
@@ -74,6 +81,13 @@ public record RecruitmentFixture(BaseFixture base) {
             url, HttpMethod.GET, null, token, tenantId, InterviewScheduleResponse[].class);
 
     return ApiResponse.success(List.of(response.getData()));
+  }
+
+  public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
+      String token, String tenantId, Long recruitmentId, RecruitmentUpdateRequest request) {
+    String url = String.format("/api/v1/recruitments/%s", recruitmentId);
+    return exchangeWithTenant(
+        url, HttpMethod.PUT, request, token, tenantId, RecruitmentDetailResponse.class);
   }
 
   // ==================== 토큰 헬퍼 메소드 ====================
