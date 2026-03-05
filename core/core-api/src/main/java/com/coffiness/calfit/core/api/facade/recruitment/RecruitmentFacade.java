@@ -1,8 +1,11 @@
 package com.coffiness.calfit.core.api.facade.recruitment;
 
+import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.interview.InterviewReader;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
+import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
+import com.coffiness.calfit.domain.recruitment.RecruitmentReader;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
@@ -21,6 +24,7 @@ public class RecruitmentFacade {
   private final InterviewReader interviewReader;
   private final MemberReader memberReader;
   private final RecruitmentService recruitmentService;
+  private final RecruitmentReader recruitmentReader;
 
   @Transactional(readOnly = true)
   public List<InterviewScheduleCalendarItem> getInterviewSchedule(
@@ -50,5 +54,25 @@ public class RecruitmentFacade {
     LocalDateTime to = ym.atEndOfMonth().atTime(23, 59, 59, 999999);
 
     return interviewReader.getSchedulesByRecruitmentId(recruitmentId, from, to);
+  }
+
+  @Transactional
+  public RecruitmentDetailInfo updateRecruitment(
+      long userId, Long recruitmentId, RecruitmentUpdateRequest request) {
+    // Member 정보 확인
+    String currentWorkspaceId = TenantContext.getTenantId();
+    Member member = memberReader.getMember(currentWorkspaceId, userId);
+
+    if (member == null) {
+      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
+    }
+
+    if (member.memberType() != MemberType.HR) {
+      throw new IllegalArgumentException("채용 담당자만 수정이 가능합니다.");
+    }
+
+    recruitmentService.updateRecruitment(member.id(), recruitmentId, request);
+
+    return recruitmentReader.readDetail(recruitmentId);
   }
 }

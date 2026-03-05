@@ -31,7 +31,9 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
       changeLog.put("targetCount", recruitmentSnapShot.targetCount());
       changeLog.put(
           "status",
-          recruitmentSnapShot.status() != null ? recruitmentSnapShot.status().name() : null);
+          recruitmentSnapShot.recruitmentStatus() != null
+              ? recruitmentSnapShot.recruitmentStatus().name()
+              : null);
       changeLog.put(
           "careerType",
           recruitmentSnapShot.careerType() != null

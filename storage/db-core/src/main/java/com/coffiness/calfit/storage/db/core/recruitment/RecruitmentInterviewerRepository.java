@@ -8,4 +8,6 @@ public interface RecruitmentInterviewerRepository
   List<RecruitmentInterviewerEntity> findByRecruitmentIdIn(List<Long> recruitmentIds);
 
   List<RecruitmentInterviewerEntity> findByRecruitmentId(Long recruitmentId);
+
+  void deleteByRecruitmentId(Long recruitmentId);
 }

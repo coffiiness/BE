@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.util.List;
@@ -93,5 +94,47 @@ public class RecruitmentService {
     }
 
     throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
+  }
+
+  public Recruitment updateRecruitment(
+      long memberId, Long recruitmentId, RecruitmentUpdateRequest request) {
+
+    Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+    if (recruitment == null) {
+      throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
+    }
+
+    List<RecruitmentStage> newStages =
+        request.stages() == null
+            ? List.of()
+            : request.stages().stream()
+                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
+                .toList();
+
+    Recruitment updatedRecruitment =
+        recruitment.updateDetails(
+            request.title(),
+            request.contents(),
+            request.targetCount(),
+            request.startDate(),
+            request.endDate(),
+            request.careerType(),
+            request.minExperienceYears(),
+            request.maxExperienceYears(),
+            request.leadGroupId(),
+            request.referenceGroupIds(),
+            request.interviewerIds(),
+            newStages);
+
+    Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
+
+    recruitmentHistoryAppender.append(
+        updatedRecruitment.id(),
+        memberId,
+        RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
+        "채용 공고 수정",
+        updatedRecruitment);
+
+    return savedRecruitment;
   }
 }

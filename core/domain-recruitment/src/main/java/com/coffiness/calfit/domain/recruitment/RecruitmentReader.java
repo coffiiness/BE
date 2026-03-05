@@ -11,4 +11,6 @@ public interface RecruitmentReader {
   List<RecruitmentListInfo> readList(RecruitmentStatus recruitmentStatus, Pageable pageable);
 
   RecruitmentDetailInfo readDetail(Long recruitmentId);
+
+  Recruitment readById(Long recruitmentId);
 }
