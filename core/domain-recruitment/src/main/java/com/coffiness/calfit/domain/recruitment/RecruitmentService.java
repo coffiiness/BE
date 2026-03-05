@@ -4,6 +4,7 @@ import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -103,6 +104,9 @@ public class RecruitmentService {
     if (recruitment == null) {
       throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
     }
+
+    // 채용 게시일이 현재 날짜보다 지났다면 채용 공고 수정 불가
+    recruitment.validateUpdatable(LocalDateTime.now());
 
     List<RecruitmentStage> newStages =
         request.stages() == null

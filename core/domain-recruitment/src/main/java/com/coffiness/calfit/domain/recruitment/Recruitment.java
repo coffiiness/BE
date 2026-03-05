@@ -118,4 +118,15 @@ public record Recruitment(
         this.interviewerIds,
         this.stages);
   }
+
+  // 채용 공고 수정 정책 로직
+  public void validateUpdatable(LocalDateTime currentTime) {
+    if (this.startDate != null && currentTime.isAfter(this.startDate)) {
+      throw new IllegalArgumentException("이미 게시가 시작된 채용 공고는 수정할 수 없습니다.");
+    }
+
+    if (this.recruitmentStatus() == RecruitmentStatus.CLOSED) {
+      throw new IllegalArgumentException("마감된 공고는 수정할 수 없습니다.");
+    }
+  }
 }
