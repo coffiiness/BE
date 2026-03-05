@@ -5,9 +5,11 @@ import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.core.support.response.ResultType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.springframework.core.env.Environment;
+import org.springframework.http.*;
 
 public record RecruitmentFixture(BaseFixture base) {
 
@@ -32,15 +34,82 @@ public record RecruitmentFixture(BaseFixture base) {
     return base.get(url, token, RecruitmentDetailResponse.class);
   }
 
+  // ==================== tenantId 지원 메서드  ====================
+
+  public ApiResponse<Void> createRecruitment(
+      String token, String tenantId, RecruitmentCreateRequest request) {
+    return exchangeWithTenant(
+        "/api/v1/recruitments", HttpMethod.POST, request, token, tenantId, Void.class);
+  }
+
+  public ApiResponse<List<RecruitmentListResponse>> getRecruitmentList(
+      String token, String tenantId) {
+    ApiResponse<RecruitmentListResponse[]> response =
+        exchangeWithTenant(
+            "/api/v1/recruitments",
+            HttpMethod.GET,
+            null,
+            token,
+            tenantId,
+            RecruitmentListResponse[].class);
+
+    return ApiResponse.success(List.of(response.getData()));
+  }
+
+  public ApiResponse<RecruitmentDetailResponse> getRecruitmentDetail(
+      String token, String tenantId, Long recruitmentId) {
+    String url = String.format("/api/v1/recruitments/%s", recruitmentId);
+    return exchangeWithTenant(
+        url, HttpMethod.GET, null, token, tenantId, RecruitmentDetailResponse.class);
+  }
+
   public ApiResponse<List<InterviewScheduleResponse>> getRecruitmentSchedule(
-      String token, Long recruitmentId, String yearMonth) {
+      String token, String tenantId, Long recruitmentId, String yearMonth) {
 
     String url =
         String.format(
             "/api/v1/recruitments/%s/interview-schedules?yearMonth=%s", recruitmentId, yearMonth);
     ApiResponse<InterviewScheduleResponse[]> response =
-        base.get(url, token, InterviewScheduleResponse[].class);
+        exchangeWithTenant(
+            url, HttpMethod.GET, null, token, tenantId, InterviewScheduleResponse[].class);
 
     return ApiResponse.success(List.of(response.getData()));
+  }
+
+  // ==================== 토큰 헬퍼 메소드 ====================
+
+  @SuppressWarnings("unchecked")
+  private <T> ApiResponse<T> exchangeWithTenant(
+      String url,
+      HttpMethod method,
+      Object body,
+      String token,
+      String tenantId,
+      Class<T> responseType) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    if (token != null && !token.isBlank()) {
+      headers.setBearerAuth(token);
+    }
+    if (tenantId != null && !tenantId.isBlank()) {
+      headers.set("X-Tenant-ID", tenantId);
+    }
+    HttpEntity<?> entity =
+        (body != null) ? new HttpEntity<>(body, headers) : new HttpEntity<>(headers);
+
+    ResponseEntity<ApiResponse> response =
+        base.client().exchange(url, method, entity, ApiResponse.class);
+    return convertResponse(response.getBody(), responseType);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> ApiResponse<T> convertResponse(ApiResponse<?> response, Class<T> responseType) {
+    if (response == null) return null;
+    if (response.getResult() == ResultType.ERROR || response.getData() == null) {
+      return (ApiResponse<T>) response;
+    }
+    if (responseType == Void.class) return (ApiResponse<T>) response;
+    T converted = base.objectMapper().convertValue(response.getData(), responseType);
+    return ApiResponse.success(converted);
   }
 }

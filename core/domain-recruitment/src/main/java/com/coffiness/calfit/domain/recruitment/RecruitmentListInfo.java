@@ -12,6 +12,7 @@ public record RecruitmentListInfo(
     CareerType careerType,
     Integer minExperienceYears,
     Integer maxExperienceYears,
+    LocalDateTime startDate,
     LocalDateTime endDate,
     RecruitmentStatus recruitmentStatus,
     List<StageSummaryInfo> stages,

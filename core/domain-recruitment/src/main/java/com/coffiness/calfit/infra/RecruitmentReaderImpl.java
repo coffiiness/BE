@@ -132,6 +132,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   entity.getCareerType(),
                   entity.getMinExperienceYears(),
                   entity.getMaxExperienceYears(),
+                  entity.getStartDate(),
                   entity.getEndDate(),
                   entity.getRecruitmentStatus(),
                   stageInfos,
@@ -148,7 +149,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
             .findById(recruitmentId)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
 
-    // Group Name  가져오기
+    // Group Name 가져오기
     String groupName = "부서 미지정";
     if (entity.getLeadGroupId() != null) {
       Map<Long, String> groupNameMap =
