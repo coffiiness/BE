@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
@@ -25,24 +26,21 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
 
   @Override
   public boolean existsByName(String name) {
-    String tenantId = requireTenantId();
-    return meetingRoomRepository.existsByTenantIdAndName(tenantId, name);
+    return meetingRoomRepository.existsByNameAndStatus(name, EntityStatus.ACTIVE);
   }
 
   @Override
   public MeetingRoom getMeetingRoom(Long meetingRoomId) {
-    String tenantId = requireTenantId();
     MeetingRoomEntity entity =
         meetingRoomRepository
-            .findByTenantIdAndId(tenantId, meetingRoomId)
+            .findByIdAndStatus(meetingRoomId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     return toMeetingRoom(entity);
   }
 
   @Override
   public List<MeetingRoom> getMeetingRooms() {
-    String tenantId = requireTenantId();
-    return meetingRoomRepository.findAllByTenantIdOrderByNameAsc(tenantId).stream()
+    return meetingRoomRepository.findAllByStatusOrderByNameAsc(EntityStatus.ACTIVE).stream()
         .map(this::toMeetingRoom)
         .toList();
   }

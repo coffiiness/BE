@@ -8,11 +8,17 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(
     name = "announcement_boards",
     uniqueConstraints = {@UniqueConstraint(columnNames = {"tenant_id", "title"})})
+@SQLDelete(
+    sql =
+        "UPDATE announcement_boards SET status = 'DELETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("status = 'ACTIVE'")
 @NoArgsConstructor
 @Getter
 public class AnnouncementBoardEntity extends TenantBaseEntity {

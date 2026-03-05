@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
@@ -38,10 +39,9 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
 
   @Override
   public MeetingRoom update(Long meetingRoomId, String name, Integer capacity) {
-    String tenantId = requireTenantId();
     MeetingRoomEntity entity =
         meetingRoomRepository
-            .findByTenantIdAndId(tenantId, meetingRoomId)
+            .findByIdAndStatus(meetingRoomId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     entity.update(name, capacity);
     return new MeetingRoom(entity.getId(), entity.getName(), entity.getCapacity());
@@ -49,12 +49,11 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
 
   @Override
   public void delete(Long meetingRoomId) {
-    String tenantId = requireTenantId();
     MeetingRoomEntity entity =
         meetingRoomRepository
-            .findByTenantIdAndId(tenantId, meetingRoomId)
+            .findByIdAndStatus(meetingRoomId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-    meetingRoomRepository.delete(entity);
+    entity.deleted();
   }
 
   @Override
