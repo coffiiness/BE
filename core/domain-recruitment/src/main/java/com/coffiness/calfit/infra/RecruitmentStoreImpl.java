@@ -121,9 +121,9 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
         recruitment.maxExperienceYears(),
         recruitment.leadGroupId());
 
-    recruitmentStageRepository.deleteByRecruitmentId(recruitment.id());
-    recruitmentInterviewerRepository.deleteByRecruitmentId(recruitment.id());
-    recruitmentReferenceGroupRepository.deleteByRecruitmentId(recruitment.id());
+    recruitmentStageRepository.deleteAllByRecruitmentId(recruitment.id());
+    recruitmentInterviewerRepository.deleteAllByRecruitmentId(recruitment.id());
+    recruitmentReferenceGroupRepository.deleteAllByRecruitmentId(recruitment.id());
 
     insertChildren(recruitment.id(), recruitment);
 
