@@ -36,11 +36,16 @@ public class RecruitmentFacade {
 
     // 권한 검증: HR이 아닌 경우에만 면접관 여부 확인
     if (member.memberType() != MemberType.HR) {
-      recruitmentService.assertCanAccess(userId, recruitmentId);
+      recruitmentService.assertCanAccess(member.id(), recruitmentId);
     }
 
     // 기간 파싱 및 면접 일정 조회
-    YearMonth ym = YearMonth.parse(yearMonth);
+    YearMonth ym;
+    try {
+      ym = YearMonth.parse(yearMonth);
+    } catch (java.time.format.DateTimeParseException e) {
+      throw new IllegalArgumentException("잘못된 연월 형식입니다. (예: 2026-03)");
+    }
     LocalDateTime from = ym.atDay(1).atStartOfDay();
     LocalDateTime to = ym.atEndOfMonth().atTime(23, 59, 59, 999999);
 
