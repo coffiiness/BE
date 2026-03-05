@@ -48,6 +48,8 @@ services:
       TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY}
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       JAVA_OPTS: -Xms256m -Xmx512m
     volumes:
       - ./logs:/app/logs
