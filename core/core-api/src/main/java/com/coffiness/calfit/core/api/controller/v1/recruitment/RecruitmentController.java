@@ -100,4 +100,13 @@ public class RecruitmentController {
 
     return ApiResponse.success(RecruitmentDetailResponse.from(info));
   }
+
+  @DeleteMapping("/api/v1/recruitments/{recruitmentId}")
+  public ApiResponse<Long> deleteRecruitment(
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long recruitmentId) {
+    long userId = user.userId();
+    recruitmentFacade.deleteRecruitment(userId, recruitmentId);
+
+    return ApiResponse.success(recruitmentId);
+  }
 }

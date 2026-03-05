@@ -8,4 +8,6 @@ public interface RecruitmentStore {
   Recruitment store(Recruitment recruitment);
 
   Recruitment update(Recruitment recruitment);
+
+  void delete(Long recruitmentId);
 }

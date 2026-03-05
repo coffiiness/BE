@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.recruitment.Recruitment;
 import com.coffiness.calfit.domain.recruitment.RecruitmentStore;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
@@ -89,6 +90,16 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
     insertChildren(recruitment.id(), recruitment);
 
     return recruitment;
+  }
+
+  @Override
+  public void delete(Long recruitmentId) {
+    RecruitmentEntity entity =
+        recruitmentRepository
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("이미 삭제되었거나 존재하지 않는 채용 공고입니다."));
+
+    entity.deleted();
   }
 
   private void insertChildren(Long recruitmentId, Recruitment recruitment) {

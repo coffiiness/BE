@@ -75,4 +75,21 @@ public class RecruitmentFacade {
 
     return recruitmentReader.readDetail(recruitmentId);
   }
+
+  public void deleteRecruitment(long userId, Long recruitmentId) {
+    String currentWorkspaceId = TenantContext.getTenantId();
+    Member member = memberReader.getMember(currentWorkspaceId, userId);
+
+    if (member == null) {
+      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
+    }
+
+    if (member.memberType() != MemberType.HR) {
+      throw new IllegalArgumentException("채용 담당자만 채용 공고를 삭제할 수 있습니다.");
+    }
+
+    // TODO : 지원자나 진행중인 면접이 있을 경우의 검증 로직 (지원자 모듈, 면접 모듈)
+
+    recruitmentService.deleteRecruitment(member.id(), recruitmentId);
+  }
 }

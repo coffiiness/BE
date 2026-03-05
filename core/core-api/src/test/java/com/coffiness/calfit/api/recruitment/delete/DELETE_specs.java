@@ -165,4 +165,6 @@ public class DELETE_specs {
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
+
+  // TODO : 진행중인 공고 삭제 불가능
 }

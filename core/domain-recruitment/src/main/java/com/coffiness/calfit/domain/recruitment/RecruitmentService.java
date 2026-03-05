@@ -142,4 +142,17 @@ public class RecruitmentService {
 
     throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
   }
+
+  public void deleteRecruitment(Long memberId, Long recruitmentId) {
+    Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+
+    if (recruitment.recruitmentStatus() != RecruitmentStatus.DRAFT) {
+      throw new IllegalArgumentException("진행중이거나 마감된 채용 공고는 삭제할 수 없습니다.");
+    }
+
+    recruitmentStore.delete(recruitmentId);
+
+    recruitmentHistoryAppender.append(
+        recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+  }
 }
