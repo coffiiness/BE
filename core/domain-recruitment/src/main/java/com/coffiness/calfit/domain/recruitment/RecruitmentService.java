@@ -83,20 +83,6 @@ public class RecruitmentService {
     return recruitmentReader.readDetail(recruitmentId);
   }
 
-  public void assertCanAccess(long memberId, Long recruitmentId) {
-    RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
-
-    boolean isInterviewer =
-        recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.memberId().equals(memberId));
-
-    if (isInterviewer) {
-      return;
-    }
-
-    throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
-  }
-
   public Recruitment updateRecruitment(
       long memberId, Long recruitmentId, RecruitmentUpdateRequest request) {
 
@@ -140,5 +126,19 @@ public class RecruitmentService {
         updatedRecruitment);
 
     return savedRecruitment;
+  }
+
+  public void assertCanAccess(long memberId, Long recruitmentId) {
+    RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
+
+    boolean isInterviewer =
+        recruitment.interviewers().stream()
+            .anyMatch(interviewer -> interviewer.memberId().equals(memberId));
+
+    if (isInterviewer) {
+      return;
+    }
+
+    throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
   }
 }
