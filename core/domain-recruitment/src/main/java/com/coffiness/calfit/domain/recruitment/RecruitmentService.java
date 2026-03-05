@@ -3,7 +3,6 @@ package com.coffiness.calfit.domain.recruitment;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
-import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -67,6 +66,7 @@ public class RecruitmentService {
     return saveRecruitment.id();
   }
 
+  // TODO : userId는 facade에서 검증으로 추후 제거 예정
   @Transactional(readOnly = true)
   public List<RecruitmentListInfo> getRecruitmentList(
       long userId, RecruitmentStatus recruitmentStatus, Pageable pageable) {
@@ -81,11 +81,17 @@ public class RecruitmentService {
     return recruitmentReader.readDetail(recruitmentId);
   }
 
-  @Transactional(readOnly = true)
-  public List<InterviewScheduleCalendarItem> getInterviewSchedules(
-      long userId, Long recruitmentId, String yearMonth) {
-    // TODO: domain-interview 모듈의 InterviewReader 가 완성되면 연결
-    // return interviewReader.getSchedulesByRecruitmentId(recruitmentId, yearMonth);
-    return List.of();
+  public void assertCanAccess(long memberId, Long recruitmentId) {
+    RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
+
+    boolean isInterviewer =
+        recruitment.interviewers().stream()
+            .anyMatch(interviewer -> interviewer.memberId().equals(memberId));
+
+    if (isInterviewer) {
+      return;
+    }
+
+    throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
   }
 }
