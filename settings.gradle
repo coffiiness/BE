@@ -22,6 +22,7 @@ include 'core:domain-calendar'
 include 'core:domain-meeting-room'
 include 'core:domain-announcement-board'
 include 'core:domain-recruitment'
+include 'core:domain-template'
 include 'core:domain-interview'
 
 // Storage 모듈
