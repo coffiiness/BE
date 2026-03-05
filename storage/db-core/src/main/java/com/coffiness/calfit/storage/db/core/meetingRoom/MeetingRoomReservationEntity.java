@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "meeting_room_reservations")
-@AttributeOverride(name = "status", column = @Column(name = "entity_status"))
 @NoArgsConstructor
 @Getter
 public class MeetingRoomReservationEntity extends TenantBaseEntity {
@@ -37,7 +36,7 @@ public class MeetingRoomReservationEntity extends TenantBaseEntity {
 
   // 회의실 예약 상태(예약됨, 취소됨)
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false)
+  @Column(name = "reservation_status", nullable = false)
   private MeetingRoomStatus reservationStatus;
 
   @Builder
@@ -58,5 +57,13 @@ public class MeetingRoomReservationEntity extends TenantBaseEntity {
 
   public void cancel() {
     this.reservationStatus = MeetingRoomStatus.DELETED;
+  }
+
+  public void activate() {
+    this.reservationStatus = MeetingRoomStatus.ACTIVE;
+  }
+
+  public void expire() {
+    this.reservationStatus = MeetingRoomStatus.EXPIRED;
   }
 }

@@ -13,6 +13,7 @@ import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRe
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -49,18 +50,27 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   public long countOverlappingReservations(
       Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
     String tenantId = requireTenantId();
+    syncReservationStatuses(tenantId);
     return reservationRepository
-        .countByTenantIdAndMeetingRoomIdAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
-            tenantId, meetingRoomId, MeetingRoomStatus.RESERVED, endDatetime, startDatetime);
+        .countByTenantIdAndMeetingRoomIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+            tenantId,
+            meetingRoomId,
+            List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+            endDatetime,
+            startDatetime);
   }
 
   @Override
   public MeetingRoomReservation getActiveReservation(Long meetingRoomId, Long reservationId) {
     String tenantId = requireTenantId();
+    syncReservationStatuses(tenantId);
     MeetingRoomReservationEntity entity =
         reservationRepository
-            .findByTenantIdAndIdAndMeetingRoomIdAndReservationStatus(
-                tenantId, reservationId, meetingRoomId, MeetingRoomStatus.RESERVED)
+            .findByTenantIdAndIdAndMeetingRoomIdAndReservationStatusIn(
+                tenantId,
+                reservationId,
+                meetingRoomId,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE))
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     return toReservation(entity);
   }
@@ -69,6 +79,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   public List<MeetingRoomReservation> getActiveReservations(
       LocalDateTime fromDatetime, LocalDateTime toDatetime) {
     String tenantId = requireTenantId();
+    syncReservationStatuses(tenantId);
     if (fromDatetime == null || toDatetime == null || !fromDatetime.isBefore(toDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
@@ -82,11 +93,26 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
     }
 
     return reservationRepository
-        .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
-            tenantId, meetingRoomIds, MeetingRoomStatus.RESERVED, toDatetime, fromDatetime)
+        .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+            tenantId,
+            meetingRoomIds,
+            List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+            toDatetime,
+            fromDatetime)
         .stream()
         .map(this::toReservation)
         .toList();
+  }
+
+  private void syncReservationStatuses(String tenantId) {
+    LocalDateTime now = LocalDateTime.now();
+    reservationRepository.bulkUpdateToExpired(
+        tenantId,
+        new ArrayList<>(List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE)),
+        MeetingRoomStatus.EXPIRED,
+        now);
+    reservationRepository.bulkUpdateToActive(
+        tenantId, MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE, now);
   }
 
   private MeetingRoom toMeetingRoom(MeetingRoomEntity entity) {

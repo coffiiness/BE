@@ -78,8 +78,12 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     String tenantId = requireTenantId();
     List<MeetingRoomBusySlotRow> result =
         meetingRoomReservationRepository
-            .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
-                tenantId, meetingRoomIds, MeetingRoomStatus.RESERVED, to, from)
+            .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+                tenantId,
+                meetingRoomIds,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+                to,
+                from)
             .stream()
             .map(
                 reservation ->
@@ -353,8 +357,12 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     String tenantId = requireTenantId();
     long roomConflict =
         meetingRoomReservationRepository
-            .countByTenantIdAndMeetingRoomIdAndReservationStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
-                tenantId, meetingRoomId, MeetingRoomStatus.RESERVED, end, start);
+            .countByTenantIdAndMeetingRoomIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+                tenantId,
+                meetingRoomId,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+                end,
+                start);
     return roomConflict > 0;
   }
 

@@ -31,8 +31,9 @@ public class MeetingRoomController {
       @AuthenticationPrincipal SecurityUser user,
       @Valid @RequestBody MeetingRoomCreateRequest request) {
 
+    Long userId = (user != null) ? user.userId() : null;
     MeetingRoom room =
-        meetingRoomService.create(request.name(), request.location(), request.capacity());
+        meetingRoomService.create(request.name(), request.location(), request.capacity(), userId);
 
     return ApiResponse.success(MeetingRoomResponse.from(room));
   }
@@ -53,7 +54,8 @@ public class MeetingRoomController {
       @PathVariable Long id,
       @Valid @RequestBody MeetingRoomUpdateRequest request) {
 
-    MeetingRoom room = meetingRoomService.update(id, request.name(), request.capacity());
+    Long userId = (user != null) ? user.userId() : null;
+    MeetingRoom room = meetingRoomService.update(id, request.name(), request.capacity(), userId);
 
     return ApiResponse.success(MeetingRoomResponse.from(room));
   }
