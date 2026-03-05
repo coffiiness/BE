@@ -86,7 +86,7 @@ public record BillingFixture(
             .append(page)
             .append("&size=")
             .append(size);
-    if (status != null) url.append("&recruitmentStatus=").append(status);
+    if (status != null) url.append("&status=").append(status);
     if (search != null) url.append("&search=").append(search);
     return base.get(url.toString(), token, SubscriptionResponse[].class);
   }
@@ -111,7 +111,7 @@ public record BillingFixture(
   }
 
   public ApiResponse<InvoiceResponse[]> getInvoices(String token, String status) {
-    String url = "/api/v1/admin/invoices" + (status != null ? "?recruitmentStatus=" + status : "");
+    String url = "/api/v1/admin/invoices" + (status != null ? "?status=" + status : "");
     return base.get(url, token, InvoiceResponse[].class);
   }
 

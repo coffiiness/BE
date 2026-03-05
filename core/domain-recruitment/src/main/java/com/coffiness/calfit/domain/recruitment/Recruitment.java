@@ -72,6 +72,7 @@ public record Recruitment(
       int newTargetCount,
       LocalDateTime newStartDate,
       LocalDateTime newEndDate,
+      Long newApplicationTemplateId,
       CareerType newCareerType,
       Integer newMinExperienceYears,
       Integer newMaxExperienceYears,
@@ -121,7 +122,10 @@ public record Recruitment(
 
   // 채용 공고 수정 정책 로직
   public void validateUpdatable(LocalDateTime currentTime) {
-    if (this.startDate != null && currentTime.isAfter(this.startDate)) {
+    if (currentTime == null) {
+      throw new IllegalArgumentException("현재 시간이 필요합니다.");
+    }
+    if (this.startDate != null && !currentTime.isBefore(this.startDate)) {
       throw new IllegalArgumentException("이미 게시가 시작된 채용 공고는 수정할 수 없습니다.");
     }
 

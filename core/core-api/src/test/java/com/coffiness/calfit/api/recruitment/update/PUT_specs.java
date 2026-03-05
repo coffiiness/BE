@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @CalfitApiTest
-@DisplayName("PUT /api/v1/recruitment/{recruitmentId}")
+@DisplayName("PUT /api/v1/recruitments/{recruitmentId}")
 public class PUT_specs {
 
   @Test
@@ -145,7 +145,7 @@ public class PUT_specs {
             stages);
 
     ApiResponse<RecruitmentDetailResponse> response =
-        recruitmentFixture.updateRecruitment(token, recruitmentId, updateRequest);
+        recruitmentFixture.updateRecruitment(token, tenantId, recruitmentId, updateRequest);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

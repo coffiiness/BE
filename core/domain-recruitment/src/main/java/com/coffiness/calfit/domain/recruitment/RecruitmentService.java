@@ -108,6 +108,7 @@ public class RecruitmentService {
             request.targetCount(),
             request.startDate(),
             request.endDate(),
+            request.applicationTemplateId(),
             request.careerType(),
             request.minExperienceYears(),
             request.maxExperienceYears(),

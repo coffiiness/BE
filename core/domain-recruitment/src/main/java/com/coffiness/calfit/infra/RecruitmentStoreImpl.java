@@ -64,6 +64,10 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
       throw new IllegalArgumentException("수정할 채용 공고 ID가 없습니다.");
     }
 
+    recruitmentStageRepository.deleteAllByRecruitmentId(recruitment.id());
+    recruitmentInterviewerRepository.deleteAllByRecruitmentId(recruitment.id());
+    recruitmentReferenceGroupRepository.deleteAllByRecruitmentId(recruitment.id());
+
     RecruitmentEntity entity =
         recruitmentRepository
             .findById(recruitment.id())
@@ -81,10 +85,6 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
         recruitment.minExperienceYears(),
         recruitment.maxExperienceYears(),
         recruitment.leadGroupId());
-
-    recruitmentStageRepository.deleteAllByRecruitmentId(recruitment.id());
-    recruitmentInterviewerRepository.deleteAllByRecruitmentId(recruitment.id());
-    recruitmentReferenceGroupRepository.deleteAllByRecruitmentId(recruitment.id());
 
     insertChildren(recruitment.id(), recruitment);
 
