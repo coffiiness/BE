@@ -50,6 +50,16 @@ public class ScheduleService {
   @Transactional(readOnly = true)
   public ScheduleDetailInfo getDetailSchedule(long memberId, Long scheduleId) {
 
+    Schedule schedule = scheduleReader.read(scheduleId);
+    List<Long> attendeeIds = scheduleReader.readAttendeeIds(scheduleId);
+
+    boolean isOwner = schedule.memberId().equals(memberId);
+    boolean isAttendee = attendeeIds.contains(memberId);
+
+    if (!isOwner && !isAttendee) {
+      throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
+    }
+
     // TODO : 이 멤버가 이 일정을 볼 권한이 있는지 검증
     return scheduleReader.readDetail(scheduleId);
   }
