@@ -1,9 +1,9 @@
 package com.coffiness.calfit.core.api.controller.v1.calendar;
 
+import com.coffiness.calfit.core.api.facade.calendar.ScheduleFacade;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
-import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ScheduleController {
 
-  private final ScheduleService scheduleService;
+  private final ScheduleFacade scheduleFacade;
 
   @ResponseStatus(HttpStatus.CREATED)
   @PostMapping("/api/v1/schedules")
@@ -33,7 +33,7 @@ public class ScheduleController {
 
     long userId = user.userId();
 
-    scheduleService.createSchedule(userId, request);
+    scheduleFacade.createSchedule(userId, request);
 
     return ApiResponse.success(null);
   }
@@ -50,7 +50,7 @@ public class ScheduleController {
     LocalDateTime startDateTime = startDate.atStartOfDay();
     LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay().minusNanos(1);
 
-    List<ScheduleInfo> infos = scheduleService.getSchedules(userId, startDateTime, endDateTime);
+    List<ScheduleInfo> infos = scheduleFacade.getSchedules(userId, startDateTime, endDateTime);
 
     List<ScheduleResponse> response = infos.stream().map(ScheduleResponse::from).toList();
 
@@ -63,7 +63,7 @@ public class ScheduleController {
 
     long userId = user.userId();
 
-    ScheduleDetailInfo info = scheduleService.getDetailSchedule(userId, scheduleId);
+    ScheduleDetailInfo info = scheduleFacade.getDetailSchedule(userId, scheduleId);
     ScheduleDetailResponse response = ScheduleDetailResponse.from(info);
 
     return ApiResponse.success(response);
@@ -77,7 +77,7 @@ public class ScheduleController {
 
     long userId = user.userId();
 
-    ScheduleDetailInfo info = scheduleService.updateSchedule(userId, scheduleId, request);
+    ScheduleDetailInfo info = scheduleFacade.updateSchedule(userId, scheduleId, request);
 
     return ApiResponse.success(ScheduleDetailResponse.from(info));
   }
@@ -88,7 +88,7 @@ public class ScheduleController {
 
     long userId = user.userId();
 
-    scheduleService.deleteSchedule(userId, scheduleId);
+    scheduleFacade.deleteSchedule(userId, scheduleId);
     return ApiResponse.success(null);
   }
 }
