@@ -21,14 +21,18 @@ public class ScheduleFacade {
   private final MemberReader memberReader;
   private final ScheduleService scheduleService;
 
-  @Transactional
-  public void createSchedule(long userId, ScheduleCreateRequest request) {
+  private Member validateAndGetMember(long userId) {
     String currentWorkspaceId = TenantContext.getTenantId();
     Member member = memberReader.getMember(currentWorkspaceId, userId);
-
     if (member == null) {
       throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
     }
+    return member;
+  }
+
+  @Transactional
+  public void createSchedule(long userId, ScheduleCreateRequest request) {
+    Member member = validateAndGetMember(userId);
 
     scheduleService.createSchedule(userId, request);
   }
@@ -36,24 +40,14 @@ public class ScheduleFacade {
   @Transactional(readOnly = true)
   public List<ScheduleInfo> getSchedules(
       long userId, LocalDateTime startDate, LocalDateTime endDate) {
-    String currentWorkspaceId = TenantContext.getTenantId();
-    Member member = memberReader.getMember(currentWorkspaceId, userId);
-
-    if (member == null) {
-      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
-    }
+    Member member = validateAndGetMember(userId);
 
     return scheduleService.getSchedules(userId, startDate, endDate);
   }
 
   @Transactional(readOnly = true)
   public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
-    String currentWorkspaceId = TenantContext.getTenantId();
-    Member member = memberReader.getMember(currentWorkspaceId, userId);
-
-    if (member == null) {
-      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
-    }
+    Member member = validateAndGetMember(userId);
 
     return scheduleService.getDetailSchedule(userId, scheduleId);
   }
@@ -61,24 +55,14 @@ public class ScheduleFacade {
   @Transactional
   public ScheduleDetailInfo updateSchedule(
       long userId, Long scheduleId, ScheduleUpdateRequest request) {
-    String currentWorkspaceId = TenantContext.getTenantId();
-    Member member = memberReader.getMember(currentWorkspaceId, userId);
-
-    if (member == null) {
-      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
-    }
+    Member member = validateAndGetMember(userId);
 
     return scheduleService.updateSchedule(userId, scheduleId, request);
   }
 
   @Transactional
   public void deleteSchedule(long userId, Long scheduleId) {
-    String currentWorkspaceId = TenantContext.getTenantId();
-    Member member = memberReader.getMember(currentWorkspaceId, userId);
-
-    if (member == null) {
-      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
-    }
+    Member member = validateAndGetMember(userId);
 
     scheduleService.deleteSchedule(userId, scheduleId);
   }

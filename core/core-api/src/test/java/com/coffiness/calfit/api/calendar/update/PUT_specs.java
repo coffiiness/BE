@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -22,10 +24,14 @@ public class PUT_specs {
 
   @Test
   void 특정_일정의_정보를_수정할_수_있다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
     LocalDateTime now = LocalDateTime.now();
 
     ScheduleCreateRequest createRequest =
@@ -39,11 +45,12 @@ public class PUT_specs {
             null,
             false,
             null);
-    calendarFixture.createSchedule(token, createRequest);
+    calendarFixture.createSchedule(token, tenantId, createRequest);
 
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(5).toString();
-    Long scheduleId = calendarFixture.getSchedules(token, startDate, endDate).getData().get(0).id();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
 
     ScheduleUpdateRequest updateRequest =
         new ScheduleUpdateRequest(
@@ -59,13 +66,13 @@ public class PUT_specs {
 
     // Act
     ApiResponse<Void> updateResponse =
-        calendarFixture.updateSchedule(token, scheduleId, updateRequest);
+        calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
 
     // Assert
     assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     ApiResponse<ScheduleDetailResponse> detailResponse =
-        calendarFixture.getDetailSchedule(token, scheduleId);
+        calendarFixture.getDetailSchedule(token, tenantId, scheduleId);
 
     assertThat(detailResponse.getData().title()).isEqualTo("수정된 제목");
     assertThat(detailResponse.getData().description()).isEqualTo("수정된 Description");

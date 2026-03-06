@@ -11,7 +11,7 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
 
   @Query(
       "SELECT s FROM ScheduleEntity s "
-          + "WHERE s.userId = :userId "
+          + "WHERE s.memberId = :userId "
           + "AND s.startTime <= :endDate "
           + "AND s.endTime >= :startDate "
           + "AND s.status = 'ACTIVE'")
@@ -22,7 +22,7 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
 
   @Query(
       "SELECT s FROM ScheduleEntity s "
-          + "WHERE s.userId IN :userIds "
+          + "WHERE s.memberId IN :userIds "
           + "AND s.startTime < :to "
           + "AND s.endTime > :from "
           + "AND s.status = :status "
