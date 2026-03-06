@@ -7,12 +7,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "applicants") // 지원자
+@Table(name = "applicants")
 @NoArgsConstructor
 @Getter
 public class ApplicantEntity extends TenantBaseEntity {
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false)
   private String email;
 
   @Column(nullable = false)

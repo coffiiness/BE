@@ -187,6 +187,105 @@ class POST_specs {
         .isTrue();
   }
 
+  @Test
+  void submitTwiceForSameRecruitmentThenBothVisibleInApplicantManagement(
+      @Autowired MemberFixture memberFixture, @Autowired RecruitmentFixture recruitmentFixture) {
+    BaseFixture baseFixture = BaseFixture.create(environment, objectMapper);
+
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String workspaceId = context.workspaceId();
+
+    String recruitmentTitle = "Repeated Apply Hiring " + UUID.randomUUID();
+    RecruitmentCreateRequest recruitmentCreateRequest =
+        new RecruitmentCreateRequest(
+            recruitmentTitle,
+            2,
+            1L,
+            "Duplicate apply visibility verification",
+            LocalDateTime.now().plusDays(1),
+            LocalDateTime.now().plusDays(14),
+            CareerType.NEW,
+            null,
+            null,
+            1L,
+            List.of(1L),
+            List.of(1L),
+            List.of(
+                new RecruitmentStageRequest("Document", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("Interview", RecruitmentStageType.INTERVIEW, 2)));
+
+    ApiResponse<Void> createRecruitmentResponse =
+        recruitmentFixture.createRecruitment(token, workspaceId, recruitmentCreateRequest);
+    assertThat(createRecruitmentResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    Long recruitmentId =
+        findRecruitmentId(recruitmentFixture, token, workspaceId, recruitmentTitle);
+
+    String applicantEmail = "repeat-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
+    CareerApplicationSubmitRequest firstRequest =
+        new CareerApplicationSubmitRequest(
+            "test",
+            "MALE",
+            LocalDate.of(2000, 1, 1),
+            "010-0000-1111",
+            applicantEmail,
+            "first submit",
+            "https://github.com/test");
+
+    CareerApplicationSubmitRequest secondRequest =
+        new CareerApplicationSubmitRequest(
+            "test2",
+            "MALE",
+            LocalDate.of(2000, 1, 1),
+            "010-0000-2222",
+            applicantEmail,
+            "second submit",
+            "https://github.com/test2");
+
+    ApiResponse<CareerApplicationSubmitResponse> firstSubmitResponse =
+        baseFixture.post(
+            "/api/v1/careers/{workspaceId}/recruitments/{recruitmentId}/apply",
+            firstRequest,
+            CareerApplicationSubmitResponse.class,
+            workspaceId,
+            recruitmentId);
+
+    ApiResponse<CareerApplicationSubmitResponse> secondSubmitResponse =
+        baseFixture.post(
+            "/api/v1/careers/{workspaceId}/recruitments/{recruitmentId}/apply",
+            secondRequest,
+            CareerApplicationSubmitResponse.class,
+            workspaceId,
+            recruitmentId);
+
+    assertThat(firstSubmitResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(secondSubmitResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<ApplicantManagementItemResponse[]> applicantsResponse =
+        baseFixture.get(
+            "/api/v1/workspaces/{workspaceId}/applicants",
+            token,
+            ApplicantManagementItemResponse[].class,
+            workspaceId);
+
+    assertThat(applicantsResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(applicantsResponse.getData()).isNotNull();
+
+    long sameEmailCount =
+        Arrays.stream(applicantsResponse.getData())
+            .filter(row -> applicantEmail.equals(row.applicantEmail()))
+            .count();
+
+    assertThat(sameEmailCount).isEqualTo(2L);
+    assertThat(
+            Arrays.stream(applicantsResponse.getData())
+                .filter(row -> applicantEmail.equals(row.applicantEmail()))
+                .map(ApplicantManagementItemResponse::applicantName)
+                .toList())
+        .contains("test", "test2");
+  }
+
   private Long findRecruitmentId(
       RecruitmentFixture recruitmentFixture, String token, String workspaceId, String title) {
     ApiResponse<List<RecruitmentListResponse>> recruitmentListResponse =

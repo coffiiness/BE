@@ -41,14 +41,7 @@ public class ApplicantApplicationService {
     String tenantId = recruitmentInfo.tenantId();
     Long firstStageId = getFirstStageId(tenantId, resolvedRecruitmentId);
 
-    Long applicantId = findApplicantId(tenantId, request.email());
-    if (applicantId == null) {
-      applicantId = createApplicant(tenantId, request);
-    }
-
-    if (existsActiveApplication(tenantId, resolvedRecruitmentId, applicantId)) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR);
-    }
+    Long applicantId = createApplicant(tenantId, request);
 
     Gender gender = parseGender(request.gender());
     String schema = buildApplicationSchema(request);
@@ -356,6 +349,7 @@ public class ApplicantApplicationService {
             WHERE tenant_id = ?
               AND email = ?
               AND status = ?
+            ORDER BY id DESC
             LIMIT 1
             """,
             (resultSet, rowNum) -> resultSet.getLong("id"),
@@ -393,26 +387,6 @@ public class ApplicantApplicationService {
     }
 
     return applicantId;
-  }
-
-  private boolean existsActiveApplication(String tenantId, Long recruitmentId, Long applicantId) {
-    Integer count =
-        jdbcTemplate.queryForObject(
-            """
-            SELECT COUNT(1)
-            FROM applications
-            WHERE tenant_id = ?
-              AND recruitment_id = ?
-              AND applicant_id = ?
-              AND status = ?
-            """,
-            Integer.class,
-            tenantId,
-            recruitmentId,
-            applicantId,
-            EntityStatus.ACTIVE.name());
-
-    return count != null && count > 0;
   }
 
   private String buildApplicationSchema(CareerApplicationSubmitRequest request) {
