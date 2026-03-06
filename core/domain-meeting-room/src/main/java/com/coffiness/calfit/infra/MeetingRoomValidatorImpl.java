@@ -4,6 +4,7 @@ import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomValidator;
+import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -19,6 +20,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
 
   private final MeetingRoomReader meetingRoomReader;
   private final MemberReader memberReader;
+  private final UserReader userReader;
 
   @Override
   public void validateCreateInput(String name, Integer location, Integer capacity) {
@@ -63,15 +65,14 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   @Override
   public void validateReserveRequest(
       Long userId, Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
-    String tenantId = requireTenantId();
+    requireTenantId();
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     if (startDatetime == null || endDatetime == null || !startDatetime.isBefore(endDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
-    Member member = memberReader.getMember(tenantId, userId);
-    if (member == null) {
+    if (!userReader.exists(userId)) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     meetingRoomReader.getMeetingRoom(meetingRoomId);
@@ -85,12 +86,11 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   @Override
   public void validateCancelReservationRequest(
       Long userId, Long meetingRoomId, Long reservationId) {
-    String tenantId = requireTenantId();
+    requireTenantId();
     if (userId == null || meetingRoomId == null || reservationId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
-    Member member = memberReader.getMember(tenantId, userId);
-    if (member == null) {
+    if (!userReader.exists(userId)) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     meetingRoomReader.getActiveReservation(meetingRoomId, reservationId);

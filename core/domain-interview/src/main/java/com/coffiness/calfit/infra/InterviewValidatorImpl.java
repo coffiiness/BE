@@ -54,7 +54,8 @@ public class InterviewValidatorImpl implements InterviewValidator {
     if (scheduledAt.getMinute() != 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
-    if (durationMinutes != 60) {
+    // Allow a single interview to span multiple contiguous 1-hour slots.
+    if (durationMinutes < 60 || durationMinutes % 60 != 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }
