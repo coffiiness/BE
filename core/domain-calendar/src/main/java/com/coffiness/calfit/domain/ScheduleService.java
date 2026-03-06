@@ -83,7 +83,7 @@ public class ScheduleService {
             request.startTime() != null ? request.startTime() : schedule.startTime(),
             request.endTime() != null ? request.endTime() : schedule.endTime(),
             request.isAllDay() != null ? request.isAllDay() : schedule.isAllDay(),
-            request.roomId(),
+            request.roomId() != null ? request.roomId() : schedule.roomId(),
             reservationId,
             request.isBusy() != null ? request.isBusy() : schedule.isBusy(),
             schedule.googleEventId());
