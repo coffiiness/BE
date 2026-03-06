@@ -4,6 +4,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
+import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
@@ -49,5 +50,51 @@ public class POST_specs {
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+  }
+
+  @Test
+  void 회의실을_포함하여_내_일정_생성에_성공한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture) {
+
+    // Arrange
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+
+    Long roomId = meetingRoomFixture.create(token, tenantId, "회의실1", 1, 10).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "중요한 임원 회의",
+            "회의실 연동 테스트입니다.",
+            ScheduleType.MEETING,
+            now.plusDays(1),
+            now.plusDays(1).plusHours(1),
+            false,
+            roomId,
+            false,
+            null);
+
+    // Act
+    ApiResponse<Void> response = calendarFixture.createSchedule(token, tenantId, createRequest);
+
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    var detailInfo = calendarFixture.getDetailSchedule(token, tenantId, scheduleId).getData();
+
+    assertThat(detailInfo).isNotNull();
+    assertThat(detailInfo.title()).isEqualTo("중요한 임원 회의");
+    assertThat(detailInfo.roomId()).isEqualTo(roomId);
   }
 }

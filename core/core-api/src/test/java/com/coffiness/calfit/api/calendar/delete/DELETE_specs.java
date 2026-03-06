@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
+import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
@@ -60,5 +61,48 @@ public class DELETE_specs {
     int sizeAfterDelete =
         calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().size();
     assertThat(sizeAfterDelete).isEqualTo(0);
+  }
+
+  @Test
+  void 회의실이_연동된_일정을_삭제하면_정상적으로_삭제된다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture) {
+    // Arrange
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+
+    Long roomId = meetingRoomFixture.create(token, tenantId, "회의실1", 1, 10).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "중요한 임원 회의",
+            "회의실 연동 테스트입니다.",
+            ScheduleType.MEETING,
+            now.plusDays(1),
+            now.plusDays(1).plusHours(1),
+            false,
+            roomId,
+            false,
+            null);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    // Act
+    ApiResponse<Void> deleteResponse = calendarFixture.deleteSchedule(token, tenantId, scheduleId);
+
+    // Assert
+    assertThat(deleteResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    var existingSchedule =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData();
+    assertThat(existingSchedule).isEmpty();
   }
 }
