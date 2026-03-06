@@ -90,6 +90,8 @@ public class DELETE_specs {
             false,
             null);
 
+    calendarFixture.createSchedule(token, tenantId, createRequest);
+
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(3).toString();
     Long scheduleId =
