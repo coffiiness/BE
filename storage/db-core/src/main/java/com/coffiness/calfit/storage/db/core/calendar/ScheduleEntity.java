@@ -18,8 +18,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "schedule")
 public class ScheduleEntity extends TenantBaseEntity {
 
-  @Column(name = "user_id", nullable = false)
-  private Long userId;
+  @Column(name = "member_id", nullable = false)
+  private Long memberId;
 
   @Column(name = "title", nullable = false)
   private String title;
@@ -52,7 +52,7 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Builder
   public ScheduleEntity(
       String tenantId,
-      Long userId,
+      Long memberId,
       String title,
       String description,
       ScheduleType type,
@@ -63,7 +63,7 @@ public class ScheduleEntity extends TenantBaseEntity {
       String googleEventId,
       boolean isBusy) {
     super(tenantId);
-    this.userId = userId;
+    this.memberId = memberId;
     this.title = title;
     this.description = description;
     this.type = type;

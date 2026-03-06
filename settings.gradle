@@ -15,7 +15,7 @@ include 'core:core-api'
 include 'core:domain-payment'
 include 'core:domain-billing'
 include 'core:domain-career'
-include 'core:domain-finance'
+include 'core:domain-report'
 include 'core:domain-user'
 include 'core:domain-workspace'
 include 'core:domain-calendar'
@@ -37,8 +37,4 @@ include 'support:error'
 include 'support:email'
 
 // Client 모듈
-include 'clients:client-example'
 include 'clients:google-calendar'
-include 'core:domain-announcment-board'
-
-include 'core:domain-interview'

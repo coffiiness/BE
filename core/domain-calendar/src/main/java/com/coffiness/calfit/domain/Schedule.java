@@ -6,7 +6,7 @@ import java.time.LocalTime;
 
 public record Schedule(
     Long id,
-    Long userId,
+    Long memberId,
     String title,
     String description,
     ScheduleType type,
@@ -42,7 +42,7 @@ public record Schedule(
   public Schedule withGoogleEventId(String newGoogleEventId) {
     return new Schedule(
         this.id,
-        this.userId,
+        this.memberId,
         this.title,
         this.description,
         this.type,
@@ -58,7 +58,7 @@ public record Schedule(
       String newTitle, String newDescription, Long newRoomId, boolean newIsBusy) {
     return new Schedule(
         this.id,
-        this.userId,
+        this.memberId,
         newTitle,
         newDescription,
         this.type,
@@ -74,7 +74,7 @@ public record Schedule(
       LocalDateTime newStartTime, LocalDateTime newEndTime, boolean newIsAllDay) {
     return new Schedule(
         this.id,
-        this.userId,
+        this.memberId,
         this.title,
         this.description,
         this.type,

@@ -7,6 +7,7 @@ import com.coffiness.calfit.domain.billing.invoice.InvoiceReader;
 import com.coffiness.calfit.domain.billing.invoice.MonthlyRevenue;
 import com.coffiness.calfit.domain.billing.subscription.SubscriptionReader;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,10 +24,15 @@ public class DashboardService {
   private final CostReader costReader;
 
   public DashboardSummary getSummary(int year, int month) {
-    long mrr = subscriptionReader.getMrr();
-    long activeCount = subscriptionReader.countByStatus(SubscriptionStatus.ACTIVE);
-    long trialCount = subscriptionReader.countByStatus(SubscriptionStatus.TRIAL);
-    long cancelledCount = subscriptionReader.countByStatus(SubscriptionStatus.CANCELLED);
+    YearMonth ym = YearMonth.of(year, month);
+    LocalDate monthStart = ym.atDay(1);
+    LocalDate monthEnd = ym.atEndOfMonth();
+
+    long mrr = subscriptionReader.getMrrInMonth(monthStart, monthEnd);
+    long activeCount =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.ACTIVE, monthStart, monthEnd);
+    long trialCount =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.TRIAL, monthStart, monthEnd);
 
     List<MonthlyRevenue> revenueHistory = invoiceReader.getMonthlyRevenue();
     double mrrGrowth = computeGrowth(revenueHistory, year, month);
