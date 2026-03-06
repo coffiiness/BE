@@ -41,6 +41,11 @@ public record RecruitmentFixture(BaseFixture base) {
     return base.put(url, request, token, RecruitmentDetailResponse.class);
   }
 
+  public ApiResponse<Void> deleteRecruitment(String token, Long recruitmentId) {
+    String url = String.format("/api/v1/recruitments/%s", recruitmentId);
+    return base.delete(url, token, Void.class);
+  }
+
   // ==================== tenantId 지원 메서드  ====================
 
   public ApiResponse<Void> createRecruitment(
@@ -88,6 +93,11 @@ public record RecruitmentFixture(BaseFixture base) {
     String url = String.format("/api/v1/recruitments/%s", recruitmentId);
     return exchangeWithTenant(
         url, HttpMethod.PUT, request, token, tenantId, RecruitmentDetailResponse.class);
+  }
+
+  public ApiResponse<Void> deleteRecruitment(String token, String tenantId, Long recruitmentId) {
+    String url = String.format("/api/v1/recruitments/%s", recruitmentId);
+    return exchangeWithTenant(url, HttpMethod.DELETE, null, token, tenantId, Void.class);
   }
 
   // ==================== 토큰 헬퍼 메소드 ====================
