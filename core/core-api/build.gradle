@@ -39,6 +39,7 @@ dependencies {
     // Spring
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
 
     // OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'

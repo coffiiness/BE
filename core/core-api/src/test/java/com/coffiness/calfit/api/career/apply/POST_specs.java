@@ -13,6 +13,7 @@ import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.api.dto.v1.request.CareerApplicationSubmitRequest;
+import com.coffiness.calfit.core.api.dto.v1.response.ApplicantDetailResponse;
 import com.coffiness.calfit.core.api.dto.v1.response.ApplicantManagementItemResponse;
 import com.coffiness.calfit.core.api.dto.v1.response.CareerApplicationSubmitResponse;
 import com.coffiness.calfit.core.enums.CareerType;
@@ -188,6 +189,27 @@ class POST_specs {
   }
 
   @Test
+  void getApplicantsByWorkspaceShouldFailWhenUserIsNotWorkspaceMember(
+      @Autowired UserFixture userFixture, @Autowired MemberFixture memberFixture) {
+    BaseFixture baseFixture = BaseFixture.create(environment, objectMapper);
+
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String workspaceId = context.workspaceId();
+    String outsiderToken = userFixture.createUserAndGetToken();
+
+    ApiResponse<ApplicantManagementItemResponse[]> applicantsResponse =
+        baseFixture.get(
+            "/api/v1/workspaces/{workspaceId}/applicants",
+            outsiderToken,
+            ApplicantManagementItemResponse[].class,
+            workspaceId);
+
+    assertThat(applicantsResponse.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(applicantsResponse.getError()).isNotNull();
+    assertThat(applicantsResponse.getError().getCode()).isEqualTo("E401");
+  }
+
+  @Test
   void submitTwiceForSameRecruitmentThenBothVisibleInApplicantManagement(
       @Autowired MemberFixture memberFixture, @Autowired RecruitmentFixture recruitmentFixture) {
     BaseFixture baseFixture = BaseFixture.create(environment, objectMapper);
@@ -284,6 +306,159 @@ class POST_specs {
                 .map(ApplicantManagementItemResponse::applicantName)
                 .toList())
         .contains("test", "test2");
+  }
+
+  @Test
+  void getApplicantsAliasPathShouldReturnSubmittedApplicant(
+      @Autowired MemberFixture memberFixture, @Autowired RecruitmentFixture recruitmentFixture) {
+    BaseFixture baseFixture = BaseFixture.create(environment, objectMapper);
+
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String workspaceId = context.workspaceId();
+
+    String recruitmentTitle = "Alias Path Hiring " + UUID.randomUUID();
+    RecruitmentCreateRequest recruitmentCreateRequest =
+        new RecruitmentCreateRequest(
+            recruitmentTitle,
+            2,
+            1L,
+            "Applicant list alias verification",
+            LocalDateTime.now().plusDays(1),
+            LocalDateTime.now().plusDays(14),
+            CareerType.NEW,
+            null,
+            null,
+            1L,
+            List.of(1L),
+            List.of(1L),
+            List.of(
+                new RecruitmentStageRequest("Document", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("Interview", RecruitmentStageType.INTERVIEW, 2)));
+
+    ApiResponse<Void> createRecruitmentResponse =
+        recruitmentFixture.createRecruitment(token, workspaceId, recruitmentCreateRequest);
+    assertThat(createRecruitmentResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    Long recruitmentId =
+        findRecruitmentId(recruitmentFixture, token, workspaceId, recruitmentTitle);
+
+    String applicantEmail = "alias-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
+    CareerApplicationSubmitRequest submitRequest =
+        new CareerApplicationSubmitRequest(
+            "Alias Candidate",
+            "MALE",
+            LocalDate.of(2001, 3, 1),
+            "010-7777-8888",
+            applicantEmail,
+            "Submitted for alias list endpoint",
+            "https://github.com/alias-test");
+
+    ApiResponse<CareerApplicationSubmitResponse> submitResponse =
+        baseFixture.post(
+            "/api/v1/careers/{workspaceId}/recruitments/{recruitmentId}/apply",
+            submitRequest,
+            CareerApplicationSubmitResponse.class,
+            workspaceId,
+            recruitmentId);
+
+    assertThat(submitResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<ApplicantManagementItemResponse[]> applicantsResponse =
+        baseFixture.get(
+            "/api/v1/recruitment/applicants?search={search}",
+            token,
+            ApplicantManagementItemResponse[].class,
+            "alias");
+
+    assertThat(applicantsResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(applicantsResponse.getData()).isNotNull();
+    assertThat(
+            Arrays.stream(applicantsResponse.getData())
+                .anyMatch(row -> applicantEmail.equals(row.applicantEmail())))
+        .isTrue();
+  }
+
+  @Test
+  void submitApplicationThenDetailContainsSubmittedFields(
+      @Autowired MemberFixture memberFixture, @Autowired RecruitmentFixture recruitmentFixture) {
+    BaseFixture baseFixture = BaseFixture.create(environment, objectMapper);
+
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String workspaceId = context.workspaceId();
+
+    String recruitmentTitle = "Detail Hiring " + UUID.randomUUID();
+    RecruitmentCreateRequest recruitmentCreateRequest =
+        new RecruitmentCreateRequest(
+            recruitmentTitle,
+            2,
+            1L,
+            "Applicant detail verification",
+            LocalDateTime.now().plusDays(1),
+            LocalDateTime.now().plusDays(14),
+            CareerType.NEW,
+            null,
+            null,
+            1L,
+            List.of(1L),
+            List.of(1L),
+            List.of(
+                new RecruitmentStageRequest("Document", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("Interview", RecruitmentStageType.INTERVIEW, 2)));
+
+    ApiResponse<Void> createRecruitmentResponse =
+        recruitmentFixture.createRecruitment(token, workspaceId, recruitmentCreateRequest);
+    assertThat(createRecruitmentResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    Long recruitmentId =
+        findRecruitmentId(recruitmentFixture, token, workspaceId, recruitmentTitle);
+
+    String applicantEmail = "detail-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
+    CareerApplicationSubmitRequest submitRequest =
+        new CareerApplicationSubmitRequest(
+            "Detail Candidate",
+            "MALE",
+            LocalDate.of(2000, 5, 20),
+            "010-5555-6666",
+            applicantEmail,
+            "detail-short-bio",
+            "https://github.com/detail-test");
+
+    ApiResponse<CareerApplicationSubmitResponse> submitResponse =
+        baseFixture.post(
+            "/api/v1/careers/{workspaceId}/recruitments/{recruitmentId}/apply",
+            submitRequest,
+            CareerApplicationSubmitResponse.class,
+            workspaceId,
+            recruitmentId);
+
+    assertThat(submitResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(submitResponse.getData()).isNotNull();
+
+    Long applicationId = submitResponse.getData().applicationId();
+    Long applicantId = submitResponse.getData().applicantId();
+
+    ApiResponse<ApplicantDetailResponse> detailByApplicationResponse =
+        baseFixture.get(
+            "/api/v1/applicants/{detailId}", token, ApplicantDetailResponse.class, applicationId);
+
+    assertThat(detailByApplicationResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(detailByApplicationResponse.getData()).isNotNull();
+    assertThat(detailByApplicationResponse.getData().email()).isEqualTo(applicantEmail);
+    assertThat(detailByApplicationResponse.getData().name()).isEqualTo("Detail Candidate");
+    assertThat(detailByApplicationResponse.getData().gender()).isEqualTo("MALE");
+    assertThat(detailByApplicationResponse.getData().shortBio()).isEqualTo("detail-short-bio");
+    assertThat(detailByApplicationResponse.getData().portfolioUrl())
+        .isEqualTo("https://github.com/detail-test");
+
+    ApiResponse<ApplicantDetailResponse> detailByApplicantResponse =
+        baseFixture.get(
+            "/api/v1/applicants/{detailId}", token, ApplicantDetailResponse.class, applicantId);
+
+    assertThat(detailByApplicantResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(detailByApplicantResponse.getData()).isNotNull();
+    assertThat(detailByApplicantResponse.getData().email()).isEqualTo(applicantEmail);
   }
 
   private Long findRecruitmentId(

@@ -1,16 +1,21 @@
 package com.coffiness.calfit.core.api.controller.v1;
 
-import com.coffiness.calfit.core.api.dto.v1.response.ApplicantDetailResponse;
-import com.coffiness.calfit.core.api.dto.v1.response.ApplicantManagementItemResponse;
-import com.coffiness.calfit.core.api.service.ApplicantApplicationService;
+import com.coffiness.calfit.core.api.service.ApplicantExcelExportService;
 import com.coffiness.calfit.core.enums.EntityStatus;
-import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,39 +25,51 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-public class ApplicantController {
+public class ApplicantExcelController {
 
   private static final String DEFAULT_TENANT = "default";
+  private static final String EXCEL_MEDIA_TYPE =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  private static final String FILE_NAME_PREFIX = "coffiness-applicants-exported-at-";
+  private static final ZoneId FILE_NAME_ZONE_ID = ZoneId.of("Asia/Seoul");
+  private static final DateTimeFormatter FILE_NAME_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
-  private final ApplicantApplicationService applicantApplicationService;
+  private final ApplicantExcelExportService applicantExcelExportService;
   private final JdbcTemplate jdbcTemplate;
 
   @GetMapping({
-    "/api/v1/applicants",
-    "/api/v1/recruitment/applicants",
-    "/api/v1/recruitments/applicants"
+    "/api/v1/recruitment/applicants/export",
+    "/api/v1/recruitment/applicants/excel",
+    "/api/v1/recruitments/applicants/export",
+    "/api/v1/recruitments/applicants/excel",
+    "/api/v1/applicants/export",
+    "/api/v1/applicants/excel"
   })
-  public ApiResponse<List<ApplicantManagementItemResponse>> getApplicants(
+  public ResponseEntity<byte[]> downloadApplicantsExcel(
       @AuthenticationPrincipal SecurityUser user,
       @RequestParam(required = false) String keyword,
       @RequestParam(required = false) String search,
       @RequestParam(required = false) String workspaceId) {
 
-    String resolvedKeyword = resolveKeyword(keyword, search);
     String tenantId = resolveTenantId(user, workspaceId);
+    String resolvedKeyword = resolveKeyword(keyword, search);
 
     try {
       TenantContext.setTenantId(tenantId);
-      List<ApplicantManagementItemResponse> items =
-          applicantApplicationService.getApplicantManagementItems(resolvedKeyword);
-      return ApiResponse.success(items);
+      byte[] excelBytes =
+          applicantExcelExportService.exportApplicantManagementExcel(resolvedKeyword);
+      return buildExcelResponse(excelBytes);
     } finally {
       TenantContext.clear();
     }
   }
 
-  @GetMapping("/api/v1/workspaces/{workspaceId}/applicants")
-  public ApiResponse<List<ApplicantManagementItemResponse>> getApplicantsByWorkspace(
+  @GetMapping({
+    "/api/v1/workspaces/{workspaceId}/applicants/export",
+    "/api/v1/workspaces/{workspaceId}/applicants/excel"
+  })
+  public ResponseEntity<byte[]> downloadApplicantsExcelByWorkspace(
       @AuthenticationPrincipal SecurityUser user,
       @PathVariable String workspaceId,
       @RequestParam(required = false) String keyword,
@@ -63,50 +80,43 @@ public class ApplicantController {
 
     try {
       TenantContext.setTenantId(workspaceId);
-      List<ApplicantManagementItemResponse> items =
-          applicantApplicationService.getApplicantManagementItems(resolvedKeyword);
-      return ApiResponse.success(items);
+      byte[] excelBytes =
+          applicantExcelExportService.exportApplicantManagementExcel(resolvedKeyword);
+      return buildExcelResponse(excelBytes);
     } finally {
       TenantContext.clear();
     }
   }
 
-  @GetMapping({
-    "/api/v1/applicants/{detailId}",
-    "/api/v1/recruitment/applicants/{detailId}",
-    "/api/v1/recruitments/applicants/{detailId}"
-  })
-  public ApiResponse<ApplicantDetailResponse> getApplicantDetail(
-      @AuthenticationPrincipal SecurityUser user,
-      @PathVariable Long detailId,
-      @RequestParam(required = false) String workspaceId) {
+  private ResponseEntity<byte[]> buildExcelResponse(byte[] excelBytes) {
+    String fileName =
+        FILE_NAME_PREFIX
+            + ZonedDateTime.now(FILE_NAME_ZONE_ID).format(FILE_NAME_FORMATTER)
+            + ".xlsx";
 
-    String tenantId = resolveTenantId(user, workspaceId);
-
-    try {
-      TenantContext.setTenantId(tenantId);
-      ApplicantDetailResponse detail = applicantApplicationService.getApplicantDetail(detailId);
-      return ApiResponse.success(detail);
-    } finally {
-      TenantContext.clear();
-    }
+    return ResponseEntity.ok()
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment()
+                .filename(fileName, StandardCharsets.UTF_8)
+                .build()
+                .toString())
+        .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION)
+        .contentType(MediaType.parseMediaType(EXCEL_MEDIA_TYPE))
+        .contentLength(excelBytes.length)
+        .body(excelBytes);
   }
 
-  @GetMapping("/api/v1/workspaces/{workspaceId}/applicants/{detailId}")
-  public ApiResponse<ApplicantDetailResponse> getApplicantDetailByWorkspace(
-      @AuthenticationPrincipal SecurityUser user,
-      @PathVariable String workspaceId,
-      @PathVariable Long detailId) {
-
-    assertWorkspaceAccess(user, workspaceId);
-
-    try {
-      TenantContext.setTenantId(workspaceId);
-      ApplicantDetailResponse detail = applicantApplicationService.getApplicantDetail(detailId);
-      return ApiResponse.success(detail);
-    } finally {
-      TenantContext.clear();
+  private String resolveKeyword(String keyword, String search) {
+    if (keyword != null && !keyword.isBlank()) {
+      return keyword;
     }
+
+    if (search != null && !search.isBlank()) {
+      return search;
+    }
+
+    return null;
   }
 
   private String resolveTenantId(SecurityUser user, String requestedWorkspaceId) {
@@ -180,17 +190,5 @@ public class ApplicantController {
 
   private boolean isTenantValueUsable(String tenantId) {
     return tenantId != null && !tenantId.isBlank() && !DEFAULT_TENANT.equalsIgnoreCase(tenantId);
-  }
-
-  private String resolveKeyword(String keyword, String search) {
-    if (keyword != null && !keyword.isBlank()) {
-      return keyword;
-    }
-
-    if (search != null && !search.isBlank()) {
-      return search;
-    }
-
-    return null;
   }
 }
