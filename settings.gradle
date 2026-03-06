@@ -23,6 +23,8 @@ include 'core:domain-meeting-room'
 include 'core:domain-announcement-board'
 include 'core:domain-recruitment'
 include 'core:domain-interview'
+include 'core:domain-announcment-board'
+include 'core:domain-interview'
 
 // Storage 모듈
 include 'storage:db-core'
@@ -36,8 +38,4 @@ include 'support:error'
 include 'support:email'
 
 // Client 모듈
-include 'clients:client-example'
 include 'clients:google-calendar'
-include 'core:domain-announcment-board'
-
-include 'core:domain-interview'
