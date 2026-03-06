@@ -36,8 +36,8 @@ public class MeetingRoomReservationEntity extends TenantBaseEntity {
 
   // 회의실 예약 상태(예약됨, 취소됨)
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false)
-  private MeetingRoomStatus status;
+  @Column(name = "reservation_status", nullable = false)
+  private MeetingRoomStatus reservationStatus;
 
   @Builder
   public MeetingRoomReservationEntity(
@@ -46,16 +46,24 @@ public class MeetingRoomReservationEntity extends TenantBaseEntity {
       Long interviewScheduleId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime,
-      MeetingRoomStatus status) {
+      MeetingRoomStatus reservationStatus) {
     this.meetingRoomId = meetingRoomId;
     this.userId = userId;
     this.interviewScheduleId = interviewScheduleId;
     this.startDatetime = startDatetime;
     this.endDatetime = endDatetime;
-    this.status = status;
+    this.reservationStatus = reservationStatus;
   }
 
   public void cancel() {
-    this.status = MeetingRoomStatus.DELETED;
+    this.reservationStatus = MeetingRoomStatus.DELETED;
+  }
+
+  public void activate() {
+    this.reservationStatus = MeetingRoomStatus.ACTIVE;
+  }
+
+  public void expire() {
+    this.reservationStatus = MeetingRoomStatus.EXPIRED;
   }
 }

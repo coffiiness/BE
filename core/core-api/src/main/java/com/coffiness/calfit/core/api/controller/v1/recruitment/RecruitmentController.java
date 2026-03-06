@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.controller.v1.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
@@ -85,5 +86,27 @@ public class RecruitmentController {
         items.stream().map(InterviewScheduleResponse::from).toList();
 
     return ApiResponse.success(response);
+  }
+
+  @PutMapping("/api/v1/recruitments/{recruitmentId}")
+  public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long recruitmentId,
+      @Valid @RequestBody RecruitmentUpdateRequest request) {
+    long userId = user.userId();
+
+    RecruitmentDetailInfo info =
+        recruitmentFacade.updateRecruitment(userId, recruitmentId, request);
+
+    return ApiResponse.success(RecruitmentDetailResponse.from(info));
+  }
+
+  @DeleteMapping("/api/v1/recruitments/{recruitmentId}")
+  public ApiResponse<Long> deleteRecruitment(
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long recruitmentId) {
+    long userId = user.userId();
+    recruitmentFacade.deleteRecruitment(userId, recruitmentId);
+
+    return ApiResponse.success(recruitmentId);
   }
 }

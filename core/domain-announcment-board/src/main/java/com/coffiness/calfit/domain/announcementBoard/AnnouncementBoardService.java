@@ -1,5 +1,6 @@
 package com.coffiness.calfit.domain.announcementBoard;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
@@ -29,7 +30,7 @@ public class AnnouncementBoardService {
     String tenantId = TenantContext.getTenantId();
     assertHrMember(tenantId, userId);
 
-    if (announcementBoardRepository.existsByTitle(title)) {
+    if (announcementBoardRepository.existsByTitleAndStatus(title, EntityStatus.ACTIVE)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
@@ -48,7 +49,8 @@ public class AnnouncementBoardService {
   @Transactional(readOnly = true)
   public List<AnnouncementBoard> list() {
     List<AnnouncementBoardEntity> entities =
-        announcementBoardRepository.findAllByOrderByPinnedDescCreatedAtDesc();
+        announcementBoardRepository.findAllByStatusOrderByPinnedDescCreatedAtDesc(
+            EntityStatus.ACTIVE);
 
     List<AnnouncementBoard> result = new ArrayList<>();
     for (AnnouncementBoardEntity entity : entities) {
@@ -67,10 +69,11 @@ public class AnnouncementBoardService {
 
     AnnouncementBoardEntity entity =
         announcementBoardRepository
-            .findById(id)
+            .findByIdAndStatus(id, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    Optional<AnnouncementBoardEntity> duplicated = announcementBoardRepository.findByTitle(title);
+    Optional<AnnouncementBoardEntity> duplicated =
+        announcementBoardRepository.findByTitleAndStatus(title, EntityStatus.ACTIVE);
     if (duplicated.isPresent() && !duplicated.get().getId().equals(id)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
@@ -87,10 +90,9 @@ public class AnnouncementBoardService {
 
     AnnouncementBoardEntity entity =
         announcementBoardRepository
-            .findById(id)
+            .findByIdAndStatus(id, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-
-    announcementBoardRepository.delete(entity);
+    entity.deleted();
   }
 
   private AnnouncementBoard toAnnouncementBoard(AnnouncementBoardEntity entity) {

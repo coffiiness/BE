@@ -11,8 +11,10 @@ import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,8 +31,9 @@ public class MeetingRoomController {
       @AuthenticationPrincipal SecurityUser user,
       @Valid @RequestBody MeetingRoomCreateRequest request) {
 
+    Long userId = (user != null) ? user.userId() : null;
     MeetingRoom room =
-        meetingRoomService.create(request.name(), request.location(), request.capacity());
+        meetingRoomService.create(request.name(), request.location(), request.capacity(), userId);
 
     return ApiResponse.success(MeetingRoomResponse.from(room));
   }
@@ -51,7 +54,8 @@ public class MeetingRoomController {
       @PathVariable Long id,
       @Valid @RequestBody MeetingRoomUpdateRequest request) {
 
-    MeetingRoom room = meetingRoomService.update(id, request.name(), request.capacity());
+    Long userId = (user != null) ? user.userId() : null;
+    MeetingRoom room = meetingRoomService.update(id, request.name(), request.capacity(), userId);
 
     return ApiResponse.success(MeetingRoomResponse.from(room));
   }
@@ -64,6 +68,21 @@ public class MeetingRoomController {
     meetingRoomService.delete(id, userId);
 
     return ApiResponse.success();
+  }
+
+  /* 회의실 예약 */
+  @GetMapping("/reservations")
+  public ApiResponse<List<MeetingRoomReservationResponse>> listReservations(
+      @AuthenticationPrincipal SecurityUser user,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDatetime,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDatetime) {
+
+    List<MeetingRoomReservationResponse> result =
+        meetingRoomService.listReservations(fromDatetime, toDatetime).stream()
+            .map(MeetingRoomReservationResponse::from)
+            .toList();
+
+    return ApiResponse.success(result);
   }
 
   /* 회의실 예약 */

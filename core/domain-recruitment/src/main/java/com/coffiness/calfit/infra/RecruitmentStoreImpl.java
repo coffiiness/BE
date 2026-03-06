@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.recruitment.Recruitment;
 import com.coffiness.calfit.domain.recruitment.RecruitmentStore;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
@@ -22,7 +23,7 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
         RecruitmentEntity.builder()
             .creatorId(recruitment.creatorId())
             .title(recruitment.title())
-            .recruitmentStatus(recruitment.status())
+            .recruitmentStatus(recruitment.recruitmentStatus())
             .targetCount(recruitment.targetCount())
             .startDate(recruitment.startDate())
             .endDate(recruitment.endDate())
@@ -37,13 +38,78 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
     RecruitmentEntity savedEntity = recruitmentRepository.save(entity);
     Long newId = savedEntity.getId();
 
+    insertChildren(newId, recruitment);
+
+    return new Recruitment(
+        newId,
+        recruitment.creatorId(),
+        recruitment.title(),
+        recruitment.contents(),
+        recruitment.recruitmentStatus(),
+        recruitment.targetCount(),
+        recruitment.startDate(),
+        recruitment.endDate(),
+        recruitment.applicationTemplateId(),
+        recruitment.careerType(),
+        recruitment.minExperienceYears(),
+        recruitment.maxExperienceYears(),
+        recruitment.leadGroupId(),
+        recruitment.referenceGroupIds(),
+        recruitment.interviewerIds(),
+        recruitment.stages());
+  }
+
+  @Override
+  public Recruitment update(Recruitment recruitment) {
+    if (recruitment.id() == null) {
+      throw new IllegalArgumentException("수정할 채용 공고 ID가 없습니다.");
+    }
+
+    recruitmentStageRepository.deleteAllByRecruitmentId(recruitment.id());
+    recruitmentInterviewerRepository.deleteAllByRecruitmentId(recruitment.id());
+    recruitmentReferenceGroupRepository.deleteAllByRecruitmentId(recruitment.id());
+
+    RecruitmentEntity entity =
+        recruitmentRepository
+            .findById(recruitment.id())
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
+
+    entity.update(
+        recruitment.title(),
+        recruitment.recruitmentStatus(),
+        recruitment.targetCount(),
+        recruitment.startDate(),
+        recruitment.endDate(),
+        recruitment.applicationTemplateId(),
+        recruitment.contents(),
+        recruitment.careerType(),
+        recruitment.minExperienceYears(),
+        recruitment.maxExperienceYears(),
+        recruitment.leadGroupId());
+
+    insertChildren(recruitment.id(), recruitment);
+
+    return recruitment;
+  }
+
+  @Override
+  public void delete(Long recruitmentId) {
+    RecruitmentEntity entity =
+        recruitmentRepository
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("이미 삭제되었거나 존재하지 않는 채용 공고입니다."));
+
+    entity.deleted();
+  }
+
+  private void insertChildren(Long recruitmentId, Recruitment recruitment) {
     if (recruitment.stages() != null && !recruitment.stages().isEmpty()) {
       List<RecruitmentStageEntity> stageEntities =
           recruitment.stages().stream()
               .map(
                   s ->
                       RecruitmentStageEntity.builder()
-                          .recruitmentId(newId)
+                          .recruitmentId(recruitmentId)
                           .stageName(s.stageName())
                           .stageType(s.stageType())
                           .stageStep(s.stageStep())
@@ -58,7 +124,7 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
               .map(
                   i ->
                       RecruitmentInterviewerEntity.builder()
-                          .recruitmentId(newId)
+                          .recruitmentId(recruitmentId)
                           .memberId(i)
                           .build())
               .toList();
@@ -71,29 +137,11 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
               .map(
                   groupId ->
                       RecruitmentReferenceGroupEntity.builder()
-                          .recruitmentId(newId)
+                          .recruitmentId(recruitmentId)
                           .groupId(groupId)
                           .build())
               .toList();
       recruitmentReferenceGroupRepository.saveAll(referenceGroupEntities);
     }
-
-    return new Recruitment(
-        newId,
-        recruitment.creatorId(),
-        recruitment.title(),
-        recruitment.contents(),
-        recruitment.status(),
-        recruitment.targetCount(),
-        recruitment.startDate(),
-        recruitment.endDate(),
-        recruitment.applicationTemplateId(),
-        recruitment.careerType(),
-        recruitment.minExperienceYears(),
-        recruitment.maxExperienceYears(),
-        recruitment.leadGroupId(),
-        recruitment.referenceGroupIds(),
-        recruitment.interviewerIds(),
-        recruitment.stages());
   }
 }

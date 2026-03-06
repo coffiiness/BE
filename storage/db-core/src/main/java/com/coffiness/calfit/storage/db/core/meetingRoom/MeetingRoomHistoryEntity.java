@@ -47,12 +47,16 @@ public class MeetingRoomHistoryEntity extends TenantBaseEntity {
       Long meetingRoomId,
       Long meetingRoomReservationId,
       Long actorId,
+      String reason,
       LocalDateTime occurredAt,
-      MeetingRoomActionType actionType) {
+      MeetingRoomActionType actionType,
+      String detailJson) {
     this.meetingRoomId = meetingRoomId;
     this.meetingRoomReservationId = meetingRoomReservationId;
     this.actorId = actorId;
+    this.reason = reason;
     this.occurredAt = occurredAt;
     this.actionType = actionType;
+    this.detailJson = detailJson;
   }
 }
