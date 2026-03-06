@@ -34,7 +34,7 @@ public class ScheduleFacade {
   public void createSchedule(long userId, ScheduleCreateRequest request) {
     Member member = validateAndGetMember(userId);
 
-    scheduleService.createSchedule(userId, request);
+    scheduleService.createSchedule(member.id(), request);
   }
 
   @Transactional(readOnly = true)
@@ -42,14 +42,14 @@ public class ScheduleFacade {
       long userId, LocalDateTime startDate, LocalDateTime endDate) {
     Member member = validateAndGetMember(userId);
 
-    return scheduleService.getSchedules(userId, startDate, endDate);
+    return scheduleService.getSchedules(member.id(), startDate, endDate);
   }
 
   @Transactional(readOnly = true)
   public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
     Member member = validateAndGetMember(userId);
 
-    return scheduleService.getDetailSchedule(userId, scheduleId);
+    return scheduleService.getDetailSchedule(member.id(), scheduleId);
   }
 
   @Transactional
@@ -57,13 +57,13 @@ public class ScheduleFacade {
       long userId, Long scheduleId, ScheduleUpdateRequest request) {
     Member member = validateAndGetMember(userId);
 
-    return scheduleService.updateSchedule(userId, scheduleId, request);
+    return scheduleService.updateSchedule(member.id(), scheduleId, request);
   }
 
   @Transactional
   public void deleteSchedule(long userId, Long scheduleId) {
     Member member = validateAndGetMember(userId);
 
-    scheduleService.deleteSchedule(userId, scheduleId);
+    scheduleService.deleteSchedule(member.id(), scheduleId);
   }
 }

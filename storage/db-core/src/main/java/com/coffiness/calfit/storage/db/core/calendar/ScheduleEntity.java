@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "schedule")
 public class ScheduleEntity extends TenantBaseEntity {
 
-  @Column(name = "user_id", nullable = false)
+  @Column(name = "member_id", nullable = false)
   private Long memberId;
 
   @Column(name = "title", nullable = false)
