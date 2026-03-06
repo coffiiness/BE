@@ -4,6 +4,7 @@ import com.coffiness.calfit.core.enums.InvitationStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import java.time.LocalDateTime;
 
+//
 public record Invitation(
     Long id,
     String workspaceId,

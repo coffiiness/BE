@@ -22,6 +22,8 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   MemberEntity findByTenantIdAndUserId(String tenantId, Long userId);
 
+  MemberEntity findByTenantIdAndUserIdAndStatus(String tenantId, Long userId, EntityStatus status);
+
   boolean existsByTenantIdAndUserId(String workspaceId, Long userId);
 
   List<MemberEntity> findByGroupIdAndStatus(Long groupId, EntityStatus status);
