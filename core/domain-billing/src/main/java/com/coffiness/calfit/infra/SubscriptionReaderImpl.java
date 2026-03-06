@@ -7,6 +7,7 @@ import com.coffiness.calfit.domain.billing.subscription.Subscription;
 import com.coffiness.calfit.domain.billing.subscription.SubscriptionReader;
 import com.coffiness.calfit.storage.db.core.billing.SubscriptionEntity;
 import com.coffiness.calfit.storage.db.core.billing.SubscriptionRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,19 @@ public class SubscriptionReaderImpl implements SubscriptionReader {
   public long getMrr() {
     return subscriptionRepository.sumMonthlyAmountBySubscriptionStatus(
         EntityStatus.ACTIVE, SubscriptionStatus.ACTIVE);
+  }
+
+  @Override
+  public long countByStatusInMonth(
+      SubscriptionStatus status, LocalDate monthStart, LocalDate monthEnd) {
+    return subscriptionRepository.countByStatusInMonth(
+        EntityStatus.ACTIVE, status, monthStart, monthEnd);
+  }
+
+  @Override
+  public long getMrrInMonth(LocalDate monthStart, LocalDate monthEnd) {
+    return subscriptionRepository.sumMonthlyAmountByStatusInMonth(
+        EntityStatus.ACTIVE, SubscriptionStatus.ACTIVE, monthStart, monthEnd);
   }
 
   @Override

@@ -2,6 +2,7 @@ package com.coffiness.calfit.domain.billing.subscription;
 
 import com.coffiness.calfit.core.enums.PlanType;
 import com.coffiness.calfit.core.enums.SubscriptionStatus;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,10 @@ public interface SubscriptionReader {
   long countByStatus(SubscriptionStatus status);
 
   long getMrr();
+
+  long countByStatusInMonth(SubscriptionStatus status, LocalDate monthStart, LocalDate monthEnd);
+
+  long getMrrInMonth(LocalDate monthStart, LocalDate monthEnd);
 
   List<Subscription> findActiveByPlanType(PlanType planType);
 }
