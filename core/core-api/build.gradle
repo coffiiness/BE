@@ -13,6 +13,7 @@ dependencies {
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
     implementation project(':core:domain-recruitment')
+    implementation project(':core:domain-career')
 
     // 지원 모듈
     implementation project(':support:monitoring')
