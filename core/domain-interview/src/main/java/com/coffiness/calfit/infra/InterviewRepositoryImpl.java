@@ -1,6 +1,7 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.InterviewEventType;
 import com.coffiness.calfit.core.enums.InterviewStatus;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
@@ -15,6 +16,8 @@ import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
@@ -43,6 +46,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   private final MeetingRoomRepository meetingRoomRepository;
   private final MeetingRoomReservationRepository meetingRoomReservationRepository;
   private final InterviewScheduleRepository interviewScheduleRepository;
+  private final InterviewScheduleHistoryRepository interviewScheduleHistoryRepository;
   private final InterviewScheduleInterviewerRepository interviewerRepository;
   private final InterviewScheduleApplicantRepository applicantMappingRepository;
   private final ScheduleRepository scheduleRepository;
@@ -316,6 +320,24 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .reservationStatus(MeetingRoomStatus.RESERVED)
             .build();
     meetingRoomReservationRepository.save(reservation);
+
+    Map<String, Object> eventData = new HashMap<>();
+    eventData.put("recruitmentId", recruitmentId);
+    eventData.put("recruitmentStageId", recruitmentStageId);
+    eventData.put("meetingRoomId", meetingRoomId);
+    eventData.put("scheduledAt", scheduledAt.toString());
+    eventData.put("durationMinutes", durationMinutes);
+    eventData.put("memo", memo == null ? "" : memo);
+    eventData.put("interviewerIds", interviewerIds);
+    eventData.put("applicantIds", applicantIds);
+
+    interviewScheduleHistoryRepository.save(
+        InterviewScheduleHistoryEntity.builder()
+            .interviewScheduleId(saved.getId())
+            .eventType(InterviewEventType.CREATED)
+            .eventData(eventData)
+            .createdBy(reservationUserId)
+            .build());
 
     return saved.getId();
   }
