@@ -145,6 +145,9 @@ public class RecruitmentService {
 
   public void deleteRecruitment(Long memberId, Long recruitmentId) {
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+    if (recruitment == null) {
+      throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
+    }
 
     if (recruitment.recruitmentStatus() != RecruitmentStatus.DRAFT) {
       throw new IllegalArgumentException("진행중이거나 마감된 채용 공고는 삭제할 수 없습니다.");

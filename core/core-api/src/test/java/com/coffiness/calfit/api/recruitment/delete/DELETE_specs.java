@@ -74,7 +74,8 @@ public class DELETE_specs {
   void HR_권한이_없는_일반_멤버나_면접관은_공고를_삭제할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
-      @Autowired RecruitmentFixture recruitmentFixture) {
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired com.coffiness.calfit.api.fixture.MemberFixture memberFixture) {
     // Arrange
     String token = userFixture.createUserAndGetToken();
     WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
@@ -108,7 +109,24 @@ public class DELETE_specs {
     Long recruitmentId =
         recruitmentFixture.getRecruitmentList(token, tenantId).getData().get(0).id();
 
-    String unauthorizedToken = userFixture.createUserAndGetToken();
+    String inviteeEmail = "interviewer@test.com";
+    String inviteePassword = "password123!";
+    userFixture.signUp(inviteeEmail, inviteePassword, "인터뷰어");
+
+    String invitationToken =
+        memberFixture
+            .createInvitation(
+                token,
+                tenantId,
+                inviteeEmail,
+                com.coffiness.calfit.core.enums.MemberType.INTERVIEWER)
+            .getData()
+            .token();
+
+    memberFixture.acceptInvitation(invitationToken);
+
+    String unauthorizedToken =
+        userFixture.login(inviteeEmail, inviteePassword).getData().accessToken();
 
     // Act
     ApiResponse<Void> response =
@@ -119,7 +137,7 @@ public class DELETE_specs {
   }
 
   @Test
-  void 이미_삭제되었거나_마감된_공고를_삭제하려고_하면_실패한다(
+  void 이미_삭제된_공고를_삭제하려고_하면_실패한다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture) {
