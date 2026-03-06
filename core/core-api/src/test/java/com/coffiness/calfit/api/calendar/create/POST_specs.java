@@ -5,6 +5,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -20,10 +22,14 @@ public class POST_specs {
 
   @Test
   void 필수_데이터를_입력하면_내_일정_생성에_성공한다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
 
     LocalDateTime now = LocalDateTime.now();
     ScheduleCreateRequest createRequest =
@@ -39,7 +45,7 @@ public class POST_specs {
             null);
 
     // Act
-    ApiResponse<Void> response = calendarFixture.createSchedule(token, createRequest);
+    ApiResponse<Void> response = calendarFixture.createSchedule(token, tenantId, createRequest);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);

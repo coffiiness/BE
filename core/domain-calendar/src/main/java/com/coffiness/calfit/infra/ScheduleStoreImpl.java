@@ -21,7 +21,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   public Schedule store(Schedule schedule, List<Long> attendeeIds) {
     ScheduleEntity entity =
         ScheduleEntity.builder()
-            .userId(schedule.userId())
+            .memberId(schedule.memberId())
             .title(schedule.title())
             .description(schedule.description())
             .startTime(schedule.startTime())
@@ -98,7 +98,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   private Schedule toDomain(ScheduleEntity entity) {
     return new Schedule(
         entity.getId(),
-        entity.getUserId(),
+        entity.getMemberId(),
         entity.getTitle(),
         entity.getDescription(),
         entity.getType(),
