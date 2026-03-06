@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
+import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
@@ -77,5 +78,66 @@ public class PUT_specs {
     assertThat(detailResponse.getData().title()).isEqualTo("수정된 제목");
     assertThat(detailResponse.getData().description()).isEqualTo("수정된 Description");
     assertThat(detailResponse.getData().type()).isEqualTo(ScheduleType.BUSINESS);
+  }
+
+  @Test
+  void 기존_회의실_예약을_취소하고_새로운_회의실을_예약할_수_있다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture) {
+
+    // Arrange
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+
+    Long oldRoomId = meetingRoomFixture.create(token, tenantId, "기존 회의실", 1, 10).getData().id();
+    Long newRoomId = meetingRoomFixture.create(token, tenantId, "새 회의실", 1, 10).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "기존 회의",
+            "기존 회의 description",
+            ScheduleType.MEETING,
+            now.plusDays(1),
+            now.plusDays(1).plusHours(1),
+            false,
+            oldRoomId,
+            false,
+            null);
+    calendarFixture.createSchedule(token, tenantId, createRequest);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "변경될 회의",
+            "회의실도 변경됨",
+            ScheduleType.MEETING,
+            now.plusDays(1).plusHours(2),
+            now.plusDays(1).plusHours(4),
+            false,
+            newRoomId,
+            false,
+            null);
+
+    // Act
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
+
+    // Assert
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<ScheduleDetailResponse> detailResponse =
+        calendarFixture.getDetailSchedule(token, tenantId, scheduleId);
+
+    assertThat(detailResponse.getData().title()).isEqualTo("변경될 회의");
+    assertThat(detailResponse.getData().roomId()).isEqualTo(newRoomId);
   }
 }

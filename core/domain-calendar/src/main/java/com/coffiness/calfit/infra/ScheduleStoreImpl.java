@@ -28,6 +28,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
             .endTime(schedule.endTime())
             .isAllDay(schedule.isAllDay())
             .roomId(schedule.roomId())
+            .reservationId(schedule.reservationId())
             .type(schedule.type())
             .isBusy(schedule.isBusy())
             .googleEventId(schedule.googleEventId())
@@ -66,6 +67,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
         schedule.endTime(),
         schedule.isAllDay(),
         schedule.roomId(),
+        schedule.reservationId(),
         schedule.isBusy());
 
     scheduleAttendeeRepository.deleteByScheduleId(schedule.id());
@@ -106,6 +108,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
         entity.getEndTime(),
         entity.isAllDay(),
         entity.getRoomId(),
+        entity.getReservationId(),
         entity.isBusy(),
         entity.getGoogleEventId());
   }

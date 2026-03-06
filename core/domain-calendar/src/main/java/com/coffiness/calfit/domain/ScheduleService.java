@@ -19,7 +19,7 @@ public class ScheduleService {
   private final ScheduleReader scheduleReader;
   private final ScheduleStore scheduleStore;
 
-  public void createSchedule(Long memberId, ScheduleCreateRequest request) {
+  public void createSchedule(Long memberId, Long reservationId, ScheduleCreateRequest request) {
     Schedule newSchedule =
         new Schedule(
             null,
@@ -31,6 +31,7 @@ public class ScheduleService {
             request.endTime(),
             request.isAllDay() != null ? request.isAllDay() : false,
             request.roomId(),
+            reservationId,
             request.isBusy() != null ? request.isBusy() : true,
             null);
 
@@ -60,12 +61,11 @@ public class ScheduleService {
       throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
     }
 
-    // TODO : 이 멤버가 이 일정을 볼 권한이 있는지 검증
     return scheduleReader.readDetail(scheduleId);
   }
 
   public ScheduleDetailInfo updateSchedule(
-      long memberId, Long scheduleId, @Valid ScheduleUpdateRequest request) {
+      long memberId, Long scheduleId, Long reservationId, @Valid ScheduleUpdateRequest request) {
 
     Schedule schedule = scheduleReader.read(scheduleId);
 
@@ -84,6 +84,7 @@ public class ScheduleService {
             request.endTime() != null ? request.endTime() : schedule.endTime(),
             request.isAllDay() != null ? request.isAllDay() : schedule.isAllDay(),
             request.roomId() != null ? request.roomId() : schedule.roomId(),
+            reservationId,
             request.isBusy() != null ? request.isBusy() : schedule.isBusy(),
             schedule.googleEventId());
 

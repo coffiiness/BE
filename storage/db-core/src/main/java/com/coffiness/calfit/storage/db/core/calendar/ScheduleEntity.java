@@ -43,6 +43,9 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Column(name = "room_id")
   private Long roomId;
 
+  @Column(name = "reservation_id")
+  private Long reservationId;
+
   @Column(name = "is_busy")
   private boolean isBusy;
 
@@ -60,6 +63,7 @@ public class ScheduleEntity extends TenantBaseEntity {
       LocalDateTime endTime,
       boolean isAllDay,
       Long roomId,
+      Long reservationId,
       String googleEventId,
       boolean isBusy) {
     super(tenantId);
@@ -71,6 +75,7 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.endTime = endTime;
     this.isAllDay = isAllDay;
     this.roomId = roomId;
+    this.reservationId = reservationId;
     this.googleEventId = googleEventId;
     this.isBusy = isBusy;
   }
@@ -83,6 +88,7 @@ public class ScheduleEntity extends TenantBaseEntity {
       LocalDateTime endTime,
       boolean isAllDay,
       Long roomId,
+      Long reservationId,
       boolean isBusy) {
 
     if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
@@ -96,6 +102,7 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.endTime = endTime;
     this.isAllDay = isAllDay;
     this.roomId = roomId;
+    this.reservationId = reservationId;
     this.isBusy = isBusy;
   }
 }
