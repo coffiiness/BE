@@ -34,7 +34,8 @@ public class ScheduleFacade {
   public void createSchedule(long userId, ScheduleCreateRequest request) {
     Member member = validateAndGetMember(userId);
 
-    scheduleService.createSchedule(member.id(), request);
+    // TODO: 연동 시 실제 reservationId를 받아와야 함
+    scheduleService.createSchedule(member.id(), null, request);
   }
 
   @Transactional(readOnly = true)
@@ -57,7 +58,8 @@ public class ScheduleFacade {
       long userId, Long scheduleId, ScheduleUpdateRequest request) {
     Member member = validateAndGetMember(userId);
 
-    return scheduleService.updateSchedule(member.id(), scheduleId, request);
+    // TODO: 연동 시 실제 reservationId를 받아와야 함
+    return scheduleService.updateSchedule(member.id(), scheduleId, null, request);
   }
 
   @Transactional

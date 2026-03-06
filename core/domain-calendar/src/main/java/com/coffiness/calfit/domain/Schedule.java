@@ -14,6 +14,7 @@ public record Schedule(
     LocalDateTime endTime,
     boolean isAllDay,
     Long roomId,
+    Long reservationId,
     boolean isBusy,
     String googleEventId) {
 
@@ -50,12 +51,17 @@ public record Schedule(
         this.endTime,
         this.isAllDay,
         this.roomId,
+        this.reservationId,
         this.isBusy,
         newGoogleEventId);
   }
 
   public Schedule updateDetails(
-      String newTitle, String newDescription, Long newRoomId, boolean newIsBusy) {
+      String newTitle,
+      String newDescription,
+      Long newRoomId,
+      Long newReservationId,
+      boolean newIsBusy) {
     return new Schedule(
         this.id,
         this.memberId,
@@ -66,6 +72,7 @@ public record Schedule(
         this.endTime,
         this.isAllDay,
         newRoomId,
+        newReservationId,
         newIsBusy,
         this.googleEventId);
   }
@@ -82,6 +89,7 @@ public record Schedule(
         newEndTime,
         newIsAllDay,
         this.roomId,
+        this.reservationId,
         this.isBusy,
         this.googleEventId);
   }

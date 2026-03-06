@@ -110,6 +110,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
         entity.getEndTime(),
         entity.isAllDay(),
         entity.getRoomId(),
+        entity.getReservationId(),
         entity.isBusy(),
         entity.getGoogleEventId());
   }
