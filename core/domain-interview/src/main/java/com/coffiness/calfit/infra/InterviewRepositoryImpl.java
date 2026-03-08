@@ -30,6 +30,7 @@ import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   public int getMeetingRoomCapacity(Long meetingRoomId) {
     String tenantId = requireTenantId();
     return meetingRoomRepository
-        .findByTenantIdAndId(tenantId, meetingRoomId)
+        .findByTenantIdAndIdAndStatus(tenantId, meetingRoomId, EntityStatus.ACTIVE)
         .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND))
         .getCapacity();
   }
@@ -279,6 +280,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       String memo,
       List<Long> interviewerIds,
       List<Long> applicantIds) {
+    lockResourcesForScheduleCreation(meetingRoomId, interviewerIds, applicantIds);
+
     LocalDateTime end = scheduledAt.plusMinutes(durationMinutes);
     if (hasMeetingRoomConflict(meetingRoomId, scheduledAt, end)
         || hasParticipantConflict(interviewerIds, applicantIds, scheduledAt, end)) {
@@ -340,6 +343,39 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .build());
 
     return saved.getId();
+  }
+
+  private void lockResourcesForScheduleCreation(
+      Long meetingRoomId, List<Long> interviewerIds, List<Long> applicantIds) {
+    String tenantId = requireTenantId();
+
+    meetingRoomRepository
+        .findByTenantIdAndId(tenantId, meetingRoomId)
+        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    List<Long> orderedInterviewerIds =
+        interviewerIds == null
+            ? List.of()
+            : interviewerIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    if (!orderedInterviewerIds.isEmpty()) {
+      userRepository.findAllByIdInOrderByIdAsc(orderedInterviewerIds);
+    }
+
+    List<Long> orderedApplicantIds =
+        applicantIds == null
+            ? List.of()
+            : applicantIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    if (!orderedApplicantIds.isEmpty()) {
+      applicantRepository.findAllByTenantIdAndIdInOrderByIdAsc(tenantId, orderedApplicantIds);
+    }
   }
 
   private boolean hasParticipantConflict(

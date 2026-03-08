@@ -64,4 +64,30 @@ class DELETE_specs {
 
     assertThat(canceled.getResult()).isEqualTo(ResultType.ERROR);
   }
+
+  @Test
+  void 토큰이_없으면_예약_취소에_실패한다(
+      @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    ApiResponse<MeetingRoomResponse> room =
+        meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 6);
+    Long meetingRoomId = room.getData().id();
+
+    ApiResponse<MeetingRoomReservationResponse> reservation =
+        meetingRoomFixture.reserve(
+            token,
+            tenantId,
+            meetingRoomId,
+            LocalDateTime.of(2030, 1, 10, 10, 0),
+            LocalDateTime.of(2030, 1, 10, 11, 0));
+
+    ApiResponse<MeetingRoomReservationResponse> canceled =
+        meetingRoomFixture.cancelReservation(
+            null, tenantId, meetingRoomId, reservation.getData().id());
+
+    assertThat(canceled.getResult()).isEqualTo(ResultType.ERROR);
+  }
 }

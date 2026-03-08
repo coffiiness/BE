@@ -70,4 +70,53 @@ class POST_specs {
 
     assertThat(second.getResult()).isEqualTo(ResultType.ERROR);
   }
+
+  @Test
+  void 연속된_다음_시간대_예약은_성공한다(
+      @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    ApiResponse<MeetingRoomResponse> room =
+        meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 6);
+    Long meetingRoomId = room.getData().id();
+
+    ApiResponse<MeetingRoomReservationResponse> first =
+        meetingRoomFixture.reserve(
+            token,
+            tenantId,
+            meetingRoomId,
+            LocalDateTime.of(2030, 1, 10, 10, 0),
+            LocalDateTime.of(2030, 1, 10, 11, 0));
+    assertThat(first.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<MeetingRoomReservationResponse> second =
+        meetingRoomFixture.reserve(
+            token,
+            tenantId,
+            meetingRoomId,
+            LocalDateTime.of(2030, 1, 10, 11, 0),
+            LocalDateTime.of(2030, 1, 10, 12, 0));
+
+    assertThat(second.getResult()).isEqualTo(ResultType.SUCCESS);
+  }
+
+  @Test
+  void 시작시간과_종료시간이_같으면_에러를_반환한다(
+      @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    ApiResponse<MeetingRoomResponse> room =
+        meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 6);
+    Long meetingRoomId = room.getData().id();
+
+    LocalDateTime sameTime = LocalDateTime.of(2030, 1, 10, 10, 0);
+    ApiResponse<MeetingRoomReservationResponse> response =
+        meetingRoomFixture.reserve(token, tenantId, meetingRoomId, sameTime, sameTime);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
 }
