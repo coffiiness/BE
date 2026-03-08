@@ -1,11 +1,14 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.MeetingRoomCreateRequest;
+import com.coffiness.calfit.api.v1.request.MeetingRoomReservationCreateRequest;
 import com.coffiness.calfit.api.v1.request.MeetingRoomUpdateRequest;
+import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -73,6 +76,32 @@ public record MeetingRoomFixture(BaseFixture base) {
         token,
         tenantId,
         Void.class);
+  }
+
+  public ApiResponse<MeetingRoomReservationResponse> reserve(
+      String token,
+      String tenantId,
+      long meetingRoomId,
+      LocalDateTime startDatetime,
+      LocalDateTime endDatetime) {
+    return exchangeWithTenant(
+        "/api/v1/meeting-rooms/" + meetingRoomId + "/reservations",
+        HttpMethod.POST,
+        new MeetingRoomReservationCreateRequest(startDatetime, endDatetime),
+        token,
+        tenantId,
+        MeetingRoomReservationResponse.class);
+  }
+
+  public ApiResponse<MeetingRoomReservationResponse> cancelReservation(
+      String token, String tenantId, long meetingRoomId, long reservationId) {
+    return exchangeWithTenant(
+        "/api/v1/meeting-rooms/" + meetingRoomId + "/reservations/" + reservationId,
+        HttpMethod.DELETE,
+        null,
+        token,
+        tenantId,
+        MeetingRoomReservationResponse.class);
   }
 
   public ApiResponse<MeetingRoom[]> list(String token) {

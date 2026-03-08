@@ -7,10 +7,14 @@ dependencies {
     implementation project(':core:domain-workspace')
     implementation project(':core:domain-applicant')
     implementation project(':core:domain-meeting-room')
-    implementation project(':core:domain-announcment-board')
+    implementation project(':core:domain-announcement-board')
     implementation project(':core:domain-billing')
+    implementation project(':core:domain-interview')
+    implementation project(':core:domain-payment')
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
+    implementation project(':core:domain-recruitment')
+    implementation project(':core:domain-career')
     implementation project(':core:domain-application')
 
     // 지원 모듈

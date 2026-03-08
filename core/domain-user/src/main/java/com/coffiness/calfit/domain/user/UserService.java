@@ -43,7 +43,7 @@ public class UserService {
     }
 
     String encodedPassword = passwordEncoder.encode(password);
-    UserEntity userEntity = UserEntity.create(email, encodedPassword, name);
+    UserEntity userEntity = UserEntity.createMember(email, encodedPassword, name);
     UserEntity savedEntity = userRepository.save(userEntity);
 
     return toUser(savedEntity);

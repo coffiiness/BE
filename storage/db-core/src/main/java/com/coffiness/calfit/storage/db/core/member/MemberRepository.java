@@ -1,9 +1,11 @@
 package com.coffiness.calfit.storage.db.core.member;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,9 +20,14 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   MemberEntity findByTenantIdAndUserId(String tenantId, Long userId);
 
+  MemberEntity findByTenantIdAndUserIdAndStatus(String tenantId, Long userId, EntityStatus status);
+
   boolean existsByTenantIdAndUserId(String workspaceId, Long userId);
 
   List<MemberEntity> findByGroupIdAndStatus(Long groupId, EntityStatus status);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  List<MemberEntity> findAllByTenantIdAndUserIdIn(String tenantId, List<Long> userIds);
 
   @Query(
       "SELECT m.groupId, COUNT(m) FROM MemberEntity m"

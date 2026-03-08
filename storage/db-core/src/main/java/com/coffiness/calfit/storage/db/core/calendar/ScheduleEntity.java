@@ -18,8 +18,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "schedule")
 public class ScheduleEntity extends TenantBaseEntity {
 
-  @Column(name = "user_id", nullable = false)
-  private Long userId;
+  @Column(name = "member_id", nullable = false)
+  private Long memberId;
 
   @Column(name = "title", nullable = false)
   private String title;
@@ -43,6 +43,9 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Column(name = "room_id")
   private Long roomId;
 
+  @Column(name = "reservation_id")
+  private Long reservationId;
+
   @Column(name = "is_busy")
   private boolean isBusy;
 
@@ -52,7 +55,7 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Builder
   public ScheduleEntity(
       String tenantId,
-      Long userId,
+      Long memberId,
       String title,
       String description,
       ScheduleType type,
@@ -60,10 +63,11 @@ public class ScheduleEntity extends TenantBaseEntity {
       LocalDateTime endTime,
       boolean isAllDay,
       Long roomId,
+      Long reservationId,
       String googleEventId,
       boolean isBusy) {
     super(tenantId);
-    this.userId = userId;
+    this.memberId = memberId;
     this.title = title;
     this.description = description;
     this.type = type;
@@ -71,6 +75,7 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.endTime = endTime;
     this.isAllDay = isAllDay;
     this.roomId = roomId;
+    this.reservationId = reservationId;
     this.googleEventId = googleEventId;
     this.isBusy = isBusy;
   }
@@ -83,6 +88,7 @@ public class ScheduleEntity extends TenantBaseEntity {
       LocalDateTime endTime,
       boolean isAllDay,
       Long roomId,
+      Long reservationId,
       boolean isBusy) {
 
     if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
@@ -96,6 +102,7 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.endTime = endTime;
     this.isAllDay = isAllDay;
     this.roomId = roomId;
+    this.reservationId = reservationId;
     this.isBusy = isBusy;
   }
 }

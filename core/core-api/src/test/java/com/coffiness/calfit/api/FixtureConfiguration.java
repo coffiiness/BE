@@ -47,9 +47,27 @@ public class FixtureConfiguration {
     return AnnouncementBoardFixture.create(environment, objectMapper);
   }
 
+  //  @Bean
+  //  @Scope("prototype")
+  //  InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
+  //    return InterviewFixture.create(environment, objectMapper);
+  //  }
+
   @Bean
   @Scope("prototype")
   BillingFixture billingFixture(Environment environment, ObjectMapper objectMapper) {
     return BillingFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  RecruitmentFixture recruitmentFixture(Environment environment, ObjectMapper objectMapper) {
+    return RecruitmentFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  PaymentFixture paymentFixture(Environment environment, ObjectMapper objectMapper) {
+    return PaymentFixture.create(environment, objectMapper);
   }
 }

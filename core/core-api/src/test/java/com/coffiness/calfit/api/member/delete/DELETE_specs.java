@@ -74,7 +74,7 @@ public class DELETE_specs {
   void 자기_자신을_삭제하면_에러를_반환한다(@Autowired MemberFixture fixture) {
     // TODO: MemberService.removeMember에 자기 자신 삭제 방지 로직 추가 후 작성
     // 구현 방향: removeMember(memberId, requestUserId) 시그니처로 변경하여
-    //           삭제 대상 멤버의 userId == requestUserId이면 CoreException 발생
+    //           삭제 대상 멤버의 memberId == requestUserId이면 CoreException 발생
   }
 
   @Test

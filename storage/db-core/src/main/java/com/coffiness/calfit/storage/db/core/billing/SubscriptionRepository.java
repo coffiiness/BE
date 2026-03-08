@@ -1,7 +1,9 @@
 package com.coffiness.calfit.storage.db.core.billing;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.PlanType;
 import com.coffiness.calfit.core.enums.SubscriptionStatus;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -49,4 +51,30 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
 
   List<SubscriptionEntity> findBySubscriptionStatusAndStatusOrderByCreatedAtDesc(
       SubscriptionStatus subscriptionStatus, EntityStatus entityStatus);
+
+  List<SubscriptionEntity> findByPlanTypeAndSubscriptionStatusAndStatus(
+      PlanType planType, SubscriptionStatus subscriptionStatus, EntityStatus entityStatus);
+
+  @Query(
+      "SELECT COUNT(s) FROM SubscriptionEntity s WHERE s.status = :entityStatus"
+          + " AND s.subscriptionStatus = :subscriptionStatus"
+          + " AND s.startDate <= :monthEnd"
+          + " AND (s.endDate IS NULL OR s.endDate >= :monthStart)")
+  long countByStatusInMonth(
+      @Param("entityStatus") EntityStatus entityStatus,
+      @Param("subscriptionStatus") SubscriptionStatus subscriptionStatus,
+      @Param("monthStart") LocalDate monthStart,
+      @Param("monthEnd") LocalDate monthEnd);
+
+  @Query(
+      "SELECT COALESCE(SUM(s.monthlyAmount), 0) FROM SubscriptionEntity s"
+          + " WHERE s.status = :entityStatus"
+          + " AND s.subscriptionStatus = :subscriptionStatus"
+          + " AND s.startDate <= :monthEnd"
+          + " AND (s.endDate IS NULL OR s.endDate >= :monthStart)")
+  long sumMonthlyAmountByStatusInMonth(
+      @Param("entityStatus") EntityStatus entityStatus,
+      @Param("subscriptionStatus") SubscriptionStatus subscriptionStatus,
+      @Param("monthStart") LocalDate monthStart,
+      @Param("monthEnd") LocalDate monthEnd);
 }

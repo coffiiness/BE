@@ -7,6 +7,7 @@ import com.coffiness.calfit.domain.billing.invoice.InvoiceReader;
 import com.coffiness.calfit.domain.billing.invoice.MonthlyRevenue;
 import com.coffiness.calfit.domain.billing.subscription.SubscriptionReader;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,28 +24,28 @@ public class DashboardService {
   private final CostReader costReader;
 
   public DashboardSummary getSummary(int year, int month) {
-    long mrr = subscriptionReader.getMrr();
-    long activeCount = subscriptionReader.countByStatus(SubscriptionStatus.ACTIVE);
-    long trialCount = subscriptionReader.countByStatus(SubscriptionStatus.TRIAL);
-    long cancelledCount = subscriptionReader.countByStatus(SubscriptionStatus.CANCELLED);
+    YearMonth ym = YearMonth.of(year, month);
+    LocalDate monthStart = ym.atDay(1);
+    LocalDate monthEnd = ym.atEndOfMonth();
 
-    // MRR growth vs previous month
+    long mrr = subscriptionReader.getMrrInMonth(monthStart, monthEnd);
+    long activeCount =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.ACTIVE, monthStart, monthEnd);
+    long trialCount =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.TRIAL, monthStart, monthEnd);
+
     List<MonthlyRevenue> revenueHistory = invoiceReader.getMonthlyRevenue();
     double mrrGrowth = computeGrowth(revenueHistory, year, month);
 
-    // Cost for this month
     Map<com.coffiness.calfit.core.enums.CostCategory, Long> costSummary =
         costReader.getSummaryByCategory(year, month);
     long totalCost = costSummary.values().stream().mapToLong(Long::longValue).sum();
 
-    // Cost growth vs previous month
     List<MonthlyCostTotal> costHistory = costReader.getMonthlyTrend();
     double costGrowth = computeCostGrowth(costHistory, year, month);
 
-    // New this month = subscriptions created this month with ACTIVE/TRIAL
-    // Simple count by active + trial
     long subscribers = activeCount + trialCount;
-    long newThisMonth = 0; // simplified — actual implementation would need createdAt filter
+    long newThisMonth = 0;
 
     return new DashboardSummary(
         mrr, mrrGrowth, subscribers, newThisMonth, 0.0, 0.0, totalCost, costGrowth);

@@ -35,7 +35,10 @@ public class CostStoreImpl implements CostStore {
   @Override
   public void remove(Long id) {
     CostEntity entity =
-        costRepository.findById(id).orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+        costRepository
+            .findById(id)
+            .filter(CostEntity::isActive)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     entity.deleted();
     costRepository.save(entity);
   }
