@@ -166,7 +166,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     for (ScheduleEntity schedule : calendarBusySchedules) {
       result.add(
           new InterviewerBusySlotRow(
-              schedule.getUserId(),
+              schedule.getMemberId(),
               schedule.getId(),
               schedule.getStartTime(),
               schedule.getEndTime()));

@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -22,10 +24,14 @@ public class GET_specs {
 
   @Test
   void 특정_일정의_상세_정보를_조회할_수_있다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
 
     LocalDateTime now = LocalDateTime.now();
     ScheduleCreateRequest createRequest =
@@ -39,15 +45,16 @@ public class GET_specs {
             null,
             false,
             null);
-    calendarFixture.createSchedule(token, createRequest);
+    calendarFixture.createSchedule(token, tenantId, createRequest);
 
     // Act
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(5).toString();
-    Long scheduleId = calendarFixture.getSchedules(token, startDate, endDate).getData().get(0).id();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
 
     ApiResponse<ScheduleDetailResponse> response =
-        calendarFixture.getDetailSchedule(token, scheduleId);
+        calendarFixture.getDetailSchedule(token, tenantId, scheduleId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -57,10 +64,14 @@ public class GET_specs {
 
   @Test
   void 특정_일정의_단건_상세_정보를_조회한다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
 
     Long myUserId = 1L;
 
@@ -76,16 +87,16 @@ public class GET_specs {
             null,
             false,
             List.of(myUserId, 999L));
-    calendarFixture.createSchedule(token, request);
+    calendarFixture.createSchedule(token, tenantId, request);
 
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(5).toString();
     Long targetScheduleId =
-        calendarFixture.getSchedules(token, startDate, endDate).getData().get(0).id();
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
 
     // Act
     ApiResponse<ScheduleDetailResponse> response =
-        calendarFixture.getDetailSchedule(token, targetScheduleId);
+        calendarFixture.getDetailSchedule(token, tenantId, targetScheduleId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);

@@ -262,4 +262,47 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         interviewerIds,
         stages);
   }
+
+  @Override
+  public Map<String, Long> countOpenRecruitmentsByTenant() {
+    List<Object[]> counts = recruitmentRepository.countOpenRecruitmentsByTenant();
+    return counts.stream()
+        .collect(Collectors.toMap(row -> (String) row[0], row -> ((Number) row[1]).longValue()));
+  }
+
+  @Override
+  public List<OpenRecruitmentInfo> readOpenByTenantId(String tenantId) {
+    return recruitmentRepository.findOpenRecruitmentsByTenantId(tenantId).stream()
+        .map(
+            e ->
+                new OpenRecruitmentInfo(
+                    e.getId(),
+                    e.getTitle(),
+                    e.getContents(),
+                    e.getCareerType(),
+                    e.getTargetCount(),
+                    e.getMinExperienceYears(),
+                    e.getMaxExperienceYears(),
+                    e.getStartDate(),
+                    e.getEndDate()))
+        .toList();
+  }
+
+  @Override
+  public List<OpenRecruitmentInfo> readOpenByTenantIdAndSearch(String tenantId, String search) {
+    return recruitmentRepository.findOpenRecruitmentsByTenantIdAndSearch(tenantId, search).stream()
+        .map(
+            e ->
+                new OpenRecruitmentInfo(
+                    e.getId(),
+                    e.getTitle(),
+                    e.getContents(),
+                    e.getCareerType(),
+                    e.getTargetCount(),
+                    e.getMinExperienceYears(),
+                    e.getMaxExperienceYears(),
+                    e.getStartDate(),
+                    e.getEndDate()))
+        .toList();
+  }
 }

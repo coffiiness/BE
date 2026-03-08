@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -22,10 +24,14 @@ public class GET_specs {
 
   @Test
   void 특정_기간의_일정을_조회하면_리스트를_반환한다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
 
     LocalDateTime now = LocalDateTime.now();
     ScheduleCreateRequest createRequest =
@@ -40,14 +46,15 @@ public class GET_specs {
             false,
             List.of(1L, 2L));
 
-    ApiResponse<Void> createResponse = calendarFixture.createSchedule(token, createRequest);
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(token, tenantId, createRequest);
     assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     // Act
     String startDate = now.toLocalDate().minusDays(1).toString();
     String endDate = now.toLocalDate().plusDays(7).toString();
     ApiResponse<List<ScheduleResponse>> response =
-        calendarFixture.getSchedules(token, startDate, endDate);
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);

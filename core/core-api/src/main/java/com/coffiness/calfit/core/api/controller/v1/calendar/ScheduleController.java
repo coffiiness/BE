@@ -1,9 +1,9 @@
 package com.coffiness.calfit.core.api.controller.v1.calendar;
 
+import com.coffiness.calfit.core.api.facade.calendar.ScheduleFacade;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
-import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ScheduleController {
 
-  private final ScheduleService scheduleService;
+  private final ScheduleFacade scheduleFacade;
 
   @ResponseStatus(HttpStatus.CREATED)
   @PostMapping("/api/v1/schedules")
@@ -31,9 +31,7 @@ public class ScheduleController {
       @AuthenticationPrincipal SecurityUser user,
       @Valid @RequestBody ScheduleCreateRequest request) {
 
-    long userId = user.userId();
-
-    scheduleService.createSchedule(userId, request);
+    scheduleFacade.createSchedule(user.userId(), request);
 
     return ApiResponse.success(null);
   }
@@ -44,13 +42,12 @@ public class ScheduleController {
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
 
-    long userId = user.userId();
-
     // 날짜에 시간을 붙여 서비스에 전달
     LocalDateTime startDateTime = startDate.atStartOfDay();
     LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay().minusNanos(1);
 
-    List<ScheduleInfo> infos = scheduleService.getSchedules(userId, startDateTime, endDateTime);
+    List<ScheduleInfo> infos =
+        scheduleFacade.getSchedules(user.userId(), startDateTime, endDateTime);
 
     List<ScheduleResponse> response = infos.stream().map(ScheduleResponse::from).toList();
 
@@ -61,9 +58,7 @@ public class ScheduleController {
   public ApiResponse<ScheduleDetailResponse> getDetailSchedule(
       @AuthenticationPrincipal SecurityUser user, @PathVariable("scheduleId") Long scheduleId) {
 
-    long userId = user.userId();
-
-    ScheduleDetailInfo info = scheduleService.getDetailSchedule(userId, scheduleId);
+    ScheduleDetailInfo info = scheduleFacade.getDetailSchedule(user.userId(), scheduleId);
     ScheduleDetailResponse response = ScheduleDetailResponse.from(info);
 
     return ApiResponse.success(response);
@@ -75,9 +70,7 @@ public class ScheduleController {
       @PathVariable("scheduleId") Long scheduleId,
       @Valid @RequestBody ScheduleUpdateRequest request) {
 
-    long userId = user.userId();
-
-    ScheduleDetailInfo info = scheduleService.updateSchedule(userId, scheduleId, request);
+    ScheduleDetailInfo info = scheduleFacade.updateSchedule(user.userId(), scheduleId, request);
 
     return ApiResponse.success(ScheduleDetailResponse.from(info));
   }
@@ -86,9 +79,7 @@ public class ScheduleController {
   public ApiResponse<Void> deleteSchedule(
       @AuthenticationPrincipal SecurityUser user, @PathVariable("scheduleId") Long scheduleId) {
 
-    long userId = user.userId();
-
-    scheduleService.deleteSchedule(userId, scheduleId);
+    scheduleFacade.deleteSchedule(user.userId(), scheduleId);
     return ApiResponse.success(null);
   }
 }

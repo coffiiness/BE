@@ -6,6 +6,8 @@ import static org.mockito.BDDMockito.given;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.model.GoogleTokenModel;
@@ -23,15 +25,20 @@ public class POST_specs {
 
   @Test
   void 올바른_인가코드로_요청하면_캘린더_연동에_성공한다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
     String validAuthCode = "dummy-auth-code";
 
     given(googleOAuthPort.exchangeToken(validAuthCode, "http://localhost:5173/auth/callback"))
         .willReturn(new GoogleTokenModel("mock-access", "mock-refresh", 3600, "test@gmail.com"));
 
     // Act
-    ApiResponse<String> response = calendarFixture.connectGoogleCalendar(token, validAuthCode);
+    ApiResponse<String> response =
+        calendarFixture.connectGoogleCalendar(token, tenantId, validAuthCode);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -39,13 +46,18 @@ public class POST_specs {
 
   @Test
   void 인가코드가_비어있으면_에러_응답을_반환한다(
-      @Autowired UserFixture userFixture, @Autowired CalendarFixture calendarFixture) {
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
     // Arrange
     String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
     String emptyAuthCode = "";
 
     // Act
-    ApiResponse<String> response = calendarFixture.connectGoogleCalendar(token, emptyAuthCode);
+    ApiResponse<String> response =
+        calendarFixture.connectGoogleCalendar(token, tenantId, emptyAuthCode);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

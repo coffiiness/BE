@@ -21,13 +21,14 @@ public class ScheduleStoreImpl implements ScheduleStore {
   public Schedule store(Schedule schedule, List<Long> attendeeIds) {
     ScheduleEntity entity =
         ScheduleEntity.builder()
-            .userId(schedule.userId())
+            .memberId(schedule.memberId())
             .title(schedule.title())
             .description(schedule.description())
             .startTime(schedule.startTime())
             .endTime(schedule.endTime())
             .isAllDay(schedule.isAllDay())
             .roomId(schedule.roomId())
+            .reservationId(schedule.reservationId())
             .type(schedule.type())
             .isBusy(schedule.isBusy())
             .googleEventId(schedule.googleEventId())
@@ -66,6 +67,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
         schedule.endTime(),
         schedule.isAllDay(),
         schedule.roomId(),
+        schedule.reservationId(),
         schedule.isBusy());
 
     scheduleAttendeeRepository.deleteByScheduleId(schedule.id());
@@ -98,7 +100,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   private Schedule toDomain(ScheduleEntity entity) {
     return new Schedule(
         entity.getId(),
-        entity.getUserId(),
+        entity.getMemberId(),
         entity.getTitle(),
         entity.getDescription(),
         entity.getType(),
@@ -106,6 +108,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
         entity.getEndTime(),
         entity.isAllDay(),
         entity.getRoomId(),
+        entity.getReservationId(),
         entity.isBusy(),
         entity.getGoogleEventId());
   }
