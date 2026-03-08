@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -14,6 +16,7 @@ public class InterviewStoreImpl implements InterviewStore {
   private final InterviewRepository interviewRepository;
 
   @Override
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public Long createConfirmedSchedule(
       Long userId,
       Long recruitmentId,
