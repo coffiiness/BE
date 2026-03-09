@@ -10,6 +10,8 @@ public interface RecruitmentStageRepository extends JpaRepository<RecruitmentSta
 
   List<RecruitmentStageEntity> findByRecruitmentId(Long recruitmentId);
 
+  boolean existsByIdAndRecruitmentId(Long id, Long recruitmentId);
+
   @Modifying(clearAutomatically = true)
   @Query("DELETE FROM RecruitmentStageEntity r WHERE r.recruitmentId = :recruitmentId")
   void deleteAllByRecruitmentId(Long recruitmentId);

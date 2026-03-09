@@ -11,6 +11,9 @@ import com.coffiness.calfit.storage.db.core.application.ApplicationFileEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileRepository;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryEntity;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
@@ -30,6 +33,8 @@ public class ApplicationService {
   private final ApplicationRepository applicationRepository;
   private final ApplicationFileRepository applicationFileRepository;
   private final RecruitmentRepository recruitmentRepository;
+  private final RecruitmentStageRepository recruitmentStageRepository;
+  private final ApplicationProcessHistoryRepository applicationProcessHistoryRepository;
 
   @Transactional
   public Long create(ApplicationCreateRequest request, Long requesterUserId) {
@@ -91,6 +96,38 @@ public class ApplicationService {
         files.stream().map(ApplicationFileResponse::from).collect(Collectors.toList());
 
     return ApplicationDetailResponse.from(entity, fileResponses);
+  }
+
+  @Transactional
+  public void updateProcess(Long applicationId, Long recruitmentProcessId, Long actorId) {
+    requireTenant();
+    if (applicationId == null || recruitmentProcessId == null || actorId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    ApplicationEntity entity =
+        applicationRepository
+            .findByIdAndStatus(applicationId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    if (!recruitmentStageRepository.existsByIdAndRecruitmentId(
+        recruitmentProcessId, entity.getRecruitmentId())) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    if (recruitmentProcessId.equals(entity.getRecruitmentProcessId())) {
+      return;
+    }
+
+    Long beforeProcessId = entity.getRecruitmentProcessId();
+    entity.updateRecruitmentProcessId(recruitmentProcessId);
+
+    applicationProcessHistoryRepository.save(
+        ApplicationProcessHistoryEntity.builder()
+            .applicationId(applicationId)
+            .fromRecruitmentProcessId(beforeProcessId)
+            .toRecruitmentProcessId(recruitmentProcessId)
+            .actorId(actorId)
+            .build());
   }
 
   private void requireTenant() {

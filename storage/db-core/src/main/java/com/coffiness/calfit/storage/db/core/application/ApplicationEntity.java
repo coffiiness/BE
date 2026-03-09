@@ -109,4 +109,8 @@ public class ApplicationEntity extends TenantBaseEntity {
         email,
         schema);
   }
+
+  public void updateRecruitmentProcessId(Long recruitmentProcessId) {
+    this.recruitmentProcessId = recruitmentProcessId;
+  }
 }

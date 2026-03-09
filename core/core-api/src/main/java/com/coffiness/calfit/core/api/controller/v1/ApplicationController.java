@@ -4,6 +4,7 @@ import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
 import com.coffiness.calfit.api.v1.response.ApplicationCreateResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
+import com.coffiness.calfit.core.api.request.ApplicationProcessUpdateRequest;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.application.ApplicationService;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -73,6 +75,21 @@ public class ApplicationController {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     return ApiResponse.success(applicationService.getDetail(applicationId));
+  }
+
+  @PatchMapping("/api/v1/applications/{applicationId}/process")
+  public ApiResponse<Void> updateApplicationProcess(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long applicationId,
+      @Valid @RequestBody ApplicationProcessUpdateRequest request) {
+    if (user == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if ("APPLICANT".equalsIgnoreCase(user.role())) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    applicationService.updateProcess(applicationId, request.recruitmentProcessId(), user.userId());
+    return ApiResponse.success(null);
   }
 
   private void setTenantFromRecruitment(Long recruitmentId) {
