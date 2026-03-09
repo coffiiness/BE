@@ -14,11 +14,13 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 /*
  * 내부 일정 캘린더 엔티티
  * */
 @Entity
+@SQLRestriction("status = 'ACTIVE'")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(
@@ -26,7 +28,7 @@ import lombok.NoArgsConstructor;
     uniqueConstraints = {
       @UniqueConstraint(
           name = "uk_schedule_tenant_google_event",
-          columnNames = {"tenant_id", "google_event_id"})
+          columnNames = {"tenant_id", "google_event_id", "status"})
     },
     indexes = {@Index(name = "idx_schedule_google_event_id", columnList = "google_event_id")})
 public class ScheduleEntity extends TenantBaseEntity {

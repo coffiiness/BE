@@ -9,6 +9,9 @@ import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -30,6 +33,8 @@ public class ScheduleGoogleSyncEventHandler {
   private final GoogleCalendarPort googleCalendarPort;
   private final ScheduleReader scheduleReader;
   private final ScheduleStore scheduleStore;
+
+  private final ConcurrentMap<Long, ReentrantLock> scheduleLocks = new ConcurrentHashMap<>();
 
   // 트랜잭션 커밋 이후 비동기로 구글 동기화 이벤트를 처리
   @Async
@@ -60,12 +65,12 @@ public class ScheduleGoogleSyncEventHandler {
     String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
 
     if (event.actionType() == ScheduleSyncActionType.CREATE) {
-      syncCreate(accessToken, event.scheduleId());
+      runWithScheduleLock(event.scheduleId(), () -> syncCreate(accessToken, event.scheduleId()));
       return;
     }
 
     if (event.actionType() == ScheduleSyncActionType.UPDATE) {
-      syncUpdate(accessToken, event.scheduleId());
+      runWithScheduleLock(event.scheduleId(), () -> syncUpdate(accessToken, event.scheduleId()));
       return;
     }
 
@@ -153,6 +158,24 @@ public class ScheduleGoogleSyncEventHandler {
   }
 
   // ZonedDateTime으로 변환
+  private void runWithScheduleLock(Long scheduleId, Runnable work) {
+    if (scheduleId == null) {
+      work.run();
+      return;
+    }
+
+    ReentrantLock lock = scheduleLocks.computeIfAbsent(scheduleId, key -> new ReentrantLock());
+    lock.lock();
+    try {
+      work.run();
+    } finally {
+      lock.unlock();
+      if (!lock.hasQueuedThreads()) {
+        scheduleLocks.remove(scheduleId, lock);
+      }
+    }
+  }
+
   private ZonedDateTime toZonedDateTime(java.time.LocalDateTime time) {
     return time.atZone(ZoneId.systemDefault());
   }

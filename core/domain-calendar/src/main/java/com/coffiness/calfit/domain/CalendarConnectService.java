@@ -10,6 +10,7 @@ import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
@@ -110,7 +111,13 @@ public class CalendarConnectService {
       throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE");
     }
 
-    String decodedPayload = new String(Base64.getUrlDecoder().decode(splitToken[1]));
+    String decodedPayload;
+    try {
+      decodedPayload =
+          new String(Base64.getUrlDecoder().decode(splitToken[1]), StandardCharsets.UTF_8);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE", e);
+    }
 
     ObjectMapper objectMapper = new ObjectMapper();
     try {

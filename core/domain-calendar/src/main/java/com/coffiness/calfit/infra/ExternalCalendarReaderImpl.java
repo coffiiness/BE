@@ -27,6 +27,16 @@ public class ExternalCalendarReaderImpl implements ExternalCalendarReader {
   }
 
   @Override
+  public ExternalCalendar readForUpdate(Long externalCalendarId) {
+    ExternalCalendarEntity entity =
+        externalCalendarRepository
+            .findByIdAndStatusForUpdate(externalCalendarId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("구글 캘린더 연동 정보를 찾을 수 없습니다."));
+
+    return toDomain(entity);
+  }
+
+  @Override
   public ExternalCalendar readByUserIdAndCalendarId(Long userId, String calendarId) {
     return externalCalendarRepository
         .findByUserIdAndCalendarIdAndStatus(userId, calendarId, EntityStatus.ACTIVE)

@@ -47,6 +47,8 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
       @Param("to") LocalDateTime to,
       @Param("status") EntityStatus status);
 
+  Optional<ScheduleEntity> findByIdAndStatus(Long id, EntityStatus status);
+
   Optional<ScheduleEntity> findByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);
 
   boolean existsByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);

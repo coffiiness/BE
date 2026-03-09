@@ -13,4 +13,24 @@ public record ExternalCalendar(
     String refreshToken,
     LocalDateTime tokenExpiresAt,
     String syncToken,
-    boolean isSyncEnabled) {}
+    boolean isSyncEnabled) {
+
+  @Override
+  public String toString() {
+    return "ExternalCalendar["
+        + "id="
+        + id
+        + ", userId="
+        + userId
+        + ", calendarId="
+        + calendarId
+        + ", accessToken=***"
+        + ", refreshToken=***"
+        + ", tokenExpiresAt="
+        + tokenExpiresAt
+        + ", syncToken=***"
+        + ", isSyncEnabled="
+        + isSyncEnabled
+        + "]";
+  }
+}

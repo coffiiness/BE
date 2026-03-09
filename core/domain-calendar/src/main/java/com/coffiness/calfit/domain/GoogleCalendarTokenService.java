@@ -59,25 +59,24 @@ public class GoogleCalendarTokenService {
 
   // 현재 사용 가능한 access token 을 반환하고, 만료 임박 시 refresh 후 갱신
   public String getValidAccessToken(Long externalCalendarId) {
-    ExternalCalendar firstRead = externalCalendarReader.read(externalCalendarId);
+    ExternalCalendar snapshot = externalCalendarReader.read(externalCalendarId);
 
-    if (!isExpiringSoon(firstRead.tokenExpiresAt())) {
-      return firstRead.accessToken();
+    if (!isExpiringSoon(snapshot.tokenExpiresAt())) {
+      return snapshot.accessToken();
     }
 
-    // 동시 요청에서 이미 refresh 가 끝났는지 확인하기 위해 직전에 한 번 더 조회
-    ExternalCalendar latestRead = externalCalendarReader.read(externalCalendarId);
-    if (!isExpiringSoon(latestRead.tokenExpiresAt())) {
-      return latestRead.accessToken();
+    ExternalCalendar locked = externalCalendarReader.readForUpdate(externalCalendarId);
+    if (!isExpiringSoon(locked.tokenExpiresAt())) {
+      return locked.accessToken();
     }
 
-    if (isBlank(latestRead.refreshToken())) {
+    if (isBlank(locked.refreshToken())) {
       throw new IllegalStateException("GOOGLE_REAUTH_REQUIRED");
     }
 
     OAuthRefreshResult refreshed;
     try {
-      refreshed = googleOAuthPort.refreshAccessToken(latestRead.refreshToken());
+      refreshed = googleOAuthPort.refreshAccessToken(locked.refreshToken());
     } catch (IllegalStateException e) {
       throw e;
     } catch (RuntimeException e) {
@@ -87,12 +86,11 @@ public class GoogleCalendarTokenService {
     validateRefreshResult(refreshed);
 
     LocalDateTime expiresAt = calculateExpiresAt(refreshed.expiresIn());
-    String nextRefreshToken =
-        resolveRefreshToken(refreshed.refreshToken(), latestRead.refreshToken());
+    String nextRefreshToken = resolveRefreshToken(refreshed.refreshToken(), locked.refreshToken());
 
     ExternalCalendar updated =
         externalCalendarStore.updateAuthTokens(
-            latestRead.id(), refreshed.accessToken(), nextRefreshToken, expiresAt);
+            locked.id(), refreshed.accessToken(), nextRefreshToken, expiresAt);
 
     return updated.accessToken();
   }

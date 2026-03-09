@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.Schedule;
 import com.coffiness.calfit.domain.ScheduleStore;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
@@ -57,7 +58,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   public void update(Schedule schedule, List<Long> attendeeIds) {
     ScheduleEntity entity =
         scheduleRepository
-            .findById(schedule.id())
+            .findByIdAndStatus(schedule.id(), EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
     entity.update(
@@ -90,23 +91,43 @@ public class ScheduleStoreImpl implements ScheduleStore {
   @Override
   @Transactional
   public void updateGoogleEventId(Long scheduleId, String googleEventId) {
+    if (!hasText(googleEventId)) {
+      throw new IllegalArgumentException("GOOGLE_EVENT_ID_REQUIRED");
+    }
+
     ScheduleEntity entity =
         scheduleRepository
-            .findById(scheduleId)
+            .findByIdAndStatus(scheduleId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
-    entity.updateGoogleEventId(googleEventId);
+    String currentGoogleEventId = entity.getGoogleEventId();
+
+    if (!hasText(currentGoogleEventId)) {
+      entity.updateGoogleEventId(googleEventId);
+      return;
+    }
+
+    if (currentGoogleEventId.equals(googleEventId)) {
+      return;
+    }
+
+    throw new IllegalStateException("GOOGLE_EVENT_ID_CONFLICT");
   }
 
   @Override
   public void delete(Schedule schedule) {
     ScheduleEntity entity =
         scheduleRepository
-            .findById(schedule.id())
+            .findByIdAndStatus(schedule.id(), EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
     scheduleAttendeeRepository.deleteByScheduleId(schedule.id());
+    entity.updateGoogleEventId(null);
     entity.deleted();
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   private Schedule toDomain(ScheduleEntity entity) {

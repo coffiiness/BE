@@ -30,13 +30,20 @@ public class GoogleCalendarSyncScheduler {
       initialDelayString = "${calendar.google-sync.scheduler-initial-delay-ms:120000}")
   @SchedulerLock(
       name = "googleCalendarSyncScheduler.syncAllTenants",
-      lockAtMostFor = "PT4M",
-      lockAtLeastFor = "PT10S")
+      lockAtMostFor = "${calendar.google-sync.scheduler-lock-at-most:PT15M}",
+      lockAtLeastFor = "${calendar.google-sync.scheduler-lock-at-least:PT10S}")
   public void syncAllTenants() {
     List<Workspace> workspaces = workspaceReader.getAllWorkspaces();
 
     for (Workspace workspace : workspaces) {
-      syncTenant(workspace.workspaceId());
+      try {
+        syncTenant(workspace.workspaceId());
+      } catch (RuntimeException e) {
+        log.error(
+            "[GoogleCalendarSyncScheduler] tenant sync failed - tenantId: {}",
+            workspace.workspaceId(),
+            e);
+      }
     }
   }
 
