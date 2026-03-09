@@ -13,11 +13,13 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.domain.sync.policy.CalendarSyncDecision;
 import com.coffiness.calfit.domain.sync.policy.CalendarSyncPolicy;
-import com.coffiness.calfit.model.GoogleTokenModel;
+import com.coffiness.calfit.model.OAuthExchangeResult;
 import com.coffiness.calfit.port.GoogleOAuthPort;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Base64;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +44,12 @@ public class POST_specs {
     String tenantId = workspace.workspaceId();
     String validAuthCode = "dummy-auth-code";
 
-    given(googleOAuthPort.exchangeToken(validAuthCode, "http://localhost:5173/auth/callback"))
-        .willReturn(new GoogleTokenModel("mock-access", "mock-refresh", 3600, "test@gmail.com"));
+    given(
+            googleOAuthPort.exchangeAuthorizationCode(
+                validAuthCode, "http://localhost:5173/auth/callback"))
+        .willReturn(
+            new OAuthExchangeResult(
+                "mock-access", 3600L, "mock-refresh", createIdToken("test@gmail.com")));
 
     // Act
     ApiResponse<String> response =
@@ -153,5 +159,21 @@ public class POST_specs {
     // Assert
     assertThat(decision.apply()).isTrue();
     assertThat(decision.reason()).isEqualTo(CalendarSyncReason.APPLY_GOOGLE_NEWER_THAN_CALFIT);
+  }
+
+  private String createIdToken(String email) {
+    String headerJson = "{\"alg\":\"none\"}";
+    String payloadJson = "{\"email\":\"" + email + "\"}";
+
+    String header =
+        Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(headerJson.getBytes(StandardCharsets.UTF_8));
+    String payload =
+        Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+
+    return header + "." + payload + ".signature";
   }
 }
