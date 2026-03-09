@@ -15,7 +15,14 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Table(name = "schedule")
+@Table(
+    name = "schedule",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_schedule_tenant_google_event",
+          columnNames = {"tenant_id", "google_event_id"})
+    },
+    indexes = {@Index(name = "idx_schedule_google_event_id", columnList = "google_event_id")})
 public class ScheduleEntity extends TenantBaseEntity {
 
   @Column(name = "member_id", nullable = false)

@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain;
 
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
@@ -109,5 +110,10 @@ public class ScheduleService {
     // 참석자 삭제
     // TODO : 일정 내에 있는 참석자는 Hard vs Soft? Soft라면 Repository에 'DELETED' 검증이 되어야 할 것
     scheduleStore.delete(schedule);
+  }
+
+  public Long upsertScheduleByGoogleEventId(long memberId, ScheduleSyncRequest request) {
+
+    return 0L;
   }
 }
