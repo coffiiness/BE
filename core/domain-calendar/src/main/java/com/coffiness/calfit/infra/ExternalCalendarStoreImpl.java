@@ -49,6 +49,19 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
     return toDomain(saved);
   }
 
+  @Override
+  public ExternalCalendar updateSyncToken(Long externalCalendarId, String syncToken) {
+    ExternalCalendarEntity entity =
+        externalCalendarRepository
+            .findByIdAndStatus(externalCalendarId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("구글 캘린더 연동 정보를 찾을 수 없습니다."));
+
+    entity.updateSyncToken(syncToken);
+    ExternalCalendarEntity saved = externalCalendarRepository.save(entity);
+
+    return toDomain(saved);
+  }
+
   private ExternalCalendar toDomain(ExternalCalendarEntity entity) {
     return new ExternalCalendar(
         entity.getId(),

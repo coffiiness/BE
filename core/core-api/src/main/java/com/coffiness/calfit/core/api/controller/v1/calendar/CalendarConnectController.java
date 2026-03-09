@@ -28,4 +28,12 @@ public class CalendarConnectController {
 
     return ApiResponse.success(googleEmail);
   }
+
+  // 구글 -> CalFit 일정 동기화
+  @PostMapping("/api/v1/calendars/google/sync")
+  public ApiResponse<Void> syncGoogleCalendar(@AuthenticationPrincipal SecurityUser securityUser) {
+    calendarConnectFacade.syncGoogleCalendar(securityUser.userId());
+
+    return ApiResponse.success(null);
+  }
 }

@@ -11,4 +11,6 @@ public interface ExternalCalendarStore {
       String accessToken,
       String refreshToken,
       LocalDateTime tokenExpiresAt);
+
+  ExternalCalendar updateSyncToken(Long externalCalendarId, String syncToken);
 }

@@ -20,17 +20,26 @@ public class CalendarConnectFacade {
 
   @Transactional
   public String connectGoogleCalendar(long userId, String authCode, String redirectUri) {
-    validateMember(userId);
+    validateAndGetMember(userId);
 
     return calendarConnectService.connectGoogleCalendar(authCode, redirectUri, userId);
   }
 
-  private void validateMember(long userId) {
+  @Transactional
+  public void syncGoogleCalendar(long userId) {
+    Member member = validateAndGetMember(userId);
+
+    calendarConnectService.syncGoogleCalendar(userId, member.id());
+  }
+
+  private Member validateAndGetMember(long userId) {
     String currentWorkspaceId = TenantContext.getTenantId();
     Member member = memberReader.getMember(currentWorkspaceId, userId);
 
     if (member == null) {
       throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
     }
+
+    return member;
   }
 }

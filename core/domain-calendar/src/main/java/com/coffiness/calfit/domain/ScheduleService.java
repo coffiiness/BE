@@ -128,6 +128,24 @@ public class ScheduleService {
             currentTenantId(), memberId, scheduleId, googleEventId));
   }
 
+  public void deleteScheduleByGoogleEventId(long memberId, String googleEventId) {
+    if (googleEventId == null || googleEventId.isBlank()) {
+      throw new IllegalArgumentException("구글 이벤트 ID는 필수입니다.");
+    }
+
+    Schedule existingSchedule = scheduleReader.readByGoogleEventId(googleEventId);
+
+    if (existingSchedule == null) {
+      return;
+    }
+
+    if (!existingSchedule.memberId().equals(memberId)) {
+      throw new IllegalArgumentException("해당 구글 일정을 삭제할 권한이 없습니다.");
+    }
+
+    scheduleStore.delete(existingSchedule);
+  }
+
   public Long upsertScheduleByGoogleEventId(long memberId, ScheduleSyncRequest request) {
     if (request.googleEventId() == null || request.googleEventId().isBlank()) {
       throw new IllegalArgumentException("구글 이벤트 ID는 필수입니다.");
