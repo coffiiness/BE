@@ -9,6 +9,7 @@ import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -84,6 +85,17 @@ public class ScheduleStoreImpl implements ScheduleStore {
               .toList();
       scheduleAttendeeRepository.saveAllAndFlush(newAttendees);
     }
+  }
+
+  @Override
+  @Transactional
+  public void updateGoogleEventId(Long scheduleId, String googleEventId) {
+    ScheduleEntity entity =
+        scheduleRepository
+            .findById(scheduleId)
+            .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
+
+    entity.updateGoogleEventId(googleEventId);
   }
 
   @Override

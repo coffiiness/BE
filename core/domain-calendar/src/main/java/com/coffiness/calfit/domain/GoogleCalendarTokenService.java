@@ -1,14 +1,13 @@
-﻿package com.coffiness.calfit.domain;
+package com.coffiness.calfit.domain;
 
 import com.coffiness.calfit.model.OAuthExchangeResult;
 import com.coffiness.calfit.model.OAuthRefreshResult;
 import com.coffiness.calfit.port.GoogleOAuthPort;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.time.LocalDateTime;
 
 /*
  * 구글 캘린더 토큰의 만료 판단과 갱신을 담당
@@ -31,10 +30,12 @@ public class GoogleCalendarTokenService {
 
     LocalDateTime expiresAt = calculateExpiresAt(result.expiresIn());
 
-    ExternalCalendar existing = externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
+    ExternalCalendar existing =
+        externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
     if (existing != null) {
       String refreshToken = resolveRefreshToken(result.refreshToken(), existing.refreshToken());
-      externalCalendarStore.updateAuthTokens(existing.id(), result.accessToken(), refreshToken, expiresAt);
+      externalCalendarStore.updateAuthTokens(
+          existing.id(), result.accessToken(), refreshToken, expiresAt);
       return;
     }
 
@@ -86,7 +87,8 @@ public class GoogleCalendarTokenService {
     validateRefreshResult(refreshed);
 
     LocalDateTime expiresAt = calculateExpiresAt(refreshed.expiresIn());
-    String nextRefreshToken = resolveRefreshToken(refreshed.refreshToken(), latestRead.refreshToken());
+    String nextRefreshToken =
+        resolveRefreshToken(refreshed.refreshToken(), latestRead.refreshToken());
 
     ExternalCalendar updated =
         externalCalendarStore.updateAuthTokens(
