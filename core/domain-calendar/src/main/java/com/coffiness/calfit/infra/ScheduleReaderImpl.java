@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.Schedule;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleReader;
@@ -45,6 +46,14 @@ public class ScheduleReaderImpl implements ScheduleReader {
             .findById(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
     return toDomain(entity);
+  }
+
+  @Override
+  public Schedule readByGoogleEventId(String googleEventId) {
+    return scheduleRepository
+        .findByGoogleEventIdAndStatus(googleEventId, EntityStatus.ACTIVE)
+        .map(this::toDomain)
+        .orElse(null);
   }
 
   @Override

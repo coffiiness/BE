@@ -9,6 +9,7 @@ import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/*
+ * 일정 API의 멤버 검증과 회의실 예약 연동 담당
+ * */
 @Component
 @RequiredArgsConstructor
 public class ScheduleFacade {
@@ -46,6 +50,13 @@ public class ScheduleFacade {
     }
 
     scheduleService.createSchedule(member.id(), reservationId, request);
+  }
+
+  @Transactional
+  public void syncSchedule(long userId, ScheduleSyncRequest request) {
+    Member member = validateAndGetMember(userId);
+
+    scheduleService.upsertScheduleByGoogleEventId(member.id(), request);
   }
 
   @Transactional(readOnly = true)
@@ -85,11 +96,11 @@ public class ScheduleFacade {
       if (roomIdChanged || timeChanged) {
         meetingRoomService.cancelReservation(
             member.id(), scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
-        newReservationId = null; // 기존 예약은 취소됨
+        newReservationId = null;
       }
     }
 
-    // 새로운 회의실 점유 로직
+    // 회의실 또는 시간 정보가 변경되면 새 예약을 생성한다.
     if (targetRoomId != null && (roomIdChanged || timeChanged)) {
       LocalDateTime startTime =
           request.startTime() != null ? request.startTime() : scheduleDetailInfo.startTime();

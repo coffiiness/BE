@@ -4,6 +4,7 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.v1.request.CalendarConnectRequest;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
 import com.coffiness.calfit.v1.response.ScheduleResponse;
@@ -39,6 +40,17 @@ public record CalendarFixture(BaseFixture base) {
       String token, String tenantId, ScheduleCreateRequest request) {
     return exchangeWithTenant(
         "/api/v1/schedules", HttpMethod.POST, request, token, tenantId, Void.class);
+  }
+
+  public ApiResponse<Void> syncSchedule(
+      String token, String tenantId, ScheduleSyncRequest request) {
+    return exchangeWithTenant(
+        "/api/v1/schedules/sync", HttpMethod.POST, request, token, tenantId, Void.class);
+  }
+
+  public ApiResponse<Void> syncGoogleCalendar(String token, String tenantId) {
+    return exchangeWithTenant(
+        "/api/v1/calendars/google/sync", HttpMethod.POST, null, token, tenantId, Void.class);
   }
 
   public ApiResponse<List<ScheduleResponse>> getSchedules(

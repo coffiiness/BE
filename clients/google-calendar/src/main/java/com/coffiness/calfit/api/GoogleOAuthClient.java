@@ -1,20 +1,16 @@
 package com.coffiness.calfit.api;
 
 import com.coffiness.calfit.dto.GoogleOAuthResponseDto;
-import com.coffiness.calfit.model.GoogleTokenModel;
+import com.coffiness.calfit.model.OAuthExchangeResult;
+import com.coffiness.calfit.model.OAuthRefreshResult;
 import com.coffiness.calfit.port.GoogleOAuthPort;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Base64;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GoogleOAuthClient implements GoogleOAuthPort {
@@ -27,38 +23,51 @@ public class GoogleOAuthClient implements GoogleOAuthPort {
   @Value("${spring.security.oauth2.client.registration.google.client-secret}")
   private String clientSecret;
 
-  public GoogleTokenModel exchangeToken(String authCode, String redirectUri) {
-
+  @Override
+  public OAuthExchangeResult exchangeAuthorizationCode(String authCode, String redirectUri) {
     MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
     formData.add("code", authCode);
     formData.add("client_id", clientId);
     formData.add("client_secret", clientSecret);
     formData.add("redirect_uri", redirectUri);
-    // 구글 스펙상 고정값
     formData.add("grant_type", "authorization_code");
 
-    GoogleOAuthResponseDto rawDto = googleOAuthApi.exchange(formData);
+    GoogleOAuthResponseDto rawDto = callTokenEndpoint(formData);
 
-    String extractEmail = extractEmailFromIdToken(rawDto.idToken());
-
-    return new GoogleTokenModel(
-        rawDto.accessToken(), rawDto.refreshToken(), rawDto.expiresIn(), extractEmail);
+    return new OAuthExchangeResult(
+        rawDto.accessToken(),
+        rawDto.expiresIn() != null ? rawDto.expiresIn().longValue() : null,
+        rawDto.refreshToken(),
+        rawDto.idToken());
   }
 
-  // id_token에서 email(calendarId) 추출
-  private String extractEmailFromIdToken(String idToken) {
-    String payload = idToken.split("\\.")[1];
+  @Override
+  public OAuthRefreshResult refreshAccessToken(String refreshToken) {
+    MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+    formData.add("refresh_token", refreshToken);
+    formData.add("client_id", clientId);
+    formData.add("client_secret", clientSecret);
+    formData.add("grant_type", "refresh_token");
 
-    String decodedPayload = new String(Base64.getUrlDecoder().decode(payload));
+    GoogleOAuthResponseDto rawDto = callTokenEndpoint(formData);
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode jsonNode = null;
+    return new OAuthRefreshResult(
+        rawDto.accessToken(),
+        rawDto.expiresIn() != null ? rawDto.expiresIn().longValue() : null,
+        rawDto.refreshToken());
+  }
+
+  private GoogleOAuthResponseDto callTokenEndpoint(MultiValueMap<String, String> formData) {
     try {
-      jsonNode = objectMapper.readTree(decodedPayload);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      return googleOAuthApi.exchange(formData);
+    } catch (FeignException e) {
+      if (e.status() == 400 || e.status() == 401) {
+        throw new IllegalStateException("GOOGLE_REAUTH_REQUIRED", e);
+      }
+      if (e.status() >= 500) {
+        throw new IllegalStateException("GOOGLE_TEMPORARY_ERROR", e);
+      }
+      throw new IllegalStateException("GOOGLE_OAUTH_ERROR", e);
     }
-
-    return jsonNode.get("email").asText();
   }
 }

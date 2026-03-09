@@ -3,6 +3,7 @@ package com.coffiness.calfit.storage.db.core.calendar;
 import com.coffiness.calfit.core.enums.EntityStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -45,4 +46,13 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
       @Param("from") LocalDateTime from,
       @Param("to") LocalDateTime to,
       @Param("status") EntityStatus status);
+
+  Optional<ScheduleEntity> findByIdAndStatus(Long id, EntityStatus status);
+
+  Optional<ScheduleEntity> findByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);
+
+  boolean existsByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);
+
+  List<ScheduleEntity> findAllByGoogleEventIdInAndStatus(
+      List<String> googleEventIds, EntityStatus status);
 }

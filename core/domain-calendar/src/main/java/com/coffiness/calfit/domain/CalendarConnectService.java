@@ -1,11 +1,18 @@
 package com.coffiness.calfit.domain;
 
-import com.coffiness.calfit.model.GoogleTokenModel;
+import com.coffiness.calfit.core.enums.ScheduleType;
+import com.coffiness.calfit.model.GoogleCalendarSyncResult;
+import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
+import com.coffiness.calfit.model.OAuthExchangeResult;
+import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.port.GoogleOAuthPort;
-import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarEntity;
-import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarRepository;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,51 +25,129 @@ import org.springframework.stereotype.Service;
 public class CalendarConnectService {
 
   private final GoogleOAuthPort googleOAuthPort;
-  private final ExternalCalendarRepository externalCalendarRepository;
+  private final GoogleCalendarTokenService googleCalendarTokenService;
+  private final GoogleCalendarPort googleCalendarPort;
+  private final ExternalCalendarReader externalCalendarReader;
+  private final ExternalCalendarStore externalCalendarStore;
+  private final ScheduleService scheduleService;
 
+  // 인가 코드 교환 후 사용자 구글 계정 기준으로 연동 토큰을 저장
   public String connectGoogleCalendar(String authCode, String redirectUri, Long userId) {
 
-    // 구글 토큰 발급 및 이메일 추출
-    GoogleTokenModel tokenModel = googleOAuthPort.exchangeToken(authCode, redirectUri);
-    String googleEmail = tokenModel.email();
+    OAuthExchangeResult exchangeResult =
+        googleOAuthPort.exchangeAuthorizationCode(authCode, redirectUri);
 
-    // 토큰 만료 시간 계산
-    // 만료 시간 버퍼 확보를 위한 2분 차감
-    LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(tokenModel.expiresIn() - 120);
+    String googleEmail = extractEmailFromIdToken(exchangeResult.idToken());
 
-    // 기존 캘린더 연동 내역 조회
-    Optional<ExternalCalendarEntity> existingCalendar =
-        externalCalendarRepository.findByUserIdAndCalendarId(userId, googleEmail);
-
-    // 연동 정보 저장
-    if (existingCalendar.isPresent()) {
-      // 기존 연동 유지
-      ExternalCalendarEntity existingEmail = existingCalendar.get();
-      String refreshToken =
-          tokenModel.refreshToken() != null && !tokenModel.refreshToken().isBlank()
-              ? tokenModel.refreshToken()
-              : existingEmail.getRefreshToken();
-      existingEmail.updateAuthTokens(tokenModel.accessToken(), refreshToken, expiresAt);
-
-      externalCalendarRepository.save(existingEmail);
-    } else {
-      if (tokenModel.refreshToken() == null || tokenModel.refreshToken().isBlank()) {
-        throw new IllegalStateException("구글 리프레시 토큰이 발급되지 않았습니다.");
-      }
-      // 최초 연동
-      ExternalCalendarEntity newCalendar =
-          ExternalCalendarEntity.builder()
-              .userId(userId)
-              .calendarId(googleEmail)
-              .accessToken(tokenModel.accessToken())
-              .refreshToken(tokenModel.refreshToken())
-              .tokenExpiresAt(expiresAt)
-              .isSyncEnabled(true)
-              .build();
-
-      externalCalendarRepository.save(newCalendar);
-    }
+    googleCalendarTokenService.upsertConnectedToken(userId, googleEmail, exchangeResult);
 
     return googleEmail;
+  }
+
+  // 구글 증분 동기화를 수행하고 이벤트별로 캘핏 일정에 반영한 뒤 syncToken을 갱신
+  public void syncGoogleCalendar(Long userId, Long memberId) {
+    ExternalCalendar externalCalendar = externalCalendarReader.readSyncEnabledByUserId(userId);
+
+    if (externalCalendar == null) {
+      return;
+    }
+
+    String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
+
+    GoogleCalendarSyncResult syncResult =
+        syncGoogleEventsWithRecovery(accessToken, externalCalendar);
+
+    if (syncResult == null) {
+      return;
+    }
+
+    if (syncResult.items() != null) {
+      for (SyncEventModel syncEvent : syncResult.items()) {
+        syncSingleEvent(memberId, syncEvent);
+      }
+    }
+
+    if (hasText(syncResult.nextSyncToken())) {
+      externalCalendarStore.updateSyncToken(externalCalendar.id(), syncResult.nextSyncToken());
+    }
+  }
+
+  private GoogleCalendarSyncResult syncGoogleEventsWithRecovery(
+      String accessToken, ExternalCalendar externalCalendar) {
+    try {
+      return googleCalendarPort.syncEvent(accessToken, externalCalendar.syncToken());
+    } catch (IllegalStateException e) {
+      if (!"GOOGLE_SYNC_TOKEN_EXPIRED".equals(e.getMessage())) {
+        throw e;
+      }
+
+      externalCalendarStore.updateSyncToken(externalCalendar.id(), null);
+      return googleCalendarPort.syncEvent(accessToken, null);
+    }
+  }
+
+  // 단일 구글 이벤트를 상태별로 일정 처리
+  private void syncSingleEvent(Long memberId, SyncEventModel syncEvent) {
+    if (syncEvent == null || !hasText(syncEvent.googleEventId())) {
+      return;
+    }
+
+    if ("cancelled".equalsIgnoreCase(syncEvent.status())) {
+      scheduleService.deleteScheduleByGoogleEventId(memberId, syncEvent.googleEventId());
+      return;
+    }
+
+    if (syncEvent.startTime() == null || syncEvent.endTime() == null) {
+      return;
+    }
+
+    ScheduleSyncRequest request =
+        new ScheduleSyncRequest(
+            syncEvent.googleEventId(),
+            hasText(syncEvent.summary()) ? syncEvent.summary() : "제목 없음",
+            syncEvent.description(),
+            ScheduleType.MEETING,
+            syncEvent.startTime().withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
+            syncEvent.endTime().withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
+            syncEvent.allDay());
+
+    scheduleService.upsertScheduleByGoogleEventId(memberId, request);
+  }
+
+  // idToken payload 에서 사용자 email 값을 추출
+  private String extractEmailFromIdToken(String idToken) {
+    if (idToken == null || idToken.isBlank()) {
+      throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE");
+    }
+
+    String[] splitToken = idToken.split("\\.");
+    if (splitToken.length < 2) {
+      throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE");
+    }
+
+    String decodedPayload;
+    try {
+      decodedPayload =
+          new String(Base64.getUrlDecoder().decode(splitToken[1]), StandardCharsets.UTF_8);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE", e);
+    }
+
+    ObjectMapper objectMapper = new ObjectMapper();
+    try {
+      JsonNode jsonNode = objectMapper.readTree(decodedPayload);
+      JsonNode emailNode = jsonNode.get("email");
+      if (emailNode == null || emailNode.asText().isBlank()) {
+        throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE");
+      }
+      return emailNode.asText();
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE", e);
+    }
+  }
+
+  // 문자열이 null 또는 공백인지 확인
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }

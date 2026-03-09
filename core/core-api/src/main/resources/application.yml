@@ -17,6 +17,15 @@ spring:
       - db-core.yml
       - optional:google-calendar.yml
   web.resources.add-mappings: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:shedlock.sql
+
+calendar:
+  google-sync:
+    scheduler-fixed-delay-ms: 300000
+    scheduler-initial-delay-ms: 120000
 
 # JWT 설정
 jwt:
