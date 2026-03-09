@@ -61,6 +61,7 @@ public class ApplicationEntity extends TenantBaseEntity {
   @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
   private String schema;
 
+
   @Builder
   private ApplicationEntity(
       Long applicantId,
