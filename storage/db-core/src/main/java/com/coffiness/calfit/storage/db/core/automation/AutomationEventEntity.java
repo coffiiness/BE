@@ -49,4 +49,14 @@ public class AutomationEventEntity extends TenantBaseEntity {
     this.eventStatus = eventStatus;
     this.errorMessage = errorMessage;
   }
+
+  public void markSuccess() {
+    this.eventStatus = AutomationEventStatus.SUCCESS;
+    this.errorMessage = null;
+  }
+
+  public void markFailed(String errorMessage) {
+    this.eventStatus = AutomationEventStatus.FAILED;
+    this.errorMessage = errorMessage;
+  }
 }

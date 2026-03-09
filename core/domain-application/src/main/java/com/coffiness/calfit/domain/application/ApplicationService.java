@@ -10,6 +10,10 @@ import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileRepository;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.automation.AutomationEventEntity;
+import com.coffiness.calfit.storage.db.core.automation.AutomationEventRepository;
+import com.coffiness.calfit.storage.db.core.automation.AutomationRuleEntity;
+import com.coffiness.calfit.storage.db.core.automation.AutomationRuleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryEntity;
 import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
@@ -17,6 +21,8 @@ import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageReposito
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.core.enums.AutomationEventStatus;
+import com.coffiness.calfit.core.enums.AutomationTriggerType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,6 +41,9 @@ public class ApplicationService {
   private final RecruitmentRepository recruitmentRepository;
   private final RecruitmentStageRepository recruitmentStageRepository;
   private final ApplicationProcessHistoryRepository applicationProcessHistoryRepository;
+  private final AutomationRuleRepository automationRuleRepository;
+  private final AutomationEventRepository automationEventRepository;
+  private final AutomationEventExecutor automationEventExecutor;
 
   @Transactional
   public Long create(ApplicationCreateRequest request, Long requesterUserId) {
@@ -128,6 +137,21 @@ public class ApplicationService {
             .toRecruitmentProcessId(recruitmentProcessId)
             .actorId(actorId)
             .build());
+
+    List<AutomationRuleEntity> rules =
+        automationRuleRepository.findByRecruitmentIdAndRecruitmentProcessIdAndTriggerType(
+            entity.getRecruitmentId(), recruitmentProcessId, AutomationTriggerType.ON_ENTER);
+    for (AutomationRuleEntity rule : rules) {
+      automationEventRepository.save(
+          AutomationEventEntity.builder()
+              .applicationId(applicationId)
+              .ruleId(rule.getId())
+              .actionType(rule.getActionType())
+              .eventStatus(AutomationEventStatus.PENDING)
+              .build());
+    }
+
+    automationEventExecutor.executePendingForApplication(applicationId);
   }
 
   private void requireTenant() {
