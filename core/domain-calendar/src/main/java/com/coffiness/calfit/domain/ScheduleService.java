@@ -113,7 +113,54 @@ public class ScheduleService {
   }
 
   public Long upsertScheduleByGoogleEventId(long memberId, ScheduleSyncRequest request) {
+    if (request.googleEventId() == null || request.googleEventId().isBlank()) {
+      throw new IllegalArgumentException("구글 이벤트 ID는 필수입니다.");
+    }
 
-    return 0L;
+    Schedule existingSchedule = scheduleReader.readByGoogleEventId(request.googleEventId());
+
+    if (existingSchedule == null) {
+      Schedule newSchedule =
+          new Schedule(
+              null,
+              memberId,
+              request.title(),
+              request.description(),
+              request.type(),
+              request.startTime(),
+              request.endTime(),
+              request.isAllDay(),
+              null,
+              null,
+              true,
+              request.googleEventId());
+
+      Schedule saved = scheduleStore.store(newSchedule, List.of());
+      return saved.id();
+    }
+
+    if (!existingSchedule.memberId().equals(memberId)) {
+      throw new IllegalArgumentException("해당 구글 일정에 접근할 권한이 없습니다.");
+    }
+
+    Schedule updatedSchedule =
+        new Schedule(
+            existingSchedule.id(),
+            existingSchedule.memberId(),
+            request.title(),
+            request.description(),
+            request.type(),
+            request.startTime(),
+            request.endTime(),
+            request.isAllDay(),
+            existingSchedule.roomId(),
+            existingSchedule.reservationId(),
+            existingSchedule.isBusy(),
+            existingSchedule.googleEventId());
+
+    List<Long> attendeeIds = scheduleReader.readAttendeeIds(existingSchedule.id());
+    scheduleStore.update(updatedSchedule, attendeeIds);
+
+    return updatedSchedule.id();
   }
 }

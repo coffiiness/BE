@@ -10,6 +10,8 @@ public interface ScheduleReader {
 
   Schedule read(Long scheduleId);
 
+  Schedule readByGoogleEventId(String googleEventId);
+
   List<Long> readAttendeeIds(Long scheduleId);
 
   ScheduleDetailInfo readDetail(Long scheduleId);
