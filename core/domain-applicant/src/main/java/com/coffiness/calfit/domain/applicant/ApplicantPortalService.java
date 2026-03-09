@@ -26,7 +26,7 @@ public class ApplicantPortalService {
   public Applicant signUp(String email, String password, String name) {
     requireTenant();
     if (applicantRepository.existsByEmail(email)) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR, "APPLICANT_EMAIL_ALREADY_EXISTS", null);
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
     ApplicantEntity saved =
@@ -54,7 +54,7 @@ public class ApplicantPortalService {
   private void requireTenant() {
     String tenantId = TenantContext.getTenantId();
     if (tenantId == null || tenantId.isBlank() || DEFAULT_TENANT.equals(tenantId)) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR, "TENANT_ID_REQUIRED", null);
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }
 

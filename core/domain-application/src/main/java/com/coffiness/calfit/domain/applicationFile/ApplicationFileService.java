@@ -49,7 +49,7 @@ public class ApplicationFileService {
 
     private void validateApplicant(Long requesterUserId, Long applicantId) {
         if (requesterUserId == null || !requesterUserId.equals(applicantId)) {
-            throw new CoreException(ErrorType.UNAUTHORIZED, "APPLICANT_MISMATCH", null);
+            throw new CoreException(ErrorType.UNAUTHORIZED);
         }
     }
     private void validateRecruiterCanAccess(Long requesterUserId, Long applicationId){
@@ -106,12 +106,12 @@ public class ApplicationFileService {
     @Transactional
     public CompleteUploadResponse completeUpload(CompleteUploadRequest req, Long requesterUserId) {
         ApplicationFileEntity file = applicationFileRepository.findById(req.fileId())
-                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "FILE_NOT_FOUND", null));
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
         validateApplicant(requesterUserId, file.getApplicantId());
 
         if (file.getUploadStatus() != UploadStatus.PENDING) {
-            throw new CoreException(ErrorType.VALIDATION_ERROR, "UPLOAD_NOT_PENDING", null);
+            throw new CoreException(ErrorType.VALIDATION_ERROR);
         }
 
         HeadObjectResponse head = s3Client.headObject(
@@ -129,10 +129,10 @@ public class ApplicationFileService {
     @Transactional(readOnly = true)
     public PresignDownloadResponse presignDownload(Long fileId, Long requesterUserId, String role) {
         ApplicationFileEntity file = applicationFileRepository.findById(fileId)
-                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND, "FILE_NOT_FOUND", null));
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
         if (file.getUploadStatus() != UploadStatus.ACTIVE) {
-            throw new CoreException(ErrorType.VALIDATION_ERROR, "UPLOAD_NOT_ACTIVE", null);
+            throw new CoreException(ErrorType.VALIDATION_ERROR);
         }
 
         if ("APPLICANT".equalsIgnoreCase(role)) {
@@ -140,7 +140,7 @@ public class ApplicationFileService {
         } else if ("RECRUITER".equalsIgnoreCase(role)) {
             validateRecruiterCanAccess(requesterUserId, file.getApplicationId());
         } else {
-            throw new CoreException(ErrorType.VALIDATION_ERROR, "ROLE_INVALID", null);
+            throw new CoreException(ErrorType.VALIDATION_ERROR);
         }
 
         String encoded = URLEncoder.encode(file.getOriginalFilename(), StandardCharsets.UTF_8);
