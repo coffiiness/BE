@@ -52,4 +52,12 @@ public interface MemberReader {
    * @return 멤버 정보 리스트
    */
   List<Member> getMembersByIds(List<Long> memberIds);
+
+  /**
+   * 워크스페이스의 활성 멤버 수 조회
+   *
+   * @param workspaceId 워크스페이스 ID
+   * @return 활성 멤버 수
+   */
+  long countActiveMembers(String workspaceId);
 }

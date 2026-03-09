@@ -1,6 +1,7 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.InterviewEventType;
 import com.coffiness.calfit.core.enums.InterviewStatus;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
@@ -15,6 +16,8 @@ import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
@@ -27,6 +30,7 @@ import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +47,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   private final MeetingRoomRepository meetingRoomRepository;
   private final MeetingRoomReservationRepository meetingRoomReservationRepository;
   private final InterviewScheduleRepository interviewScheduleRepository;
+  private final InterviewScheduleHistoryRepository interviewScheduleHistoryRepository;
   private final InterviewScheduleInterviewerRepository interviewerRepository;
   private final InterviewScheduleApplicantRepository applicantMappingRepository;
   private final ScheduleRepository scheduleRepository;
@@ -63,7 +68,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   public int getMeetingRoomCapacity(Long meetingRoomId) {
     String tenantId = requireTenantId();
     return meetingRoomRepository
-        .findByTenantIdAndId(tenantId, meetingRoomId)
+        .findByTenantIdAndIdAndStatus(tenantId, meetingRoomId, EntityStatus.ACTIVE)
         .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND))
         .getCapacity();
   }
@@ -275,6 +280,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       String memo,
       List<Long> interviewerIds,
       List<Long> applicantIds) {
+    lockResourcesForScheduleCreation(meetingRoomId, interviewerIds, applicantIds);
+
     LocalDateTime end = scheduledAt.plusMinutes(durationMinutes);
     if (hasMeetingRoomConflict(meetingRoomId, scheduledAt, end)
         || hasParticipantConflict(interviewerIds, applicantIds, scheduledAt, end)) {
@@ -317,7 +324,58 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .build();
     meetingRoomReservationRepository.save(reservation);
 
+    Map<String, Object> eventData = new HashMap<>();
+    eventData.put("recruitmentId", recruitmentId);
+    eventData.put("recruitmentStageId", recruitmentStageId);
+    eventData.put("meetingRoomId", meetingRoomId);
+    eventData.put("scheduledAt", scheduledAt.toString());
+    eventData.put("durationMinutes", durationMinutes);
+    eventData.put("memo", memo == null ? "" : memo);
+    eventData.put("interviewerIds", interviewerIds);
+    eventData.put("applicantIds", applicantIds);
+
+    interviewScheduleHistoryRepository.save(
+        InterviewScheduleHistoryEntity.builder()
+            .interviewScheduleId(saved.getId())
+            .eventType(InterviewEventType.CREATED)
+            .eventData(eventData)
+            .createdBy(reservationUserId)
+            .build());
+
     return saved.getId();
+  }
+
+  private void lockResourcesForScheduleCreation(
+      Long meetingRoomId, List<Long> interviewerIds, List<Long> applicantIds) {
+    String tenantId = requireTenantId();
+
+    meetingRoomRepository
+        .findByTenantIdAndId(tenantId, meetingRoomId)
+        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    List<Long> orderedInterviewerIds =
+        interviewerIds == null
+            ? List.of()
+            : interviewerIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    if (!orderedInterviewerIds.isEmpty()) {
+      userRepository.findAllByIdInOrderByIdAsc(orderedInterviewerIds);
+    }
+
+    List<Long> orderedApplicantIds =
+        applicantIds == null
+            ? List.of()
+            : applicantIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    if (!orderedApplicantIds.isEmpty()) {
+      applicantRepository.findAllByTenantIdAndIdInOrderByIdAsc(tenantId, orderedApplicantIds);
+    }
   }
 
   private boolean hasParticipantConflict(
