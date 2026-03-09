@@ -40,9 +40,9 @@ public class ApplicantApiDocs extends RestDocsTest {
   @Test
   void 지원자_회원가입_API_문서화() throws Exception {
     Applicant applicant =
-        new Applicant(
-            1L, "workspace-123", "applicant@test.com", "지원자", LocalDateTime.now());
-    when(applicantPortalService.signUp(anyString(), anyString(), anyString())).thenReturn(applicant);
+        new Applicant(1L, "workspace-123", "applicant@test.com", "지원자", LocalDateTime.now());
+    when(applicantPortalService.signUp(anyString(), anyString(), anyString()))
+        .thenReturn(applicant);
 
     ApplicantSignUpRequest request =
         new ApplicantSignUpRequest("applicant@test.com", "pass1234", "지원자");
@@ -76,8 +76,7 @@ public class ApplicantApiDocs extends RestDocsTest {
   @Test
   void 지원자_로그인_API_문서화() throws Exception {
     Applicant applicant =
-        new Applicant(
-            1L, "workspace-123", "applicant@test.com", "지원자", LocalDateTime.now());
+        new Applicant(1L, "workspace-123", "applicant@test.com", "지원자", LocalDateTime.now());
     ApplicantPortalService.ApplicantLoginResult result =
         new ApplicantPortalService.ApplicantLoginResult("access-token-example", applicant);
     when(applicantPortalService.login(anyString(), anyString())).thenReturn(result);

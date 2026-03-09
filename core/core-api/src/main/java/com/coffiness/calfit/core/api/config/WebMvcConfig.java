@@ -21,5 +21,5 @@ public abstract class WebMvcConfig implements WebMvcConfigurer {
     registry.addInterceptor(tenantInterceptor).addPathPatterns("/api/**");
   }
 
-    public abstract void addCorsMappings(CorsRegistry registry);
+  public abstract void addCorsMappings(CorsRegistry registry);
 }

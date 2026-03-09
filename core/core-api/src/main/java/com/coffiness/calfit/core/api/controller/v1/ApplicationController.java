@@ -64,8 +64,7 @@ public class ApplicationController {
 
   @GetMapping("/api/v1/applications/{applicationId}")
   public ApiResponse<ApplicationDetailResponse> getApplicationDetail(
-      @AuthenticationPrincipal SecurityUser user,
-      @PathVariable Long applicationId) {
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long applicationId) {
     if (user == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }

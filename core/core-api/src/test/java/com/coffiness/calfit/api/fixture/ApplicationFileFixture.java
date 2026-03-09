@@ -26,7 +26,8 @@ public record ApplicationFileFixture(TestRestTemplate client, ObjectMapper objec
   public ResponseEntity<PresignUploadResponse> presignUpload(
       Long requesterUserId, PresignUploadRequest request) {
     String url =
-        String.format("/api/v1/application-files/presign-upload?requesterUserId=%d", requesterUserId);
+        String.format(
+            "/api/v1/application-files/presign-upload?requesterUserId=%d", requesterUserId);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<PresignUploadRequest> entity = new HttpEntity<>(request, headers);

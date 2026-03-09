@@ -43,7 +43,9 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
                     .permitAll()
-                    .requestMatchers("/api/v1/workspaces/*/applicants/signup", "/api/v1/workspaces/*/applicants/login")
+                    .requestMatchers(
+                        "/api/v1/workspaces/*/applicants/signup",
+                        "/api/v1/workspaces/*/applicants/login")
                     .permitAll()
                     .requestMatchers("/api/v1/careers/**")
                     .permitAll()
@@ -52,10 +54,10 @@ public class SecurityConfig {
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
                     .permitAll()
                     .requestMatchers(
-                                "/api/v1/application-files/health",
-                                "/api/v1/application-files/presign-upload",
-                                "/api/v1/application-files/complete",
-                                "/api/v1/application-files/*/presign-download")
+                        "/api/v1/application-files/health",
+                        "/api/v1/application-files/presign-upload",
+                        "/api/v1/application-files/complete",
+                        "/api/v1/application-files/*/presign-download")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
@@ -94,13 +96,13 @@ public class SecurityConfig {
     configuration.setAllowCredentials(true);
     configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+  @Bean
+  public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 }

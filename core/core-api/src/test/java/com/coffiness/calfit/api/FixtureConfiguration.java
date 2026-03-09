@@ -79,7 +79,8 @@ public class FixtureConfiguration {
 
   @Bean
   @Scope("prototype")
-  ApplicationFileFixture applicationFileFixture(Environment environment, ObjectMapper objectMapper) {
+  ApplicationFileFixture applicationFileFixture(
+      Environment environment, ObjectMapper objectMapper) {
     return ApplicationFileFixture.create(environment, objectMapper);
   }
 }

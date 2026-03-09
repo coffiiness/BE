@@ -30,7 +30,8 @@ public class ApplicantPortalService {
     }
 
     ApplicantEntity saved =
-        applicantRepository.save(ApplicantEntity.create(email, passwordEncoder.encode(password), name));
+        applicantRepository.save(
+            ApplicantEntity.create(email, passwordEncoder.encode(password), name));
     return toApplicant(saved);
   }
 
@@ -60,7 +61,11 @@ public class ApplicantPortalService {
 
   private Applicant toApplicant(ApplicantEntity entity) {
     return new Applicant(
-        entity.getId(), entity.getTenantId(), entity.getEmail(), entity.getName(), entity.getCreatedAt());
+        entity.getId(),
+        entity.getTenantId(),
+        entity.getEmail(),
+        entity.getName(),
+        entity.getCreatedAt());
   }
 
   public record ApplicantLoginResult(String accessToken, Applicant applicant) {}
