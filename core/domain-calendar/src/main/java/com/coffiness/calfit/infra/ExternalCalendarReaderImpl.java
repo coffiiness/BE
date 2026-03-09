@@ -6,6 +6,7 @@ import com.coffiness.calfit.domain.ExternalCalendarReader;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarRepository;
 import java.util.Comparator;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +41,15 @@ public class ExternalCalendarReaderImpl implements ExternalCalendarReader {
         .max(Comparator.comparing(ExternalCalendarEntity::getId))
         .map(this::toDomain)
         .orElse(null);
+  }
+
+  @Override
+  public List<ExternalCalendar> readAllSyncEnabled() {
+    return externalCalendarRepository
+        .findAllByStatusAndIsSyncEnabled(EntityStatus.ACTIVE, true)
+        .stream()
+        .map(this::toDomain)
+        .toList();
   }
 
   private ExternalCalendar toDomain(ExternalCalendarEntity entity) {

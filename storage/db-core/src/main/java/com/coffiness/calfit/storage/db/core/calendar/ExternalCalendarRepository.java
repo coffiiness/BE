@@ -10,6 +10,10 @@ public interface ExternalCalendarRepository extends JpaRepository<ExternalCalend
   // 특정 유저의 모든 외부 캘린더 연동 정보 조회
   List<ExternalCalendarEntity> findAllByUserIdAndStatus(Long userId, EntityStatus status);
 
+  // 현재 테넌트에서 동기화 활성화된 외부 캘린더 목록 조회
+  List<ExternalCalendarEntity> findAllByStatusAndIsSyncEnabled(
+      EntityStatus status, boolean isSyncEnabled);
+
   Optional<ExternalCalendarEntity> findByIdAndStatus(Long id, EntityStatus status);
 
   // 특정 유저의 특정 외부 캘린더 단건 조회
