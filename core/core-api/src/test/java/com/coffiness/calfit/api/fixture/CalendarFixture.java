@@ -48,6 +48,11 @@ public record CalendarFixture(BaseFixture base) {
         "/api/v1/schedules/sync", HttpMethod.POST, request, token, tenantId, Void.class);
   }
 
+  public ApiResponse<Void> syncGoogleCalendar(String token, String tenantId) {
+    return exchangeWithTenant(
+        "/api/v1/calendars/google/sync", HttpMethod.POST, null, token, tenantId, Void.class);
+  }
+
   public ApiResponse<List<ScheduleResponse>> getSchedules(
       String token, String tenantId, String startDate, String endDate) {
     String url = String.format("/api/v1/schedules?startDate=%s&endDate=%s", startDate, endDate);
