@@ -43,11 +43,21 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
                     .permitAll()
-                    .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
+                    .requestMatchers(
+                        "/api/v1/workspaces/*/applicants/signup",
+                        "/api/v1/workspaces/*/applicants/login")
                     .permitAll()
                     .requestMatchers("/api/v1/careers/**")
                     .permitAll()
+                    .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
+                    .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
+                    .permitAll()
+                    .requestMatchers(
+                        "/api/v1/application-files/health",
+                        "/api/v1/application-files/presign-upload",
+                        "/api/v1/application-files/complete",
+                        "/api/v1/application-files/*/presign-download")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")

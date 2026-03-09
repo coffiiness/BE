@@ -77,4 +77,21 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
       @Param("subscriptionStatus") SubscriptionStatus subscriptionStatus,
       @Param("monthStart") LocalDate monthStart,
       @Param("monthEnd") LocalDate monthEnd);
+
+  @Query(
+      "SELECT COUNT(s) FROM SubscriptionEntity s WHERE s.status = :entityStatus"
+          + " AND s.startDate >= :monthStart AND s.startDate <= :monthEnd")
+  long countNewInMonth(
+      @Param("entityStatus") EntityStatus entityStatus,
+      @Param("monthStart") LocalDate monthStart,
+      @Param("monthEnd") LocalDate monthEnd);
+
+  @Query(
+      "SELECT COUNT(s) FROM SubscriptionEntity s WHERE s.status = :entityStatus"
+          + " AND s.subscriptionStatus = 'CANCELLED'"
+          + " AND s.cancelledAt >= :from AND s.cancelledAt < :to")
+  long countCancelledInPeriod(
+      @Param("entityStatus") EntityStatus entityStatus,
+      @Param("from") java.time.LocalDateTime from,
+      @Param("to") java.time.LocalDateTime to);
 }

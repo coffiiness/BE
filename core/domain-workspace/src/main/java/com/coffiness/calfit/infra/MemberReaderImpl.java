@@ -67,4 +67,9 @@ public class MemberReaderImpl implements MemberReader {
   public List<Member> getMembersByIds(List<Long> memberIds) {
     return memberRepository.findAllById(memberIds).stream().map(this::toWorkspaceMember).toList();
   }
+
+  @Override
+  public long countActiveMembers(String workspaceId) {
+    return memberRepository.countByTenantIdAndStatus(workspaceId, EntityStatus.ACTIVE);
+  }
 }

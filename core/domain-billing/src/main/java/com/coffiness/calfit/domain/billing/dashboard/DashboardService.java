@@ -45,10 +45,34 @@ public class DashboardService {
     double costGrowth = computeCostGrowth(costHistory, year, month);
 
     long subscribers = activeCount + trialCount;
-    long newThisMonth = 0;
+    long newThisMonth = subscriptionReader.countNewInMonth(monthStart, monthEnd);
+
+    long cancelledThisMonth = subscriptionReader.countCancelledInMonth(year, month);
+    YearMonth prevYm = ym.minusMonths(1);
+    LocalDate prevStart = prevYm.atDay(1);
+    LocalDate prevEnd = prevYm.atEndOfMonth();
+    long prevActive =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.ACTIVE, prevStart, prevEnd)
+            + subscriptionReader.countByStatusInMonth(SubscriptionStatus.TRIAL, prevStart, prevEnd);
+    double churnRate =
+        prevActive > 0 ? Math.round((double) cancelledThisMonth / prevActive * 1000.0) / 10.0 : 0.0;
+
+    YearMonth prev2Ym = ym.minusMonths(2);
+    long cancelledPrevMonth =
+        subscriptionReader.countCancelledInMonth(prevYm.getYear(), prevYm.getMonthValue());
+    long prev2Active =
+        subscriptionReader.countByStatusInMonth(
+                SubscriptionStatus.ACTIVE, prev2Ym.atDay(1), prev2Ym.atEndOfMonth())
+            + subscriptionReader.countByStatusInMonth(
+                SubscriptionStatus.TRIAL, prev2Ym.atDay(1), prev2Ym.atEndOfMonth());
+    double prevChurnRate =
+        prev2Active > 0
+            ? Math.round((double) cancelledPrevMonth / prev2Active * 1000.0) / 10.0
+            : 0.0;
+    double churnImprove = Math.round((prevChurnRate - churnRate) * 10.0) / 10.0;
 
     return new DashboardSummary(
-        mrr, mrrGrowth, subscribers, newThisMonth, 0.0, 0.0, totalCost, costGrowth);
+        mrr, mrrGrowth, subscribers, newThisMonth, churnRate, churnImprove, totalCost, costGrowth);
   }
 
   public List<RevenueCostTrend> getRevenueCostTrend() {

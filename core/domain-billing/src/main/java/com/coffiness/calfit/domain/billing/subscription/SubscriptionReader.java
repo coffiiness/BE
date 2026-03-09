@@ -26,4 +26,8 @@ public interface SubscriptionReader {
   long getMrrInMonth(LocalDate monthStart, LocalDate monthEnd);
 
   List<Subscription> findActiveByPlanType(PlanType planType);
+
+  long countNewInMonth(LocalDate monthStart, LocalDate monthEnd);
+
+  long countCancelledInMonth(int year, int month);
 }
