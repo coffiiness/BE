@@ -29,11 +29,11 @@ public class ApplicationEntity extends TenantBaseEntity {
   private Long recruitmentId;
 
   // 채용절차 ID
-  @Column(name = "recruitmentProcess_id", nullable = false)
+  @Column(name = "recruitmentProcess_id")
   private Long recruitmentProcessId;
 
   // 지원서템플릿 ID
-  @Column(name = "template_id", nullable = false)
+  @Column(name = "template_id")
   private Long templateId;
 
   // 지원자 이름

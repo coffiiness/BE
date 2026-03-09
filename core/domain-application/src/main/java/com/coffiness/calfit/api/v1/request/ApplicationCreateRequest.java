@@ -12,8 +12,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 public record ApplicationCreateRequest(
     Long applicantId,
     @NotNull Long recruitmentId,
-    @NotNull Long recruitmentProcessId,
-    @NotNull Long templateId,
+    Long recruitmentProcessId,
+    Long templateId,
     @NotBlank @Size(max = 50) String name,
     @NotNull Gender gender,
     @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate birthDate,

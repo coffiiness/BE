@@ -1,5 +1,6 @@
 package com.coffiness.calfit.core.api.controller.v1;
 
+import com.coffiness.calfit.api.v1.response.CareerApplyFormResponse;
 import com.coffiness.calfit.api.v1.response.CareerCompnayResponse;
 import com.coffiness.calfit.api.v1.response.CareerRecruitmentResponse;
 import com.coffiness.calfit.core.api.facade.recruitment.CareerFacade;
@@ -26,5 +27,11 @@ public class CareerController {
   public ApiResponse<List<CareerRecruitmentResponse>> getRecruitments(
       @PathVariable String workspaceId, @RequestParam(required = false) String search) {
     return ApiResponse.success(careerFacade.getRecruitments(workspaceId, search));
+  }
+
+  @GetMapping("/api/v1/careers/{workspaceId}/recruitments/{recruitmentId}/apply-form")
+  public ApiResponse<CareerApplyFormResponse> getApplyForm(
+      @PathVariable String workspaceId, @PathVariable Long recruitmentId) {
+    return ApiResponse.success(careerFacade.getApplyForm(workspaceId, recruitmentId));
   }
 }
