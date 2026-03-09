@@ -214,11 +214,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .map(InterviewScheduleInterviewerEntity::getUserId)
             .distinct()
             .toList();
-    Map<Long, String> interviewerNameMap =
-        interviewerIds.isEmpty()
-            ? Map.of()
-            : userRepository.findAllById(interviewerIds).stream()
-                .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+    Map<Long, String> interviewerNameMap = resolveInterviewerNameMap(interviewerIds);
 
     List<Long> applicantIds =
         applicantsByScheduleId.values().stream()
@@ -226,11 +222,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .map(InterviewScheduleApplicantEntity::getApplicantId)
             .distinct()
             .toList();
-    Map<Long, String> applicantNameMap =
-        applicantIds.isEmpty()
-            ? Map.of()
-            : applicantRepository.findAllByTenantIdAndIdIn(tenantId, applicantIds).stream()
-                .collect(Collectors.toMap(ApplicantEntity::getId, ApplicantEntity::getName));
+    Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
 
     List<InterviewScheduleCalendarRow> result = new ArrayList<>();
     for (InterviewScheduleEntity schedule : schedules) {
@@ -245,14 +237,14 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       String interviewerName =
           interviewerMappings.stream()
               .map(InterviewScheduleInterviewerEntity::getUserId)
-              .map(id -> interviewerNameMap.getOrDefault(id, "알 수 없는 사용자"))
+              .map(id -> interviewerNameMap.getOrDefault(id, "면접관#" + id))
               .distinct()
               .collect(Collectors.joining(", "));
 
       String applicantName =
           applicantMappings.stream()
               .map(InterviewScheduleApplicantEntity::getApplicantId)
-              .map(id -> applicantNameMap.getOrDefault(id, "알 수 없는 지원자"))
+              .map(id -> applicantNameMap.getOrDefault(id, "지원자#" + id))
               .distinct()
               .collect(Collectors.joining(", "));
 
@@ -441,6 +433,77 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       }
     }
     return false;
+  }
+
+  private Map<Long, String> resolveInterviewerNameMap(List<Long> interviewerIds) {
+    if (interviewerIds == null || interviewerIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved =
+        userRepository.findAllById(interviewerIds).stream()
+            .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+
+    List<Long> unresolvedIds =
+        interviewerIds.stream()
+            .filter(id -> id != null && !resolved.containsKey(id))
+            .distinct()
+            .toList();
+    if (unresolvedIds.isEmpty()) {
+      return resolved;
+    }
+
+    Map<Long, Member> memberMap =
+        memberReader.getMembersByIds(unresolvedIds).stream()
+            .collect(Collectors.toMap(Member::id, member -> member));
+
+    List<Long> userIdsToLookup =
+        memberMap.values().stream()
+            .map(Member::userId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+    if (userIdsToLookup.isEmpty()) {
+      return resolved;
+    }
+
+    Map<Long, String> userNameMap =
+        userRepository.findAllById(userIdsToLookup).stream()
+            .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+
+    for (Long unresolvedId : unresolvedIds) {
+      Member member = memberMap.get(unresolvedId);
+      if (member == null) continue;
+      String userName = userNameMap.get(member.userId());
+      if (userName != null) {
+        resolved.put(unresolvedId, userName);
+      }
+    }
+    return resolved;
+  }
+
+  private Map<Long, String> resolveApplicantNameMap(String tenantId, List<Long> applicantIds) {
+    if (applicantIds == null || applicantIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved =
+        applicantRepository.findAllByTenantIdAndIdIn(tenantId, applicantIds).stream()
+            .collect(Collectors.toMap(ApplicantEntity::getId, ApplicantEntity::getName));
+
+    List<Long> unresolvedIds =
+        applicantIds.stream()
+            .filter(id -> id != null && !resolved.containsKey(id))
+            .distinct()
+            .toList();
+    if (unresolvedIds.isEmpty()) {
+      return resolved;
+    }
+
+    applicantRepository
+        .findAllByIdIn(unresolvedIds)
+        .forEach(applicant -> resolved.putIfAbsent(applicant.getId(), applicant.getName()));
+    return resolved;
   }
 
   private String requireTenantId() {

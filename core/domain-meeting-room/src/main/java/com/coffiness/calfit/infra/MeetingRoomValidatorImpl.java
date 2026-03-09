@@ -72,6 +72,9 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (startDatetime == null || endDatetime == null || !startDatetime.isBefore(endDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+    if (startDatetime.isBefore(LocalDateTime.now())) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
     if (!userReader.exists(userId)) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
@@ -79,6 +82,11 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     long conflicts =
         meetingRoomReader.countOverlappingReservations(meetingRoomId, startDatetime, endDatetime);
     if (conflicts > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    long userConflicts =
+        meetingRoomReader.countOverlappingReservationsByUser(userId, startDatetime, endDatetime);
+    if (userConflicts > 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }
