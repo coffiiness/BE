@@ -6,6 +6,7 @@ import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
 import com.coffiness.calfit.core.api.request.ApplicationProcessUpdateRequest;
 import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.domain.application.KanbanBoard;
 import com.coffiness.calfit.domain.application.ApplicationService;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
@@ -75,6 +76,18 @@ public class ApplicationController {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     return ApiResponse.success(applicationService.getDetail(applicationId));
+  }
+
+  @GetMapping("/api/v1/applications/board")
+  public ApiResponse<KanbanBoard> getKanbanBoard(
+      @AuthenticationPrincipal SecurityUser user, @RequestParam Long recruitmentId) {
+    if (user == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if ("APPLICANT".equalsIgnoreCase(user.role())) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return ApiResponse.success(applicationService.getKanbanBoard(recruitmentId));
   }
 
   @PatchMapping("/api/v1/applications/{applicationId}/process")

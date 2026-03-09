@@ -17,6 +17,7 @@ import com.coffiness.calfit.storage.db.core.automation.AutomationRuleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryEntity;
 import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.support.error.CoreException;
@@ -105,6 +106,35 @@ public class ApplicationService {
         files.stream().map(ApplicationFileResponse::from).collect(Collectors.toList());
 
     return ApplicationDetailResponse.from(entity, fileResponses);
+  }
+
+  @Transactional(readOnly = true)
+  public KanbanBoard getKanbanBoard(Long recruitmentId) {
+    requireTenant();
+    if (recruitmentId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    List<RecruitmentStageEntity> stages = recruitmentStageRepository.findByRecruitmentId(recruitmentId);
+    if (stages.isEmpty()) {
+      return new KanbanBoard(List.of());
+    }
+
+    List<KanbanColumn> columns =
+        stages.stream()
+            .sorted((a, b) -> a.getStageStep().compareTo(b.getStageStep()))
+            .map(
+                stage -> {
+                  List<ApplicationEntity> applications =
+                      applicationRepository.findByRecruitmentIdAndRecruitmentProcessIdAndStatus(
+                          recruitmentId, stage.getId(), EntityStatus.ACTIVE);
+                  List<ApplicationSummaryResponse> summaries =
+                      applications.stream().map(ApplicationSummaryResponse::from).toList();
+                  return new KanbanColumn(
+                      stage.getId(), stage.getStageName(), stage.getStageStep(), summaries);
+                })
+            .toList();
+
+    return new KanbanBoard(columns);
   }
 
   @Transactional
