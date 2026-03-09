@@ -55,7 +55,7 @@ public class CalendarConnectService {
     String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
 
     GoogleCalendarSyncResult syncResult =
-        googleCalendarPort.syncEvent(accessToken, externalCalendar.syncToken());
+        syncGoogleEventsWithRecovery(accessToken, externalCalendar);
 
     if (syncResult == null) {
       return;
@@ -69,6 +69,20 @@ public class CalendarConnectService {
 
     if (hasText(syncResult.nextSyncToken())) {
       externalCalendarStore.updateSyncToken(externalCalendar.id(), syncResult.nextSyncToken());
+    }
+  }
+
+  private GoogleCalendarSyncResult syncGoogleEventsWithRecovery(
+      String accessToken, ExternalCalendar externalCalendar) {
+    try {
+      return googleCalendarPort.syncEvent(accessToken, externalCalendar.syncToken());
+    } catch (IllegalStateException e) {
+      if (!"GOOGLE_SYNC_TOKEN_EXPIRED".equals(e.getMessage())) {
+        throw e;
+      }
+
+      externalCalendarStore.updateSyncToken(externalCalendar.id(), null);
+      return googleCalendarPort.syncEvent(accessToken, null);
     }
   }
 

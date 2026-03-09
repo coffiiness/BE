@@ -157,7 +157,6 @@ public class ScheduleGoogleSyncEventHandler {
     scheduleStore.updateGoogleEventId(scheduleId, result.googleEventId());
   }
 
-  // ZonedDateTime으로 변환
   private void runWithScheduleLock(Long scheduleId, Runnable work) {
     if (scheduleId == null) {
       work.run();
@@ -176,6 +175,7 @@ public class ScheduleGoogleSyncEventHandler {
     }
   }
 
+  // ZonedDateTime으로 변환
   private ZonedDateTime toZonedDateTime(java.time.LocalDateTime time) {
     return time.atZone(ZoneId.systemDefault());
   }
