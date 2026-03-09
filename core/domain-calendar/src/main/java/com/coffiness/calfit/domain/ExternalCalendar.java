@@ -24,11 +24,8 @@ public record ExternalCalendar(
         + userId
         + ", calendarId="
         + calendarId
-        + ", accessToken=***"
-        + ", refreshToken=***"
         + ", tokenExpiresAt="
         + tokenExpiresAt
-        + ", syncToken=***"
         + ", isSyncEnabled="
         + isSyncEnabled
         + "]";
