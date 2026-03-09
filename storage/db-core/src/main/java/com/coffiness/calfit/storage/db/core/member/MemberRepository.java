@@ -34,4 +34,6 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
           + " WHERE m.groupId IN :groupIds AND m.status = :status GROUP BY m.groupId")
   List<Object[]> countByGroupIdsAndStatus(
       @Param("groupIds") List<Long> groupIds, @Param("status") EntityStatus status);
+
+  long countByTenantIdAndStatus(String tenantId, EntityStatus status);
 }
