@@ -46,4 +46,12 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
       nativeQuery = true)
   List<RecruitmentEntity> findOpenRecruitmentsByTenantIdAndSearch(
       @Param("tenantId") String tenantId, @Param("search") String search);
+
+  @Query(
+      value =
+          "SELECT r.tenant_id FROM recruitments r"
+              + " WHERE r.id = :recruitmentId"
+              + " AND r.status = 'ACTIVE'",
+      nativeQuery = true)
+  Optional<String> findTenantIdById(@Param("recruitmentId") Long recruitmentId);
 }

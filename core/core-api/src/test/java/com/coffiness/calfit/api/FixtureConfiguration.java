@@ -70,4 +70,16 @@ public class FixtureConfiguration {
   PaymentFixture paymentFixture(Environment environment, ObjectMapper objectMapper) {
     return PaymentFixture.create(environment, objectMapper);
   }
+
+  @Bean
+  @Scope("prototype")
+  ApplicantFixture applicantFixture(Environment environment, ObjectMapper objectMapper) {
+    return ApplicantFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  ApplicationFileFixture applicationFileFixture(Environment environment, ObjectMapper objectMapper) {
+    return ApplicationFileFixture.create(environment, objectMapper);
+  }
 }

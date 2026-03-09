@@ -1,6 +1,14 @@
 spring.application.name: core-api
 spring.profiles.active: local
 
+aws:
+  region: ap-northeast-2
+
+s3:
+  applicant-bucket: calfit-applicant   # 실제 버킷명
+  key-prefix: uploads
+  presign-expire-minutes: 10
+
 spring:
   config:
     import:

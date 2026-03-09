@@ -33,6 +33,10 @@ public class ApiResponse<S> {
     return new ApiResponse<>(ResultType.ERROR, null, new ErrorMessage(error, errorData));
   }
 
+  public static ApiResponse<?> error(ErrorType error, String customCode, Object errorData) {
+    return new ApiResponse<>(ResultType.ERROR, null, new ErrorMessage(error, customCode, errorData));
+  }
+
   public ResultType getResult() {
     return result;
   }
