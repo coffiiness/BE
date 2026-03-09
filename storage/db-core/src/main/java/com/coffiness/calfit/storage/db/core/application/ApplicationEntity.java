@@ -4,11 +4,18 @@ import com.coffiness.calfit.core.enums.Gender;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "applications") // 지원서
+@Table(
+    name = "applications",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_application_recruitment_applicant",
+          columnNames = {"tenant_id", "recruitment_id", "applicant_id"})
+    })
 @NoArgsConstructor
 @Getter
 public class ApplicationEntity extends TenantBaseEntity {
@@ -47,10 +54,58 @@ public class ApplicationEntity extends TenantBaseEntity {
   private String phone;
 
   // 지원자 이메일
-  @Column(nullable = false, unique = true, length = 50)
+  @Column(nullable = false, length = 50)
   private String email;
 
   // 지원서 상세내용
-  @Column(columnDefinition = "JSON", nullable = false)
+  @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
   private String schema;
+
+  @Builder
+  private ApplicationEntity(
+      Long applicantId,
+      Long recruitmentId,
+      Long recruitmentProcessId,
+      Long templateId,
+      String name,
+      Gender gender,
+      LocalDateTime birthDate,
+      String phone,
+      String email,
+      String schema) {
+    this.applicantId = applicantId;
+    this.recruitmentId = recruitmentId;
+    this.recruitmentProcessId = recruitmentProcessId;
+    this.templateId = templateId;
+    this.name = name;
+    this.gender = gender;
+    this.birthDate = birthDate;
+    this.phone = phone;
+    this.email = email;
+    this.schema = schema;
+  }
+
+  public static ApplicationEntity create(
+      Long applicantId,
+      Long recruitmentId,
+      Long recruitmentProcessId,
+      Long templateId,
+      String name,
+      Gender gender,
+      LocalDateTime birthDate,
+      String phone,
+      String email,
+      String schema) {
+    return new ApplicationEntity(
+        applicantId,
+        recruitmentId,
+        recruitmentProcessId,
+        templateId,
+        name,
+        gender,
+        birthDate,
+        phone,
+        email,
+        schema);
+  }
 }

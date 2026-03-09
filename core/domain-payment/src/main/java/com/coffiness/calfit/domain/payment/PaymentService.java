@@ -17,6 +17,7 @@ import com.coffiness.calfit.domain.payment.payment.PaymentStore;
 import com.coffiness.calfit.domain.payment.toss.BillingKeyResponse;
 import com.coffiness.calfit.domain.payment.toss.PaymentResponse;
 import com.coffiness.calfit.domain.payment.toss.TossPaymentClient;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDate;
@@ -35,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PaymentService {
 
-  private static final Long ENTERPRISE_MONTHLY_AMOUNT = 19_900L;
+  private static final Long ENTERPRISE_PER_MEMBER_AMOUNT = 19_900L;
   private static final String ORDER_NAME = "Coffiiness Enterprise 월 구독";
   private static final int MAX_RETRY_COUNT = 2;
 
@@ -47,6 +48,7 @@ public class PaymentService {
   private final SubscriptionReader subscriptionReader;
   private final SubscriptionStore subscriptionStore;
   private final InvoiceStore invoiceStore;
+  private final MemberReader memberReader;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
@@ -74,7 +76,8 @@ public class PaymentService {
             .findByWorkspaceId(workspaceId)
             .orElseGet(() -> subscriptionStore.createTrialSubscription(workspaceId));
 
-    subscriptionStore.activate(subscription.id(), PlanType.ENTERPRISE, ENTERPRISE_MONTHLY_AMOUNT);
+    long monthlyAmount = calculateMemberBasedAmount(workspaceId);
+    subscriptionStore.activate(subscription.id(), PlanType.ENTERPRISE, monthlyAmount);
 
     LocalDate now = LocalDate.now();
     if (paymentReader.existsSuccessfulPaymentInMonth(
@@ -83,7 +86,8 @@ public class PaymentService {
       return Optional.empty();
     }
 
-    return Optional.of(chargePayment(workspaceId, subscription.id(), billingKeyInfo, now));
+    return Optional.of(
+        chargePayment(workspaceId, subscription.id(), billingKeyInfo, now, monthlyAmount));
   }
 
   @Transactional
@@ -111,7 +115,11 @@ public class PaymentService {
             .findByWorkspaceId(workspaceId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    return chargePayment(workspaceId, subscription.id(), billingKeyInfo, LocalDate.now());
+    long monthlyAmount = calculateMemberBasedAmount(workspaceId);
+    subscriptionStore.activate(subscription.id(), PlanType.ENTERPRISE, monthlyAmount);
+
+    return chargePayment(
+        workspaceId, subscription.id(), billingKeyInfo, LocalDate.now(), monthlyAmount);
   }
 
   @Transactional
@@ -181,7 +189,8 @@ public class PaymentService {
       String workspaceId,
       Long subscriptionId,
       BillingKeyInfo billingKeyInfo,
-      LocalDate billingDate) {
+      LocalDate billingDate,
+      long amount) {
     var invoice =
         invoiceStore.createPendingInvoice(
             subscriptionId, workspaceId, billingDate.getYear(), billingDate.getMonthValue());
@@ -194,20 +203,15 @@ public class PaymentService {
             invoice.id(),
             billingKeyInfo.billingKey(),
             orderId,
-            ENTERPRISE_MONTHLY_AMOUNT);
+            amount);
 
     PaymentResponse tossResponse =
         tossPaymentClient.chargeBillingKey(
-            billingKeyInfo.billingKey(),
-            billingKeyInfo.customerKey(),
-            orderId,
-            ENTERPRISE_MONTHLY_AMOUNT,
-            ORDER_NAME);
+            billingKeyInfo.billingKey(), billingKeyInfo.customerKey(), orderId, amount, ORDER_NAME);
 
     if ("DONE".equals(tossResponse.status())) {
       payment = paymentStore.markSuccess(payment.id(), tossResponse.paymentKey());
-      eventPublisher.publishEvent(
-          PaymentCompletedEvent.of(invoice.id(), subscriptionId, ENTERPRISE_MONTHLY_AMOUNT));
+      eventPublisher.publishEvent(PaymentCompletedEvent.of(invoice.id(), subscriptionId, amount));
     } else {
       String failMessage =
           tossResponse.failureMessage() != null ? tossResponse.failureMessage() : "결제 실패";
@@ -216,6 +220,11 @@ public class PaymentService {
     }
 
     return payment;
+  }
+
+  private long calculateMemberBasedAmount(String workspaceId) {
+    long memberCount = memberReader.countActiveMembers(workspaceId);
+    return memberCount * ENTERPRISE_PER_MEMBER_AMOUNT;
   }
 
   private String generateOrderId(String workspaceId) {

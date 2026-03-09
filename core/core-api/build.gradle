@@ -5,6 +5,7 @@ dependencies {
     // 도메인 모듈
     implementation project(':core:domain-user')
     implementation project(':core:domain-workspace')
+    implementation project(':core:domain-applicant')
     implementation project(':core:domain-meeting-room')
     implementation project(':core:domain-announcement-board')
     implementation project(':core:domain-billing')
@@ -14,6 +15,7 @@ dependencies {
     implementation project(':core:domain-calendar')
     implementation project(':core:domain-recruitment')
     implementation project(':core:domain-career')
+    implementation project(':core:domain-application')
 
     // 지원 모듈
     implementation project(':support:monitoring')
