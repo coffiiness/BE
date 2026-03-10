@@ -1,5 +1,7 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.InterviewStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
@@ -7,10 +9,15 @@ import com.coffiness.calfit.domain.meetingRoom.MeetingRoomValidator;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +28,9 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   private final MeetingRoomReader meetingRoomReader;
   private final MemberReader memberReader;
   private final UserReader userReader;
+  private final InterviewScheduleInterviewerRepository interviewScheduleInterviewerRepository;
+  private final InterviewScheduleRepository interviewScheduleRepository;
+  private final ScheduleRepository scheduleRepository;
 
   @Override
   public void validateCreateInput(String name, Integer location, Integer capacity) {
@@ -65,7 +75,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   @Override
   public void validateReserveRequest(
       Long userId, Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
-    requireTenantId();
+    String tenantId = requireTenantId();
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
@@ -84,6 +94,48 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (conflicts > 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+  }
+
+  private boolean hasUserScheduleConflict(
+      String tenantId, Long userId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
+    if (meetingRoomReader.countOverlappingReservationsByUser(userId, startDatetime, endDatetime)
+        > 0) {
+      return true;
+    }
+
+    Member member = memberReader.getMember(tenantId, userId);
+    Long memberId = member.id();
+
+    if (!scheduleRepository
+        .findBusyOverlappingSchedulesByUserIds(
+            List.of(memberId), startDatetime, endDatetime, EntityStatus.ACTIVE)
+        .isEmpty()) {
+      return true;
+    }
+
+    List<Long> interviewScheduleIds =
+        interviewScheduleInterviewerRepository
+            .findAllByTenantIdAndUserIdIn(tenantId, List.of(memberId))
+            .stream()
+            .map(mapping -> mapping.getInterviewScheduleId())
+            .distinct()
+            .toList();
+    if (interviewScheduleIds.isEmpty()) {
+      return false;
+    }
+
+    List<InterviewScheduleEntity> schedules =
+        interviewScheduleRepository.findAllByTenantIdAndIdInAndStatusNotAndScheduledAtBefore(
+            tenantId, interviewScheduleIds, InterviewStatus.CANCELLED, endDatetime);
+
+    for (InterviewScheduleEntity schedule : schedules) {
+      LocalDateTime interviewStart = schedule.getScheduledAt();
+      LocalDateTime interviewEnd = interviewStart.plusMinutes(schedule.getDurationMinutes());
+      if (interviewStart.isBefore(endDatetime) && startDatetime.isBefore(interviewEnd)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
