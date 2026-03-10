@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.facade.meetingRoom;
 
 import com.coffiness.calfit.api.v1.request.MeetingRoomReservationCreateRequest;
+import com.coffiness.calfit.domain.interview.InterviewService;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationService;
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MeetingRoomReservationFacade {
 
   private final MeetingRoomReservationService meetingRoomReservationService;
+  private final InterviewService interviewService;
 
   @Transactional
   public MeetingRoomReservation reserveMeetingRoom(
@@ -31,6 +33,13 @@ public class MeetingRoomReservationFacade {
   @Transactional
   public MeetingRoomReservation cancelReservation(
       Long userId, Long meetingRoomId, Long reservationId) {
-    return meetingRoomReservationService.cancelReservation(userId, meetingRoomId, reservationId);
+    MeetingRoomReservation canceled =
+        meetingRoomReservationService.cancelReservation(userId, meetingRoomId, reservationId);
+
+    if (canceled.interviewScheduleId() != null) {
+      interviewService.cancelConfirmedSchedule(userId, canceled.interviewScheduleId());
+    }
+
+    return canceled;
   }
 }

@@ -385,6 +385,34 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     return saved.getId();
   }
 
+  @Override
+  public void cancelConfirmedSchedule(Long userId, Long interviewScheduleId) {
+    if (interviewScheduleId == null) {
+      return;
+    }
+
+    String tenantId = requireTenantId();
+    InterviewScheduleEntity schedule =
+        interviewScheduleRepository
+            .findByTenantIdAndIdAndInterviewStatusNot(
+                tenantId, interviewScheduleId, InterviewStatus.CANCELLED)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    schedule.cancel();
+
+    Map<String, Object> eventData = new HashMap<>();
+    eventData.put("status", InterviewStatus.CANCELLED.name());
+    eventData.put("reason", "MEETING_ROOM_RESERVATION_CANCELLED");
+
+    interviewScheduleHistoryRepository.save(
+        InterviewScheduleHistoryEntity.builder()
+            .interviewScheduleId(schedule.getId())
+            .eventType(InterviewEventType.STATUS_CHANGED)
+            .eventData(eventData)
+            .createdBy(userId != null ? userId : 0L)
+            .build());
+  }
+
   private void lockResourcesForScheduleCreation(
       Long meetingRoomId, List<Long> interviewerIds, List<Long> applicantIds) {
     String tenantId = requireTenantId();
