@@ -3,18 +3,27 @@ package com.coffiness.calfit.docs.users;
 import static com.coffiness.calfit.docs.RestDocsUtils.responsePreprocessor;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.coffiness.calfit.api.v1.request.LoginRequest;
 import com.coffiness.calfit.api.v1.request.SignUpRequest;
 import com.coffiness.calfit.core.api.controller.v1.UserController;
 import com.coffiness.calfit.docs.RestDocsTest;
+import com.coffiness.calfit.domain.user.EmailVerificationService;
 import com.coffiness.calfit.domain.user.User;
 import com.coffiness.calfit.domain.user.UserService;
+import com.coffiness.calfit.support.email.EmailPageService;
+import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,8 +39,13 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public class UserApiDocs extends RestDocsTest {
 
   private final UserService userService = mock(UserService.class);
+  private final EmailVerificationService emailVerificationService =
+      mock(EmailVerificationService.class);
+  private final EmailProperties emailProperties = new EmailProperties();
+  private final EmailPageService emailPageService = mock(EmailPageService.class);
 
-  private final UserController userController = new UserController(userService);
+  private final UserController userController =
+      new UserController(userService, emailVerificationService, emailProperties, emailPageService);
 
   private final SecurityUser mockSecurityUser = new SecurityUser(1L, "test@example.com", "USER");
 
@@ -39,13 +53,8 @@ public class UserApiDocs extends RestDocsTest {
   @Override
   public void setUp(RestDocumentationContextProvider restDocumentation) {
     super.setUp(restDocumentation);
-    setUpMockMvcWithSecurityUser(userController, restDocumentation);
-  }
-
-  private void setUpMockMvcWithSecurityUser(
-      Object controller, RestDocumentationContextProvider restDocumentation) {
     setUpMockMvc(
-        controller,
+        userController,
         restDocumentation,
         new HandlerMethodArgumentResolver() {
           @Override
@@ -65,14 +74,12 @@ public class UserApiDocs extends RestDocsTest {
   }
 
   @Test
-  void 회원가입_API_문서화() throws Exception {
-    // given
-    User user = new User(1L, "test@example.com", "홍길동", "USER", LocalDateTime.now());
+  void 회원가입_API_문서() throws Exception {
+    User user = new User(1L, "test@example.com", "테스트유저", "USER", LocalDateTime.now());
     when(userService.signUp(anyString(), anyString(), anyString())).thenReturn(user);
 
-    SignUpRequest request = new SignUpRequest("test@example.com", "password123", "홍길동");
+    SignUpRequest request = new SignUpRequest("test@example.com", "password123", "테스트유저");
 
-    // when & then
     mockMvc
         .perform(
             post("/api/v1/users/signup")
@@ -87,22 +94,21 @@ public class UserApiDocs extends RestDocsTest {
                 responsePreprocessor(),
                 requestFields(
                     fieldWithPath("email").description("사용자 이메일"),
-                    fieldWithPath("password").description("비밀번호 (4-20자)"),
-                    fieldWithPath("name").description("사용자 이름 (2-50자)")),
+                    fieldWithPath("password").description("비밀번호"),
+                    fieldWithPath("name").description("사용자 이름")),
                 responseFields(
-                    fieldWithPath("result").description("결과 타입 (SUCCESS/ERROR)"),
+                    fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.id").description("사용자 ID"),
                     fieldWithPath("data.email").description("사용자 이메일"),
                     fieldWithPath("data.name").description("사용자 이름"),
                     fieldWithPath("data.role").description("사용자 역할"),
-                    fieldWithPath("data.createdAt").description("가입 일시"),
+                    fieldWithPath("data.createdAt").description("생성 시각"),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
   @Test
-  void 로그인_API_문서화() throws Exception {
-    // given
-    User user = new User(1L, "test@example.com", "홍길동", "USER", LocalDateTime.now());
+  void 로그인_API_문서() throws Exception {
+    User user = new User(1L, "test@example.com", "테스트유저", "USER", LocalDateTime.now());
     UserService.LoginResult loginResult =
         new UserService.LoginResult(
             "access-token-example", "refresh-token-example", user, "workspace-123");
@@ -110,7 +116,6 @@ public class UserApiDocs extends RestDocsTest {
 
     LoginRequest request = new LoginRequest("test@example.com", "password123");
 
-    // when & then
     mockMvc
         .perform(
             post("/api/v1/users/login")
@@ -127,25 +132,23 @@ public class UserApiDocs extends RestDocsTest {
                     fieldWithPath("email").description("사용자 이메일"),
                     fieldWithPath("password").description("비밀번호")),
                 responseFields(
-                    fieldWithPath("result").description("결과 타입 (SUCCESS/ERROR)"),
+                    fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.accessToken").description("액세스 토큰"),
                     fieldWithPath("data.refreshToken").description("리프레시 토큰"),
                     fieldWithPath("data.user.id").description("사용자 ID"),
                     fieldWithPath("data.user.email").description("사용자 이메일"),
                     fieldWithPath("data.user.name").description("사용자 이름"),
                     fieldWithPath("data.user.role").description("사용자 역할"),
-                    fieldWithPath("data.user.createdAt").description("가입 일시"),
+                    fieldWithPath("data.user.createdAt").description("생성 시각"),
                     fieldWithPath("data.workspaceId").description("기본 워크스페이스 ID").optional(),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
   @Test
-  void 내정보조회_API_문서화() throws Exception {
-    // given
-    User user = new User(1L, "test@example.com", "홍길동", "USER", LocalDateTime.now());
+  void 내정보_API_문서() throws Exception {
+    User user = new User(1L, "test@example.com", "테스트유저", "USER", LocalDateTime.now());
     when(userService.getUser(anyLong())).thenReturn(user);
 
-    // when & then
     mockMvc
         .perform(
             get("/api/v1/users/me")
@@ -158,21 +161,19 @@ public class UserApiDocs extends RestDocsTest {
                 "users/me",
                 responsePreprocessor(),
                 responseFields(
-                    fieldWithPath("result").description("결과 타입 (SUCCESS/ERROR)"),
+                    fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.id").description("사용자 ID"),
                     fieldWithPath("data.email").description("사용자 이메일"),
                     fieldWithPath("data.name").description("사용자 이름"),
                     fieldWithPath("data.role").description("사용자 역할"),
-                    fieldWithPath("data.createdAt").description("가입 일시"),
+                    fieldWithPath("data.createdAt").description("생성 시각"),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
   @Test
-  void 회원탈퇴_API_문서화() throws Exception {
-    // given
+  void 회원탈퇴_API_문서() throws Exception {
     doNothing().when(userService).deleteUser(anyLong());
 
-    // when & then
     mockMvc
         .perform(
             delete("/api/v1/users/me")
@@ -185,7 +186,7 @@ public class UserApiDocs extends RestDocsTest {
                 "users/delete",
                 responsePreprocessor(),
                 responseFields(
-                    fieldWithPath("result").description("결과 타입 (SUCCESS/ERROR)"),
+                    fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data").description("응답 데이터").optional(),
                     fieldWithPath("error").description("에러 정보").optional())));
   }

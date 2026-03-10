@@ -3,6 +3,7 @@ package com.coffiness.calfit.domain.recruitment;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
+import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,12 +25,7 @@ public class RecruitmentService {
 
     // TODO : 에러처리 등 각종 검증 로직
 
-    List<RecruitmentStage> stages =
-        request.stages() == null
-            ? List.of()
-            : request.stages().stream()
-                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
-                .toList();
+    List<RecruitmentStage> stages = toStagesWithRequiredFail(request.stages());
 
     /*
      * TODO : 도메인에 정적 생성 메소드를 둘까 vs 지금처럼? vs DTO에?
@@ -94,12 +90,7 @@ public class RecruitmentService {
     // 채용 게시일이 현재 날짜보다 지났다면 채용 공고 수정 불가
     recruitment.validateUpdatable(LocalDateTime.now());
 
-    List<RecruitmentStage> newStages =
-        request.stages() == null
-            ? List.of()
-            : request.stages().stream()
-                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
-                .toList();
+    List<RecruitmentStage> newStages = toStagesWithRequiredFail(request.stages());
 
     Recruitment updatedRecruitment =
         recruitment.updateDetails(
@@ -157,5 +148,28 @@ public class RecruitmentService {
 
     recruitmentHistoryAppender.append(
         recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+  }
+
+  private List<RecruitmentStage> toStagesWithRequiredFail(
+      List<com.coffiness.calfit.api.v1.request.RecruitmentStageRequest> stageRequests) {
+    List<RecruitmentStage> stages =
+        stageRequests == null
+            ? List.of()
+            : stageRequests.stream()
+                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
+                .toList();
+
+    boolean hasFailStage =
+        stages.stream().anyMatch(stage -> stage.stageType() == RecruitmentStageType.FAIL);
+    if (hasFailStage) {
+      return stages;
+    }
+
+    int nextStep = stages.stream().mapToInt(RecruitmentStage::stageStep).max().orElse(0) + 1;
+    return java.util.stream.Stream.concat(
+            stages.stream(),
+            java.util.stream.Stream.of(
+                new RecruitmentStage(null, "불합격", nextStep, RecruitmentStageType.FAIL)))
+        .toList();
   }
 }

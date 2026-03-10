@@ -8,6 +8,7 @@ public record MeetingRoomReservationResponse(
     Long id,
     Long meetingRoomId,
     Long userId,
+    Long interviewScheduleId,
     LocalDateTime startDatetime,
     LocalDateTime endDatetime,
     MeetingRoomStatus status) {
@@ -17,6 +18,7 @@ public record MeetingRoomReservationResponse(
         reservation.id(),
         reservation.meetingRoomId(),
         reservation.userId(),
+        reservation.interviewScheduleId(),
         reservation.startDatetime(),
         reservation.endDatetime(),
         reservation.status());

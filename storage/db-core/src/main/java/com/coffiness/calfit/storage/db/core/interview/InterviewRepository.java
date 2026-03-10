@@ -49,4 +49,6 @@ public interface InterviewRepository {
       String memo,
       List<Long> interviewerIds,
       List<Long> applicantIds);
+
+  void cancelConfirmedSchedule(Long userId, Long interviewScheduleId);
 }

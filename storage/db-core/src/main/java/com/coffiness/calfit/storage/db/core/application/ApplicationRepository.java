@@ -12,5 +12,8 @@ public interface ApplicationRepository extends JpaRepository<ApplicationEntity, 
 
   List<ApplicationEntity> findByRecruitmentIdAndStatus(Long recruitmentId, EntityStatus status);
 
+  List<ApplicationEntity> findByRecruitmentIdAndRecruitmentProcessIdAndStatus(
+      Long recruitmentId, Long recruitmentProcessId, EntityStatus status);
+
   List<ApplicationEntity> findByStatus(EntityStatus status);
 }

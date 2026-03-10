@@ -54,7 +54,8 @@ public class ApiControllerAdvice {
       default -> log.info("CoreException : {}", e.getMessage(), e);
     }
     return new ResponseEntity<>(
-        ApiResponse.error(e.getErrorType(), e.getData()), e.getErrorType().getStatus());
+        ApiResponse.error(e.getErrorType(), e.getCustomCode(), e.getData()),
+        e.getErrorType().getStatus());
   }
 
   @ExceptionHandler(Exception.class)

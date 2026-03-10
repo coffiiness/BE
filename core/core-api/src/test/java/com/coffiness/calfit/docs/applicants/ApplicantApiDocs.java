@@ -29,6 +29,7 @@ import org.springframework.restdocs.RestDocumentationContextProvider;
 public class ApplicantApiDocs extends RestDocsTest {
 
   private final ApplicantPortalService applicantPortalService = mock(ApplicantPortalService.class);
+  private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
 
   private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
 
@@ -42,10 +43,12 @@ public class ApplicantApiDocs extends RestDocsTest {
     when(workspaceRepository.findByWorkspaceId(anyString()))
         .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
     setUpMockMvc(applicantPortalController, restDocumentation);
+    when(workspaceRepository.findByWorkspaceId(anyString()))
+        .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
   }
 
   @Test
-  void 지원자_회원가입_API_문서화() throws Exception {
+  void 지원자_회원가입_API_문서() throws Exception {
     Applicant applicant =
         new Applicant(1L, "workspace-123", "applicant@test.com", "지원자", LocalDateTime.now());
     when(applicantPortalService.signUp(anyString(), anyString(), anyString()))
@@ -71,17 +74,17 @@ public class ApplicantApiDocs extends RestDocsTest {
                     fieldWithPath("password").description("지원자 비밀번호"),
                     fieldWithPath("name").description("지원자 이름")),
                 responseFields(
-                    fieldWithPath("result").description("결과 상태(SUCCESS/ERROR)"),
+                    fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.id").description("지원자 ID"),
                     fieldWithPath("data.workspaceId").description("워크스페이스 ID"),
                     fieldWithPath("data.email").description("지원자 이메일"),
                     fieldWithPath("data.name").description("지원자 이름"),
-                    fieldWithPath("data.createdAt").description("생성 일시"),
+                    fieldWithPath("data.createdAt").description("생성 시각"),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
   @Test
-  void 지원자_로그인_API_문서화() throws Exception {
+  void 지원자_로그인_API_문서() throws Exception {
     Applicant applicant =
         new Applicant(1L, "workspace-123", "applicant@test.com", "지원자", LocalDateTime.now());
     ApplicantPortalService.ApplicantLoginResult result =
@@ -106,13 +109,13 @@ public class ApplicantApiDocs extends RestDocsTest {
                     fieldWithPath("email").description("지원자 이메일"),
                     fieldWithPath("password").description("지원자 비밀번호")),
                 responseFields(
-                    fieldWithPath("result").description("결과 상태(SUCCESS/ERROR)"),
+                    fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.accessToken").description("액세스 토큰"),
                     fieldWithPath("data.applicant.id").description("지원자 ID"),
                     fieldWithPath("data.applicant.workspaceId").description("워크스페이스 ID"),
                     fieldWithPath("data.applicant.email").description("지원자 이메일"),
                     fieldWithPath("data.applicant.name").description("지원자 이름"),
-                    fieldWithPath("data.applicant.createdAt").description("생성 일시"),
+                    fieldWithPath("data.applicant.createdAt").description("생성 시각"),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 }

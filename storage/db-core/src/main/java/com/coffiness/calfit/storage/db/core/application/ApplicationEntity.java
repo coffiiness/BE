@@ -2,7 +2,12 @@ package com.coffiness.calfit.storage.db.core.application;
 
 import com.coffiness.calfit.core.enums.Gender;
 import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,46 +25,36 @@ import lombok.NoArgsConstructor;
 @Getter
 public class ApplicationEntity extends TenantBaseEntity {
 
-  // 지원자 ID
   @Column(name = "applicant_id", nullable = false)
   private Long applicantId;
 
-  // 채용공고 ID
   @Column(name = "recruitment_id", nullable = false)
   private Long recruitmentId;
 
-  // 채용절차 ID
-  @Column(name = "recruitmentProcess_id")
+  @Column(name = "recruitment_process_id", nullable = false)
   private Long recruitmentProcessId;
 
-  // 지원서템플릿 ID
-  @Column(name = "template_id")
+  @Column(name = "template_id", nullable = false)
   private Long templateId;
 
-  // 지원자 이름
   @Column(nullable = false, length = 50)
   private String name;
 
-  // 지원자 성별
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Gender gender;
 
-  // 지원자 생년월일
   @Column(nullable = false)
   private LocalDateTime birthDate;
 
-  // 지원자 전화번호
   @Column(nullable = false, length = 20)
   private String phone;
 
-  // 지원자 이메일
   @Column(nullable = false, length = 50)
   private String email;
 
-  // 지원서 상세내용
-  @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
-  private String schema;
+  @Column(name = "form_fields", columnDefinition = "JSON", nullable = false)
+  private String formFields;
 
   @Builder
   private ApplicationEntity(
@@ -72,7 +67,7 @@ public class ApplicationEntity extends TenantBaseEntity {
       LocalDateTime birthDate,
       String phone,
       String email,
-      String schema) {
+      String formFields) {
     this.applicantId = applicantId;
     this.recruitmentId = recruitmentId;
     this.recruitmentProcessId = recruitmentProcessId;
@@ -82,7 +77,7 @@ public class ApplicationEntity extends TenantBaseEntity {
     this.birthDate = birthDate;
     this.phone = phone;
     this.email = email;
-    this.schema = schema;
+    this.formFields = formFields;
   }
 
   public static ApplicationEntity create(
@@ -95,7 +90,7 @@ public class ApplicationEntity extends TenantBaseEntity {
       LocalDateTime birthDate,
       String phone,
       String email,
-      String schema) {
+      String formFields) {
     return new ApplicationEntity(
         applicantId,
         recruitmentId,
@@ -106,6 +101,14 @@ public class ApplicationEntity extends TenantBaseEntity {
         birthDate,
         phone,
         email,
-        schema);
+        formFields);
+  }
+
+  public void changeRecruitmentProcess(Long recruitmentProcessId) {
+    this.recruitmentProcessId = recruitmentProcessId;
+  }
+
+  public void updateRecruitmentProcessId(Long recruitmentProcessId) {
+    this.recruitmentProcessId = recruitmentProcessId;
   }
 }

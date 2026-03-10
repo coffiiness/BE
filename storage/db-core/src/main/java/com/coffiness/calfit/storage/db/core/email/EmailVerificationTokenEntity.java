@@ -1,4 +1,4 @@
-package com.coffiness.calfit.support.email;
+package com.coffiness.calfit.storage.db.core.email;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -4,6 +4,7 @@ import com.coffiness.calfit.api.v1.response.CareerApplyFormResponse;
 import com.coffiness.calfit.api.v1.response.CareerCompnayResponse;
 import com.coffiness.calfit.api.v1.response.CareerRecruitmentResponse;
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.recruitment.OpenRecruitmentInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentReader;
 import com.coffiness.calfit.domain.workspace.Workspace;
@@ -11,12 +12,11 @@ import com.coffiness.calfit.domain.workspace.WorkspaceReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
-import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -68,32 +68,33 @@ public class CareerFacade {
 
   public CareerApplyFormResponse getApplyForm(String workspaceId, Long recruitmentId) {
     TenantContext.setTenantId(workspaceId);
-
-    RecruitmentEntity recruitment =
-        recruitmentRepository
-            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
-            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-
-    Long templateId = recruitment.getApplicationTemplateId();
-
-    // Find first stage (lowest stageStep)
-    List<RecruitmentStageEntity> stages =
-        recruitmentStageRepository.findByRecruitmentId(recruitmentId);
-    Long firstStageId =
-        stages.stream()
-            .min(Comparator.comparingInt(RecruitmentStageEntity::getStageStep))
-            .map(RecruitmentStageEntity::getId)
-            .orElse(null);
-
-    // Try to load template custom fields (table may not exist in H2)
-    String customFields = "[]";
     try {
-      customFields = applicationTemplateRepository.findSchemaById(templateId).orElse("[]");
-    } catch (Exception ignored) {
-      // Template table may not exist; custom fields default to empty
-    }
+      RecruitmentEntity recruitment =
+          recruitmentRepository
+              .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
+              .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    return new CareerApplyFormResponse(
-        recruitmentId, recruitment.getTitle(), templateId, firstStageId, customFields);
+      if (recruitment.getRecruitmentStatus() != RecruitmentStatus.OPEN) {
+        throw new CoreException(ErrorType.VALIDATION_ERROR);
+      }
+
+      Long templateId = recruitment.getApplicationTemplateId();
+      Long firstStageId =
+          recruitmentStageRepository.findByRecruitmentIdOrderByStageStepAsc(recruitmentId).stream()
+              .findFirst()
+              .map(stage -> stage.getId())
+              .orElseThrow(() -> new CoreException(ErrorType.VALIDATION_ERROR));
+
+      String customFields =
+          applicationTemplateRepository
+              .findByIdAndStatus(templateId, EntityStatus.ACTIVE)
+              .map(ApplicationTemplateEntity::getFormFields)
+              .orElse("[]");
+
+      return new CareerApplyFormResponse(
+          recruitmentId, recruitment.getTitle(), templateId, firstStageId, customFields);
+    } finally {
+      TenantContext.clear();
+    }
   }
 }

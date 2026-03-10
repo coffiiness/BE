@@ -18,6 +18,8 @@ public interface ApplicantRepository extends JpaRepository<ApplicantEntity, Long
   @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
   List<ApplicantEntity> findAllByTenantIdAndIdIn(String tenantId, List<Long> ids);
 
+  List<ApplicantEntity> findByTenantIdAndIdIn(String tenantId, List<Long> ids);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
   List<ApplicantEntity> findAllByTenantIdAndIdInOrderByIdAsc(String tenantId, List<Long> ids);

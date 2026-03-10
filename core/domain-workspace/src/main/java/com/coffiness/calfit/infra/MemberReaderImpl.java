@@ -23,7 +23,7 @@ public class MemberReaderImpl implements MemberReader {
     MemberEntity entity =
         memberRepository.findByTenantIdAndUserIdAndStatus(workspaceId, userId, EntityStatus.ACTIVE);
     if (entity == null) {
-      return null;
+      throw new CoreException(ErrorType.NOT_FOUND);
     }
     return toWorkspaceMember(entity);
   }

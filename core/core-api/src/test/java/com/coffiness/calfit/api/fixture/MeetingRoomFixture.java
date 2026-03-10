@@ -103,6 +103,17 @@ public record MeetingRoomFixture(BaseFixture base) {
         MeetingRoomReservationResponse.class);
   }
 
+  public ApiResponse<MeetingRoomReservationResponse[]> listReservations(
+      String token, String tenantId, LocalDateTime fromDatetime, LocalDateTime toDatetime) {
+    String url =
+        "/api/v1/meeting-rooms/reservations?fromDatetime="
+            + fromDatetime
+            + "&toDatetime="
+            + toDatetime;
+    return exchangeWithTenant(
+        url, HttpMethod.GET, null, token, tenantId, MeetingRoomReservationResponse[].class);
+  }
+
   public ApiResponse<MeetingRoomResponse[]> list(String token) {
     return base.get("/api/v1/meeting-rooms", token, MeetingRoomResponse[].class);
   }
