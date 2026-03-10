@@ -17,7 +17,10 @@ import com.coffiness.calfit.core.api.controller.v1.ApplicantPortalController;
 import com.coffiness.calfit.docs.RestDocsTest;
 import com.coffiness.calfit.domain.applicant.Applicant;
 import com.coffiness.calfit.domain.applicant.ApplicantPortalService;
+import com.coffiness.calfit.storage.db.core.workspace.WorkspaceEntity;
+import com.coffiness.calfit.storage.db.core.workspace.WorkspaceRepository;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -27,13 +30,17 @@ public class ApplicantApiDocs extends RestDocsTest {
 
   private final ApplicantPortalService applicantPortalService = mock(ApplicantPortalService.class);
 
+  private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
+
   private final ApplicantPortalController applicantPortalController =
-      new ApplicantPortalController(applicantPortalService);
+      new ApplicantPortalController(applicantPortalService, workspaceRepository);
 
   @BeforeEach
   @Override
   public void setUp(RestDocumentationContextProvider restDocumentation) {
     super.setUp(restDocumentation);
+    when(workspaceRepository.findByWorkspaceId(anyString()))
+        .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
     setUpMockMvc(applicantPortalController, restDocumentation);
   }
 
@@ -49,7 +56,7 @@ public class ApplicantApiDocs extends RestDocsTest {
 
     mockMvc
         .perform(
-            post("/api/public/v1/applicants/signup")
+            post("/api/v1/workspaces/workspace-123/applicants/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .characterEncoding("UTF-8")
                 .accept(MediaType.APPLICATION_JSON)
@@ -85,7 +92,7 @@ public class ApplicantApiDocs extends RestDocsTest {
 
     mockMvc
         .perform(
-            post("/api/public/v1/applicants/login")
+            post("/api/v1/workspaces/workspace-123/applicants/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .characterEncoding("UTF-8")
                 .accept(MediaType.APPLICATION_JSON)

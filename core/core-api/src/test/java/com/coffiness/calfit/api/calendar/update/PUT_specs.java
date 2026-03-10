@@ -179,13 +179,16 @@ public class PUT_specs {
             new OAuthExchangeResult(
                 "access-token", 3600L, "refresh-token", createIdToken("sync@test.com")));
 
+    given(googleCalendarPort.resolveWorkspaceCalendarId(anyString(), anyString(), anyString()))
+        .willReturn("workspace-calendar-id");
+
     ApiResponse<String> connectResponse =
         calendarFixture.connectGoogleCalendar(token, tenantId, authCode);
     assertThat(connectResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     given(
             googleCalendarPort.createEvent(
-                anyString(), anyString(), anyString(), any(), any(), anyBoolean()))
+                anyString(), anyString(), anyString(), anyString(), any(), any(), anyBoolean()))
         .willReturn(new GoogleCalendarClientResult("google-update-event-1", true));
 
     LocalDateTime now = LocalDateTime.now();
@@ -209,7 +212,7 @@ public class PUT_specs {
             () ->
                 verify(googleCalendarPort, times(1))
                     .createEvent(
-                        anyString(), anyString(), anyString(), any(), any(), anyBoolean()));
+                        anyString(), anyString(), anyString(), anyString(), any(), any(), anyBoolean()));
 
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(3).toString();
@@ -218,7 +221,7 @@ public class PUT_specs {
 
     given(
             googleCalendarPort.updateEvent(
-                anyString(), anyString(), anyString(), anyString(), any(), any(), anyBoolean()))
+                anyString(), anyString(), anyString(), anyString(), anyString(), any(), any(), anyBoolean()))
         .willReturn(new GoogleCalendarClientResult("google-update-event-1", true));
 
     ScheduleUpdateRequest updateRequest =
@@ -243,6 +246,7 @@ public class PUT_specs {
             () ->
                 verify(googleCalendarPort, times(1))
                     .updateEvent(
+                        anyString(),
                         anyString(),
                         eq("google-update-event-1"),
                         anyString(),

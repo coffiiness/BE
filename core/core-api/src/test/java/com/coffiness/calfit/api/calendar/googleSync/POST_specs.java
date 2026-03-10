@@ -52,7 +52,7 @@ public class POST_specs {
     ZonedDateTime startTime = ZonedDateTime.now(ZoneId.systemDefault()).plusDays(1);
     ZonedDateTime endTime = startTime.plusHours(1);
 
-    given(googleCalendarPort.syncEvent(anyString(), any()))
+    given(googleCalendarPort.syncEvent(anyString(), anyString(), any()))
         .willReturn(
             new GoogleCalendarSyncResult(
                 List.of(
@@ -109,7 +109,7 @@ public class POST_specs {
     ZonedDateTime startTime = now.plusDays(1).atZone(ZoneId.systemDefault());
     ZonedDateTime endTime = now.plusDays(1).plusHours(1).atZone(ZoneId.systemDefault());
 
-    given(googleCalendarPort.syncEvent(anyString(), any()))
+    given(googleCalendarPort.syncEvent(anyString(), anyString(), any()))
         .willReturn(
             new GoogleCalendarSyncResult(
                 List.of(
@@ -144,6 +144,9 @@ public class POST_specs {
         .willReturn(
             new OAuthExchangeResult(
                 "access-token", 3600L, "refresh-token", createIdToken("sync@test.com")));
+
+    given(googleCalendarPort.resolveWorkspaceCalendarId(anyString(), anyString(), anyString()))
+        .willReturn("workspace-calendar-id");
 
     ApiResponse<String> connectResponse =
         calendarFixture.connectGoogleCalendar(token, tenantId, authCode);
