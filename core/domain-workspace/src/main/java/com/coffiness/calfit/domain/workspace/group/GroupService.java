@@ -1,7 +1,5 @@
 package com.coffiness.calfit.domain.workspace.group;
 
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
-import com.coffiness.calfit.domain.workspace.member.MemberStore;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
@@ -15,28 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class GroupService {
   private final GroupReader groupReader;
   private final GroupStore groupStore;
-  private final MemberReader memberReader;
-  private final MemberStore memberStore;
 
   @Transactional(readOnly = true)
-  public List<GroupInfo> getGroups() {
-    List<Group> groups = groupReader.getGroups();
-    if (groups.isEmpty()) return List.of();
-
-    List<Long> groupIds = groups.stream().map(Group::id).toList();
-    Map<Long, Long> countMap = memberReader.getGroupMemberCountMap(groupIds);
-
-    return groups.stream()
-        .map(g -> new GroupInfo(g.id(), g.name(), g.color(), countMap.getOrDefault(g.id(), 0L)))
-        .toList();
+  public Group getGroup(Long groupId) {
+    return groupReader.getGroup(groupId);
   }
 
   @Transactional(readOnly = true)
-  public GroupInfo getGroup(Long groupId) {
-    Group group = groupReader.getGroup(groupId);
-    Map<Long, Long> countMap = memberReader.getGroupMemberCountMap(List.of(groupId));
-    return new GroupInfo(
-        group.id(), group.name(), group.color(), countMap.getOrDefault(groupId, 0L));
+  public List<Group> getGroups() {
+    return groupReader.getGroups();
   }
 
   @Transactional
@@ -55,7 +40,11 @@ public class GroupService {
 
   @Transactional
   public void removeGroup(Long groupId) {
-    memberStore.clearGroupFromMembers(groupId);
     groupStore.remove(groupId);
+  }
+
+  @Transactional(readOnly = true)
+  public Map<Long, String> getGroupNameMap(List<Long> groupIds) {
+    return groupReader.getGroupNameMap(groupIds);
   }
 }

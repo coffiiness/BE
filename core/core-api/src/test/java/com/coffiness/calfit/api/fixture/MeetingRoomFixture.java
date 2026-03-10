@@ -6,7 +6,6 @@ import com.coffiness.calfit.api.v1.request.MeetingRoomUpdateRequest;
 import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import org.springframework.core.env.Environment;
@@ -104,17 +103,22 @@ public record MeetingRoomFixture(BaseFixture base) {
         MeetingRoomReservationResponse.class);
   }
 
-  public ApiResponse<MeetingRoom[]> list(String token) {
-    return base.get("/api/v1/meeting-rooms", token, MeetingRoom[].class);
+  public ApiResponse<MeetingRoomResponse[]> list(String token) {
+    return base.get("/api/v1/meeting-rooms", token, MeetingRoomResponse[].class);
   }
 
-  public ApiResponse<MeetingRoom[]> list(String token, String tenantId) {
+  public ApiResponse<MeetingRoomResponse[]> list(String token, String tenantId) {
     return exchangeWithTenant(
-        "/api/v1/meeting-rooms", HttpMethod.GET, null, token, tenantId, MeetingRoom[].class);
+        "/api/v1/meeting-rooms",
+        HttpMethod.GET,
+        null,
+        token,
+        tenantId,
+        MeetingRoomResponse[].class);
   }
 
-  public ApiResponse<MeetingRoom[]> list() {
-    return base.get("/api/v1/meeting-rooms", MeetingRoom[].class);
+  public ApiResponse<MeetingRoomResponse[]> list() {
+    return base.get("/api/v1/meeting-rooms", MeetingRoomResponse[].class);
   }
 
   @SuppressWarnings("unchecked")

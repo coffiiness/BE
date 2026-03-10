@@ -1,14 +1,11 @@
 package com.coffiness.calfit.domain.workspace.member;
 
 import com.coffiness.calfit.core.enums.MemberType;
-import com.coffiness.calfit.domain.user.UserInfo;
-import com.coffiness.calfit.domain.user.UserReader;
-import com.coffiness.calfit.domain.workspace.group.GroupReader;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,44 +16,20 @@ public class MemberService {
   private final MemberReader memberReader;
   private final MemberStore memberStore;
 
-  private final UserReader userReader;
-  private final GroupReader groupReader;
-
   @Transactional
   public Member registerMember(Long userId, MemberType memberType) {
     return memberStore.save(userId, memberType);
   }
 
   @Transactional(readOnly = true)
-  public MemberInfo getMember(String workspaceId, Long userId) {
-    UserInfo user = userReader.getUser(userId);
-    Member member = memberReader.getMember(workspaceId, userId);
-    if (member == null) {
-      throw new CoreException(ErrorType.NOT_FOUND);
-    }
-    Map<Long, String> groupNameMap =
-        member.groupId() != null
-            ? groupReader.getGroupNameMap(List.of(member.groupId()))
-            : Map.of();
-    return toMemberInfo(user, member, groupNameMap);
+  public Member getMember(Long userId) {
+    String workspaceId = TenantContext.getTenantId();
+    return memberReader.getMember(workspaceId, userId);
   }
 
   @Transactional(readOnly = true)
-  public List<MemberInfo> getMembers() {
-    List<Member> members = memberReader.getMembers();
-
-    List<Long> userIds = members.stream().map(Member::userId).toList();
-    Map<Long, UserInfo> userMap =
-        userReader.getUsers(userIds).stream().collect(Collectors.toMap(UserInfo::id, u -> u));
-
-    List<Long> groupIds =
-        members.stream().map(Member::groupId).filter(gid -> gid != null).distinct().toList();
-    Map<Long, String> groupNameMap =
-        groupIds.isEmpty() ? Map.of() : groupReader.getGroupNameMap(groupIds);
-
-    return members.stream()
-        .map(member -> toMemberInfo(userMap.get(member.userId()), member, groupNameMap))
-        .toList();
+  public List<Member> getMembers() {
+    return memberReader.getMembers();
   }
 
   @Transactional
@@ -83,14 +56,13 @@ public class MemberService {
     memberStore.assignGroup(memberId, null);
   }
 
-  private MemberInfo toMemberInfo(UserInfo user, Member member, Map<Long, String> groupNameMap) {
-    String groupName = member.groupId() != null ? groupNameMap.get(member.groupId()) : null;
-    return new MemberInfo(
-        member.id(),
-        user.name(),
-        user.createdAt(),
-        user.recentAt(),
-        groupName,
-        member.memberType());
+  @Transactional(readOnly = true)
+  public Map<Long, Long> getGroupMemberCountMap(List<Long> groupIds) {
+    return memberReader.getGroupMemberCountMap(groupIds);
+  }
+
+  @Transactional
+  public void clearGroupFromMembers(Long groupId) {
+    memberStore.clearGroupFromMembers(groupId);
   }
 }

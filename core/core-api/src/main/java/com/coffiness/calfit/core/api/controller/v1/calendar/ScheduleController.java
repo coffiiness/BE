@@ -6,6 +6,7 @@ import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
 import com.coffiness.calfit.v1.response.ScheduleResponse;
@@ -36,13 +37,23 @@ public class ScheduleController {
     return ApiResponse.success(null);
   }
 
+  // 일정 동기화
+  @PostMapping("/api/v1/schedules/sync")
+  public ApiResponse<Void> syncSchedule(
+      @AuthenticationPrincipal SecurityUser user, @Valid @RequestBody ScheduleSyncRequest request) {
+
+    scheduleFacade.syncSchedule(user.userId(), request);
+
+    return ApiResponse.success(null);
+  }
+
   @GetMapping("/api/v1/schedules")
   public ApiResponse<List<ScheduleResponse>> getSchedules(
       @AuthenticationPrincipal SecurityUser user,
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
 
-    // 날짜에 시간을 붙여 서비스에 전달
+    // 날짜를 하루의 시작/끝 시각으로 변환
     LocalDateTime startDateTime = startDate.atStartOfDay();
     LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay().minusNanos(1);
 
