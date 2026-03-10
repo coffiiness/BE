@@ -48,6 +48,17 @@ public class InterviewReaderImpl implements InterviewReader {
   }
 
   @Override
+  public List<InterviewAvailability.ApplicantBusySlot> findApplicantBusySlots(
+      List<Long> applicantIds, LocalDateTime from, LocalDateTime to) {
+    return interviewRepository.findApplicantBusySlots(applicantIds, from, to).stream()
+        .map(
+            row ->
+                new InterviewAvailability.ApplicantBusySlot(
+                    row.applicantId(), row.interviewScheduleId(), row.start(), row.end()))
+        .toList();
+  }
+
+  @Override
   public List<InterviewScheduleCalendarItem> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to) {
     return interviewRepository.getSchedulesByRecruitmentId(recruitmentId, from, to).stream()

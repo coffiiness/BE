@@ -4,7 +4,7 @@ import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
-import com.coffiness.calfit.domain.meetingRoom.MeetingRoomService;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationService;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -26,7 +26,7 @@ public class ScheduleFacade {
 
   private final MemberReader memberReader;
   private final ScheduleService scheduleService;
-  private final MeetingRoomService meetingRoomService;
+  private final MeetingRoomReservationService meetingRoomReservationService;
 
   private Member validateAndGetMember(long userId) {
     String currentWorkspaceId = TenantContext.getTenantId();
@@ -44,7 +44,7 @@ public class ScheduleFacade {
 
     if (request.roomId() != null) {
       MeetingRoomReservation reservation =
-          meetingRoomService.reserve(
+          meetingRoomReservationService.reserve(
               member.id(), request.roomId(), request.startTime(), request.endTime());
       reservationId = reservation.id();
     }
@@ -94,7 +94,7 @@ public class ScheduleFacade {
 
     if (scheduleDetailInfo.roomId() != null && scheduleDetailInfo.reservationId() != null) {
       if (roomIdChanged || timeChanged) {
-        meetingRoomService.cancelReservation(
+        meetingRoomReservationService.cancelReservation(
             member.id(), scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
         newReservationId = null;
       }
@@ -108,7 +108,7 @@ public class ScheduleFacade {
           request.endTime() != null ? request.endTime() : scheduleDetailInfo.endTime();
 
       MeetingRoomReservation reservation =
-          meetingRoomService.reserve(member.id(), targetRoomId, startTime, endTime);
+          meetingRoomReservationService.reserve(member.id(), targetRoomId, startTime, endTime);
       newReservationId = reservation.id();
     }
 
@@ -122,7 +122,7 @@ public class ScheduleFacade {
     ScheduleDetailInfo scheduleInfo = scheduleService.getDetailSchedule(member.id(), scheduleId);
 
     if (scheduleInfo.roomId() != null && scheduleInfo.reservationId() != null) {
-      meetingRoomService.cancelReservation(
+      meetingRoomReservationService.cancelReservation(
           member.id(), scheduleInfo.roomId(), scheduleInfo.reservationId());
     }
 

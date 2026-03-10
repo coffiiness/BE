@@ -72,6 +72,9 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (startDatetime == null || endDatetime == null || !startDatetime.isBefore(endDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+    if (startDatetime.isBefore(LocalDateTime.now())) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
     if (!userReader.exists(userId)) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }

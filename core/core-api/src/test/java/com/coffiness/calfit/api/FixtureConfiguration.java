@@ -47,11 +47,11 @@ public class FixtureConfiguration {
     return AnnouncementBoardFixture.create(environment, objectMapper);
   }
 
-  //  @Bean
-  //  @Scope("prototype")
-  //  InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
-  //    return InterviewFixture.create(environment, objectMapper);
-  //  }
+  @Bean
+  @Scope("prototype")
+  InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
+    return InterviewFixture.create(environment, objectMapper);
+  }
 
   @Bean
   @Scope("prototype")
