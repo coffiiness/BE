@@ -43,7 +43,7 @@ public class RecruitmentService {
             userId,
             request.title(),
             request.contents(),
-            RecruitmentStatus.DRAFT,
+            determineInitialStatus(request.startDate()),
             request.targetCount(),
             request.startDate(),
             request.endDate(),
@@ -66,6 +66,16 @@ public class RecruitmentService {
         saveRecruitment);
 
     return saveRecruitment.id();
+  }
+
+  private RecruitmentStatus determineInitialStatus(LocalDateTime startDate) {
+    if (startDate == null) {
+      return RecruitmentStatus.DRAFT;
+    }
+
+    return startDate.isAfter(LocalDateTime.now())
+        ? RecruitmentStatus.DRAFT
+        : RecruitmentStatus.OPEN;
   }
 
   // TODO : userId는 facade에서 검증으로 추후 제거 예정

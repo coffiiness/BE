@@ -4,6 +4,7 @@ import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -54,4 +55,17 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
               + " AND r.status = 'ACTIVE'",
       nativeQuery = true)
   Optional<String> findTenantIdById(@Param("recruitmentId") Long recruitmentId);
+
+  @Query(
+      "SELECT DISTINCT r.applicationTemplateId FROM RecruitmentEntity r"
+          + " WHERE r.status = :status AND r.applicationTemplateId IN :templateIds")
+  Set<Long> findUsedTemplateIds(
+      @Param("templateIds") List<Long> templateIds, @Param("status") EntityStatus status);
+
+  @Query(
+      "SELECT r.applicationTemplateId, COUNT(r) FROM RecruitmentEntity r"
+          + " WHERE r.status = :status AND r.applicationTemplateId IN :templateIds"
+          + " GROUP BY r.applicationTemplateId")
+  List<Object[]> countByTemplateIds(
+      @Param("templateIds") List<Long> templateIds, @Param("status") EntityStatus status);
 }
