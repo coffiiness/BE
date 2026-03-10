@@ -25,6 +25,7 @@ include 'core:domain-recruitment'
 include 'core:domain-interview'
 include 'core:domain-applicant'
 include 'core:domain-application'
+include 'core:domain-notification'
 
 // Storage 모듈
 include 'storage:db-core'
