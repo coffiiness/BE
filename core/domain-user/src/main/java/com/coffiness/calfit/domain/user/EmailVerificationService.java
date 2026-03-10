@@ -1,5 +1,10 @@
-package com.coffiness.calfit.support.email;
+package com.coffiness.calfit.domain.user;
 
+import com.coffiness.calfit.storage.db.core.email.EmailVerificationTokenEntity;
+import com.coffiness.calfit.storage.db.core.email.EmailVerificationTokenRepository;
+import com.coffiness.calfit.support.email.EmailProperties;
+import com.coffiness.calfit.support.email.EmailService;
+import com.coffiness.calfit.support.email.WorkspaceVerificationEmailMessage;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
