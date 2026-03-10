@@ -5,9 +5,12 @@ import com.coffiness.calfit.api.v1.response.ApplicationCreateResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
 import com.coffiness.calfit.core.api.request.ApplicationProcessUpdateRequest;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.application.KanbanBoard;
 import com.coffiness.calfit.domain.application.ApplicationService;
+import com.coffiness.calfit.domain.workspace.member.Member;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.support.error.CoreException;
@@ -31,6 +34,7 @@ public class ApplicationController {
 
   private final ApplicationService applicationService;
   private final RecruitmentRepository recruitmentRepository;
+  private final MemberReader memberReader;
 
   @PostMapping("/api/v1/applications")
   public ApiResponse<ApplicationCreateResponse> createApplication(
@@ -101,6 +105,7 @@ public class ApplicationController {
     if ("APPLICANT".equalsIgnoreCase(user.role())) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
+    validateHrMember(user.userId());
     applicationService.updateProcess(applicationId, request.recruitmentProcessId(), user.userId());
     return ApiResponse.success(null);
   }
@@ -114,5 +119,19 @@ public class ApplicationController {
             .findTenantIdById(recruitmentId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     TenantContext.setTenantId(tenantId);
+  }
+
+  private Member validateHrMember(Long userId) {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank() || userId == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    Member member = memberReader.getMember(tenantId, userId);
+    if (member == null || member.memberType() != MemberType.HR) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    return member;
   }
 }
