@@ -149,6 +149,7 @@ public class RecruitmentService {
     recruitmentHistoryAppender.append(
         recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
   }
+
   private List<RecruitmentStage> toStagesWithRequiredFail(
       List<com.coffiness.calfit.api.v1.request.RecruitmentStageRequest> stageRequests) {
     List<RecruitmentStage> stages =

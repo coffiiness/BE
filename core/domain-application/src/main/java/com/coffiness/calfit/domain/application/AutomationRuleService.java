@@ -36,8 +36,11 @@ public class AutomationRuleService {
   public List<AutomationRuleResponse> getRules(Long recruitmentId) {
     requireTenant();
     validateRecruitment(recruitmentId);
-    return automationRuleRepository.findByRecruitmentIdAndStatusOrderByCreatedAtAsc(
-        recruitmentId, EntityStatus.ACTIVE).stream().map(this::toResponse).toList();
+    return automationRuleRepository
+        .findByRecruitmentIdAndStatusOrderByCreatedAtAsc(recruitmentId, EntityStatus.ACTIVE)
+        .stream()
+        .map(this::toResponse)
+        .toList();
   }
 
   @Transactional(readOnly = true)
@@ -54,7 +57,8 @@ public class AutomationRuleService {
   }
 
   @Transactional
-  public AutomationRuleResponse createRule(Long recruitmentId, AutomationRuleUpsertRequest request) {
+  public AutomationRuleResponse createRule(
+      Long recruitmentId, AutomationRuleUpsertRequest request) {
     requireTenant();
     validateRequest(recruitmentId, request);
     ensureNoDuplicate(

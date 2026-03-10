@@ -1,7 +1,7 @@
 package com.coffiness.calfit.storage.db.core.automation;
 
-import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.AutomationTriggerType;
+import com.coffiness.calfit.core.enums.EntityStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

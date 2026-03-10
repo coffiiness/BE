@@ -5,8 +5,12 @@ import java.util.List;
 
 public enum AutomationTemplateCode {
   DOCUMENT_PASS("서류 합격 안내", AutomationActionType.EMAIL, List.of(RecruitmentStageType.DOCUMENT)),
-  INTERVIEW_REQUEST("면접 요청 안내", AutomationActionType.EMAIL, List.of(RecruitmentStageType.INTERVIEW)),
-  FINAL_PASS("최종 합격 안내", AutomationActionType.EMAIL, List.of(RecruitmentStageType.PASS, RecruitmentStageType.OFFER)),
+  INTERVIEW_REQUEST(
+      "면접 요청 안내", AutomationActionType.EMAIL, List.of(RecruitmentStageType.INTERVIEW)),
+  FINAL_PASS(
+      "최종 합격 안내",
+      AutomationActionType.EMAIL,
+      List.of(RecruitmentStageType.PASS, RecruitmentStageType.OFFER)),
   FAIL_NOTIFICATION("불합격 안내", AutomationActionType.EMAIL, List.of(RecruitmentStageType.FAIL));
 
   private final String label;

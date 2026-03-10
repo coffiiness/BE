@@ -5,6 +5,8 @@ import com.coffiness.calfit.api.v1.request.ApplicationStageUpdateRequest;
 import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationFileResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
+import com.coffiness.calfit.core.enums.AutomationEventStatus;
+import com.coffiness.calfit.core.enums.AutomationTriggerType;
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
@@ -13,16 +15,14 @@ import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileRepository;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryEntity;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
 import com.coffiness.calfit.storage.db.core.automation.AutomationEventEntity;
 import com.coffiness.calfit.storage.db.core.automation.AutomationEventRepository;
 import com.coffiness.calfit.storage.db.core.automation.AutomationRuleEntity;
 import com.coffiness.calfit.storage.db.core.automation.AutomationRuleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentEntity;
-import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryEntity;
-import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
-import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
-import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
@@ -32,8 +32,6 @@ import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.email.EmailService;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
-import com.coffiness.calfit.core.enums.AutomationEventStatus;
-import com.coffiness.calfit.core.enums.AutomationTriggerType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -289,13 +287,15 @@ public class ApplicationService {
 
     return requestProcessId;
   }
+
   @Transactional(readOnly = true)
   public KanbanBoard getKanbanBoard(Long recruitmentId) {
     requireTenant();
     if (recruitmentId == null) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
-    List<RecruitmentStageEntity> stages = recruitmentStageRepository.findByRecruitmentId(recruitmentId);
+    List<RecruitmentStageEntity> stages =
+        recruitmentStageRepository.findByRecruitmentId(recruitmentId);
     if (stages.isEmpty()) {
       return new KanbanBoard(List.of());
     }

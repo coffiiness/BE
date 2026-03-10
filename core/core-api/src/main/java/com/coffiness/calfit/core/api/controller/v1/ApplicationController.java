@@ -8,8 +8,8 @@ import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
 import com.coffiness.calfit.core.api.request.ApplicationProcessUpdateRequest;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.application.KanbanBoard;
 import com.coffiness.calfit.domain.application.ApplicationService;
+import com.coffiness.calfit.domain.application.KanbanBoard;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -24,7 +24,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -82,7 +81,7 @@ public class ApplicationController {
     }
     return ApiResponse.success(applicationService.getDetail(applicationId));
   }
-  
+
   @PatchMapping("/api/v1/applications/{applicationId}/stage")
   public ApiResponse<ApplicationDetailResponse> updateApplicationStage(
       @AuthenticationPrincipal SecurityUser user,
@@ -96,6 +95,7 @@ public class ApplicationController {
     }
     return ApiResponse.success(applicationService.updateStage(applicationId, request));
   }
+
   @GetMapping("/api/v1/applications/board")
   public ApiResponse<KanbanBoard> getKanbanBoard(
       @AuthenticationPrincipal SecurityUser user, @RequestParam Long recruitmentId) {
