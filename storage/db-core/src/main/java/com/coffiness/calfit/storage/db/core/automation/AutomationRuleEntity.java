@@ -49,4 +49,15 @@ public class AutomationRuleEntity extends TenantBaseEntity {
     this.actionType = actionType;
     this.payload = payload;
   }
+
+  public void update(
+      Long recruitmentProcessId,
+      AutomationTriggerType triggerType,
+      AutomationActionType actionType,
+      String payload) {
+    this.recruitmentProcessId = recruitmentProcessId;
+    this.triggerType = triggerType;
+    this.actionType = actionType;
+    this.payload = payload;
+  }
 }

@@ -130,7 +130,11 @@ public class ApplicationService {
                   List<ApplicationSummaryResponse> summaries =
                       applications.stream().map(ApplicationSummaryResponse::from).toList();
                   return new KanbanColumn(
-                      stage.getId(), stage.getStageName(), stage.getStageStep(), summaries);
+                      stage.getId(),
+                      stage.getStageName(),
+                      stage.getStageStep(),
+                      stage.getStageType(),
+                      summaries);
                 })
             .toList();
 
