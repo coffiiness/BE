@@ -12,6 +12,9 @@ s3:
 spring:
   config:
     import:
+      - optional:file:${user.dir}/.env[.properties]
+      - optional:file:${user.dir}/../.env[.properties]
+      - optional:file:${user.dir}/../../.env[.properties]
       - monitoring.yml
       - logging.yml
       - db-core.yml

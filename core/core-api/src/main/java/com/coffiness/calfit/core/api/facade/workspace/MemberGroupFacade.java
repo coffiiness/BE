@@ -25,6 +25,9 @@ public class MemberGroupFacade {
   @Transactional(readOnly = true)
   public MemberInfo getMember(Long userId) {
     Member member = memberService.getMember(userId);
+    if (member == null) {
+      throw new IllegalArgumentException("워크스페이스 멤버를 찾을 수 없습니다.");
+    }
     UserInfo user = userReader.getUser(userId);
     Map<Long, String> groupNameMap =
         member.groupId() != null

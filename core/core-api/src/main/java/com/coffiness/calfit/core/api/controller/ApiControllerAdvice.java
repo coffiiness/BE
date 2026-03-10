@@ -30,6 +30,21 @@ public class ApiControllerAdvice {
         ApiResponse.error(ErrorType.BAD_REQUEST), ErrorType.BAD_REQUEST.getStatus());
   }
 
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
+    String message = e.getMessage();
+
+    if (message != null && message.startsWith("GOOGLE_")) {
+      log.info("GoogleCalendarException : {}", message, e);
+      return new ResponseEntity<>(
+          ApiResponse.error(ErrorType.BAD_REQUEST), ErrorType.BAD_REQUEST.getStatus());
+    }
+
+    log.error("IllegalStateException : {}", message, e);
+    return new ResponseEntity<>(
+        ApiResponse.error(ErrorType.DEFAULT_ERROR), ErrorType.DEFAULT_ERROR.getStatus());
+  }
+
   @ExceptionHandler(CoreException.class)
   public ResponseEntity<ApiResponse<?>> handleCoreException(CoreException e) {
     switch (e.getErrorType().getLogLevel()) {
