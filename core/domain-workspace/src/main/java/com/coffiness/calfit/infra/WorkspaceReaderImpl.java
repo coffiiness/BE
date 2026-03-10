@@ -19,6 +19,12 @@ public class WorkspaceReaderImpl implements WorkspaceReader {
     return workspaceRepository.findAll().stream().map(this::toWorkspace).toList();
   }
 
+  // 워크스페이스 ID로 워크스페이스 정보를 조회
+  @Override
+  public Workspace getWorkspace(String workspaceId) {
+    return workspaceRepository.findByWorkspaceId(workspaceId).map(this::toWorkspace).orElse(null);
+  }
+
   private Workspace toWorkspace(WorkspaceEntity entity) {
     return new Workspace(
         entity.getId(),

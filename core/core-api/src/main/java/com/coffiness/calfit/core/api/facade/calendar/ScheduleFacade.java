@@ -45,7 +45,7 @@ public class ScheduleFacade {
     if (request.roomId() != null) {
       MeetingRoomReservation reservation =
           meetingRoomReservationService.reserve(
-              member.id(), request.roomId(), request.startTime(), request.endTime());
+              member.userId(), request.roomId(), request.startTime(), request.endTime());
       reservationId = reservation.id();
     }
 
@@ -95,7 +95,7 @@ public class ScheduleFacade {
     if (scheduleDetailInfo.roomId() != null && scheduleDetailInfo.reservationId() != null) {
       if (roomIdChanged || timeChanged) {
         meetingRoomReservationService.cancelReservation(
-            member.id(), scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
+            member.userId(), scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
         newReservationId = null;
       }
     }
@@ -108,7 +108,7 @@ public class ScheduleFacade {
           request.endTime() != null ? request.endTime() : scheduleDetailInfo.endTime();
 
       MeetingRoomReservation reservation =
-          meetingRoomReservationService.reserve(member.id(), targetRoomId, startTime, endTime);
+          meetingRoomReservationService.reserve(member.userId(), targetRoomId, startTime, endTime);
       newReservationId = reservation.id();
     }
 
@@ -123,7 +123,7 @@ public class ScheduleFacade {
 
     if (scheduleInfo.roomId() != null && scheduleInfo.reservationId() != null) {
       meetingRoomReservationService.cancelReservation(
-          member.id(), scheduleInfo.roomId(), scheduleInfo.reservationId());
+          member.userId(), scheduleInfo.roomId(), scheduleInfo.reservationId());
     }
 
     scheduleService.deleteSchedule(member.id(), scheduleId);

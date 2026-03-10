@@ -71,6 +71,9 @@ public class ExternalCalendarReaderImpl implements ExternalCalendarReader {
         entity.getRefreshToken(),
         entity.getTokenExpiresAt(),
         entity.getSyncToken(),
-        entity.isSyncEnabled());
+        entity.isSyncEnabled(),
+        entity.getChannelId(),
+        entity.getChannelResourceId(),
+        entity.getChannelExpiresAt());
   }
 }

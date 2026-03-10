@@ -13,7 +13,10 @@ public record ExternalCalendar(
     String refreshToken,
     LocalDateTime tokenExpiresAt,
     String syncToken,
-    boolean isSyncEnabled) {
+    boolean isSyncEnabled,
+    String channelId,
+    String channelResourceId,
+    LocalDateTime channelExpiresAt) {
 
   @Override
   public String toString() {
@@ -28,6 +31,8 @@ public record ExternalCalendar(
         + tokenExpiresAt
         + ", isSyncEnabled="
         + isSyncEnabled
+        + ", channelId="
+        + channelId
         + "]";
   }
 }

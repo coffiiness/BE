@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api.calendar.connect;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 import com.coffiness.calfit.api.CalfitApiTest;
@@ -14,6 +15,7 @@ import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.domain.sync.policy.CalendarSyncDecision;
 import com.coffiness.calfit.domain.sync.policy.CalendarSyncPolicy;
 import com.coffiness.calfit.model.OAuthExchangeResult;
+import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.port.GoogleOAuthPort;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 public class POST_specs {
 
   @MockitoBean private GoogleOAuthPort googleOAuthPort;
+  @MockitoBean private GoogleCalendarPort googleCalendarPort;
 
   private final CalendarSyncPolicy calendarSyncPolicy = new CalendarSyncPolicy();
 
@@ -51,6 +54,9 @@ public class POST_specs {
             new OAuthExchangeResult(
                 "mock-access", 3600L, "mock-refresh", createIdToken("test@gmail.com")));
 
+    given(googleCalendarPort.resolveWorkspaceCalendarId(anyString(), anyString(), anyString()))
+        .willReturn("workspace-calendar-id");
+
     // Act
     ApiResponse<String> response =
         calendarFixture.connectGoogleCalendar(token, tenantId, validAuthCode);
@@ -69,6 +75,9 @@ public class POST_specs {
     WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
     String tenantId = workspace.workspaceId();
     String emptyAuthCode = "";
+
+    given(googleCalendarPort.resolveWorkspaceCalendarId(anyString(), anyString(), anyString()))
+        .willReturn("workspace-calendar-id");
 
     // Act
     ApiResponse<String> response =

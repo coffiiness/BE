@@ -31,6 +31,8 @@ public class ApplicantApiDocs extends RestDocsTest {
   private final ApplicantPortalService applicantPortalService = mock(ApplicantPortalService.class);
   private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
 
+  private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
+
   private final ApplicantPortalController applicantPortalController =
       new ApplicantPortalController(applicantPortalService, workspaceRepository);
 
@@ -38,6 +40,8 @@ public class ApplicantApiDocs extends RestDocsTest {
   @Override
   public void setUp(RestDocumentationContextProvider restDocumentation) {
     super.setUp(restDocumentation);
+    when(workspaceRepository.findByWorkspaceId(anyString()))
+        .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
     setUpMockMvc(applicantPortalController, restDocumentation);
     when(workspaceRepository.findByWorkspaceId(anyString()))
         .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
@@ -55,7 +59,7 @@ public class ApplicantApiDocs extends RestDocsTest {
 
     mockMvc
         .perform(
-            post("/api/v1/workspaces/{workspaceId}/applicants/signup", "workspace-123")
+            post("/api/v1/workspaces/workspace-123/applicants/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .characterEncoding("UTF-8")
                 .accept(MediaType.APPLICATION_JSON)
@@ -91,7 +95,7 @@ public class ApplicantApiDocs extends RestDocsTest {
 
     mockMvc
         .perform(
-            post("/api/v1/workspaces/{workspaceId}/applicants/login", "workspace-123")
+            post("/api/v1/workspaces/workspace-123/applicants/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .characterEncoding("UTF-8")
                 .accept(MediaType.APPLICATION_JSON)

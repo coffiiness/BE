@@ -61,13 +61,34 @@ public class GoogleOAuthClient implements GoogleOAuthPort {
     try {
       return googleOAuthApi.exchange(formData);
     } catch (FeignException e) {
+      String body = e.contentUTF8();
+
       if (e.status() == 400 || e.status() == 401) {
+        if (containsIgnoreCase(body, "Could not determine client ID")) {
+          throw new IllegalStateException("GOOGLE_CLIENT_CONFIG_MISSING", e);
+        }
+
+        if (containsIgnoreCase(body, "invalid_grant")
+            || containsIgnoreCase(body, "Malformed auth code")) {
+          throw new IllegalStateException("GOOGLE_REAUTH_REQUIRED", e);
+        }
+
         throw new IllegalStateException("GOOGLE_REAUTH_REQUIRED", e);
       }
+
       if (e.status() >= 500) {
         throw new IllegalStateException("GOOGLE_TEMPORARY_ERROR", e);
       }
+
       throw new IllegalStateException("GOOGLE_OAUTH_ERROR", e);
     }
+  }
+
+  private boolean containsIgnoreCase(String text, String token) {
+    if (text == null || token == null) {
+      return false;
+    }
+
+    return text.toLowerCase().contains(token.toLowerCase());
   }
 }

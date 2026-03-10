@@ -47,6 +47,8 @@ public class SecurityConfig {
                         "/api/v1/users/login",
                         "/api/v1/users/signup/verify")
                     .permitAll()
+                    .requestMatchers("/api/v1/calendars/google/notifications")
+                    .permitAll()
                     .requestMatchers(
                         "/api/v1/workspaces/*/applicants/signup",
                         "/api/v1/workspaces/*/applicants/login")
