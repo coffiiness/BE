@@ -47,7 +47,12 @@ public class CalendarConnectService {
 
   // 인가 코드 교환 후 사용자 구글 계정 기준으로 연동 토큰을 저장
   public String connectGoogleCalendar(
-      String authCode, String redirectUri, Long userId, String tenantId, String workspaceName) {
+      String authCode,
+      String redirectUri,
+      Long userId,
+      Long memberId,
+      String tenantId,
+      String workspaceName) {
     OAuthExchangeResult exchangeResult =
         googleOAuthPort.exchangeAuthorizationCode(authCode, redirectUri);
 
@@ -59,7 +64,7 @@ public class CalendarConnectService {
 
     ExternalCalendar externalCalendar =
         googleCalendarTokenService.upsertConnectedToken(
-            userId, workspaceCalendarId, exchangeResult);
+            userId, memberId, workspaceCalendarId, exchangeResult);
 
     registerWatchChannel(externalCalendar, tenantId);
     return googleEmail;

@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +30,7 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
   private static final String WORKSPACE_MARKER_PREFIX = "calfit_workspace_id=";
 
   private final GoogleCalendarApi googleCalendarApi;
+  private final ConcurrentMap<String, ReentrantLock> workspaceLocks = new ConcurrentHashMap<>();
 
   // 캘린더에 하나의 일정 추가
   @Override
@@ -38,6 +43,13 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
     String bearerToken = "Bearer " + accessToken;
     String workspaceMarker = buildWorkspaceMarker(workspaceId);
 
+    return runWithWorkspaceLock(
+        workspaceId,
+        () -> resolveWorkspaceCalendarIdWithLock(bearerToken, workspaceMarker, workspaceName));
+  }
+
+  private String resolveWorkspaceCalendarIdWithLock(
+      String bearerToken, String workspaceMarker, String workspaceName) {
     try {
       String existingCalendarId = findWorkspaceCalendarId(bearerToken, workspaceMarker);
       if (hasText(existingCalendarId)) {
@@ -57,6 +69,11 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
         throw new IllegalStateException("GOOGLE_CALENDAR_CREATE_FAILED");
       }
 
+      String canonicalCalendarId = findWorkspaceCalendarId(bearerToken, workspaceMarker);
+      if (hasText(canonicalCalendarId)) {
+        return canonicalCalendarId;
+      }
+
       return responseDto.id();
     } catch (FeignException e) {
       if (e.status() == 400 || e.status() == 401 || e.status() == 403) {
@@ -71,6 +88,7 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
 
   // 캘린더 목록에서 현재 워크스페이스 마커와 일치하는 캘린더를 찾음
   private String findWorkspaceCalendarId(String bearerToken, String workspaceMarker) {
+    List<String> matchedCalendarIds = new ArrayList<>();
     String pageToken = null;
 
     do {
@@ -86,7 +104,7 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
             continue;
           }
           if (item.description().contains(workspaceMarker)) {
-            return item.id();
+            matchedCalendarIds.add(item.id());
           }
         }
       }
@@ -94,7 +112,24 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
       pageToken = responseDto != null ? responseDto.nextPageToken() : null;
     } while (hasText(pageToken));
 
-    return null;
+    return findCanonicalCalendarId(matchedCalendarIds);
+  }
+
+  private String findCanonicalCalendarId(List<String> calendarIds) {
+    return calendarIds.stream().filter(this::hasText).sorted().findFirst().orElse(null);
+  }
+
+  private String runWithWorkspaceLock(String workspaceId, Supplier<String> action) {
+    ReentrantLock lock = workspaceLocks.computeIfAbsent(workspaceId, key -> new ReentrantLock());
+    lock.lock();
+    try {
+      return action.get();
+    } finally {
+      lock.unlock();
+      if (!lock.hasQueuedThreads()) {
+        workspaceLocks.remove(workspaceId, lock);
+      }
+    }
   }
 
   // 워크스페이스 식별 마커 문자열을 생성

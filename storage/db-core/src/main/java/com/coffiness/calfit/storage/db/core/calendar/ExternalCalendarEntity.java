@@ -96,6 +96,7 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
       String calendarId, String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
     boolean calendarChanged = !Objects.equals(this.calendarId, calendarId);
 
+    this.isSyncEnabled = true;
     this.calendarId = calendarId;
     this.accessToken = accessToken;
     this.tokenExpiresAt = tokenExpiresAt;

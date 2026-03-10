@@ -10,5 +10,7 @@ public interface ScheduleStore {
 
   void updateGoogleEventId(Long scheduleId, String googleEventId);
 
+  void clearGoogleEventIdsByMemberId(Long memberId);
+
   void delete(Schedule schedule);
 }

@@ -5,6 +5,7 @@ import com.coffiness.calfit.model.OAuthRefreshResult;
 import com.coffiness.calfit.port.GoogleOAuthPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +22,13 @@ public class GoogleCalendarTokenService {
 
   private final ExternalCalendarReader externalCalendarReader;
   private final ExternalCalendarStore externalCalendarStore;
+  private final ScheduleStore scheduleStore;
   private final GoogleOAuthPort googleOAuthPort;
   private final Clock clock;
 
   // 구글 연결 직후 토큰을 저장하거나 기존 연결을 워크스페이스 캘린더 기준으로 갱신
   public ExternalCalendar upsertConnectedToken(
-      Long userId, String calendarId, OAuthExchangeResult result) {
+      Long userId, Long memberId, String calendarId, OAuthExchangeResult result) {
     validateExchangeResult(result);
 
     LocalDateTime expiresAt = calculateExpiresAt(result.expiresIn());
@@ -43,8 +45,17 @@ public class GoogleCalendarTokenService {
     ExternalCalendar existing = externalCalendarReader.readSyncEnabledByUserId(userId);
     if (existing != null) {
       String refreshToken = resolveRefreshToken(result.refreshToken(), existing.refreshToken());
-      return externalCalendarStore.updateConnectedCalendar(
-          existing.id(), calendarId, result.accessToken(), refreshToken, expiresAt);
+      boolean calendarChanged = isCalendarChanged(existing.calendarId(), calendarId);
+
+      ExternalCalendar updated =
+          externalCalendarStore.updateConnectedCalendar(
+              existing.id(), calendarId, result.accessToken(), refreshToken, expiresAt);
+
+      if (calendarChanged) {
+        scheduleStore.clearGoogleEventIdsByMemberId(memberId);
+      }
+
+      return updated;
     }
 
     if (isBlank(result.refreshToken())) {
@@ -153,5 +164,9 @@ public class GoogleCalendarTokenService {
   // 문자열이 null 이거나 공백인지 확인
   private boolean isBlank(String value) {
     return value == null || value.isBlank();
+  }
+
+  private boolean isCalendarChanged(String previousCalendarId, String nextCalendarId) {
+    return !Objects.equals(previousCalendarId, nextCalendarId);
   }
 }

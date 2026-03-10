@@ -115,6 +115,16 @@ public class ScheduleStoreImpl implements ScheduleStore {
   }
 
   @Override
+  @Transactional
+  public void clearGoogleEventIdsByMemberId(Long memberId) {
+    if (memberId == null) {
+      throw new IllegalArgumentException("MEMBER_ID_REQUIRED");
+    }
+
+    scheduleRepository.clearGoogleEventIdsByMemberIdAndStatus(memberId, EntityStatus.ACTIVE);
+  }
+
+  @Override
   public void delete(Schedule schedule) {
     ScheduleEntity entity =
         scheduleRepository

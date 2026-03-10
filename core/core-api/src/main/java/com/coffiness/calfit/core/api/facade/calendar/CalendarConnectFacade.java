@@ -35,7 +35,7 @@ public class CalendarConnectFacade {
     String workspaceName = resolveWorkspaceName(member.workspaceId());
 
     return calendarConnectService.connectGoogleCalendar(
-        authCode, redirectUri, userId, member.workspaceId(), workspaceName);
+        authCode, redirectUri, userId, member.id(), member.workspaceId(), workspaceName);
   }
 
   @Transactional
