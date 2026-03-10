@@ -41,7 +41,11 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
+                auth.requestMatchers(
+                        "/api/v1/users/signup",
+                        "/api/v1/users/signup/resend-verification",
+                        "/api/v1/users/login",
+                        "/api/v1/users/signup/verify")
                     .permitAll()
                     .requestMatchers(
                         "/api/v1/workspaces/*/applicants/signup",
@@ -49,7 +53,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/careers/**")
                     .permitAll()
-                    .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
+                    .requestMatchers("/api/v1/invitations/*/view", "/api/v1/invitations/*")
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
                     .permitAll()

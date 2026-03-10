@@ -86,7 +86,7 @@ public class DashboardService {
         costs.stream()
             .collect(Collectors.toMap(c -> c.year() + "-" + c.month(), MonthlyCostTotal::amount));
 
-    // Build trend for last 8 months
+    // 최근 8개월 추이 생성
     List<RevenueCostTrend> trend = new ArrayList<>();
     LocalDate now = LocalDate.now();
     for (int i = 7; i >= 0; i--) {

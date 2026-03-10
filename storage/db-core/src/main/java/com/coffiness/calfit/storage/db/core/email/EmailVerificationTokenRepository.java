@@ -1,4 +1,4 @@
-package com.coffiness.calfit.support.email;
+package com.coffiness.calfit.storage.db.core.email;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
