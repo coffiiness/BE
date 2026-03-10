@@ -137,6 +137,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
         entity.getId(),
         entity.getMeetingRoomId(),
         entity.getUserId(),
+        entity.getInterviewScheduleId(),
         entity.getStartDatetime(),
         entity.getEndDatetime(),
         entity.getReservationStatus());

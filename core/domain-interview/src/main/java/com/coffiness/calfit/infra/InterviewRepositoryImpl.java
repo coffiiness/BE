@@ -258,6 +258,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .distinct()
             .toList();
     Map<Long, String> interviewerNameMap = resolveInterviewerNameMap(interviewerIds);
+    Map<Long, Long> interviewerMemberIdMap =
+        resolveInterviewerMemberIdMap(tenantId, interviewerIds);
 
     List<Long> applicantIds =
         applicantsByScheduleId.values().stream()
@@ -275,19 +277,22 @@ public class InterviewRepositoryImpl implements InterviewRepository {
           applicantsByScheduleId.getOrDefault(schedule.getId(), List.of());
 
       Long interviewerMemberId =
-          interviewerMappings.isEmpty() ? null : interviewerMappings.get(0).getUserId();
+          interviewerMappings.isEmpty()
+              ? null
+              : interviewerMemberIdMap.getOrDefault(
+                  interviewerMappings.get(0).getUserId(), interviewerMappings.get(0).getUserId());
 
       String interviewerName =
           interviewerMappings.stream()
               .map(InterviewScheduleInterviewerEntity::getUserId)
-              .map(id -> interviewerNameMap.getOrDefault(id, "면접관#" + id))
+              .map(id -> fallbackName(interviewerNameMap.get(id), "면접관#" + id))
               .distinct()
               .collect(Collectors.joining(", "));
 
       String applicantName =
           applicantMappings.stream()
               .map(InterviewScheduleApplicantEntity::getApplicantId)
-              .map(id -> applicantNameMap.getOrDefault(id, "지원자#" + id))
+              .map(id -> fallbackName(applicantNameMap.get(id), "지원자#" + id))
               .distinct()
               .collect(Collectors.joining(", "));
 
@@ -299,7 +304,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               interviewerMemberId,
               interviewerName,
               applicantName,
-              schedule.getMemo()));
+              fallbackName(schedule.getMemo(), "")));
     }
     return result;
   }
@@ -484,14 +489,36 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     }
 
     Map<Long, String> resolved = new HashMap<>();
-    userRepository
-        .findAllById(interviewerIds)
-        .forEach(
-            user -> {
-              if (user.getId() != null && user.getName() != null) {
-                resolved.put(user.getId(), user.getName());
-              }
-            });
+
+    Map<Long, Member> memberMap =
+        memberReader.getMembersByIds(interviewerIds).stream()
+            .collect(Collectors.toMap(Member::id, member -> member, (left, right) -> left));
+    List<Long> memberUserIds =
+        memberMap.values().stream()
+            .map(Member::userId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+
+    Map<Long, String> userNameMap = new HashMap<>();
+    if (!memberUserIds.isEmpty()) {
+      userRepository
+          .findAllById(memberUserIds)
+          .forEach(
+              user -> {
+                if (user.getId() != null && hasText(user.getName())) {
+                  userNameMap.put(user.getId(), user.getName());
+                }
+              });
+    }
+
+    memberMap.forEach(
+        (memberId, member) -> {
+          String userName = userNameMap.get(member.userId());
+          if (hasText(userName)) {
+            resolved.put(memberId, userName);
+          }
+        });
 
     List<Long> unresolvedIds =
         interviewerIds.stream()
@@ -502,36 +529,36 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       return resolved;
     }
 
-    Map<Long, Member> memberMap =
-        memberReader.getMembersByIds(unresolvedIds).stream()
-            .collect(Collectors.toMap(Member::id, member -> member, (left, right) -> left));
-
-    List<Long> userIdsToLookup =
-        memberMap.values().stream()
-            .map(Member::userId)
-            .filter(id -> id != null)
-            .distinct()
-            .toList();
-    if (userIdsToLookup.isEmpty()) {
-      return resolved;
-    }
-
-    Map<Long, String> userNameMap = new HashMap<>();
     userRepository
-        .findAllById(userIdsToLookup)
+        .findAllById(unresolvedIds)
         .forEach(
             user -> {
-              if (user.getId() != null && user.getName() != null) {
-                userNameMap.put(user.getId(), user.getName());
+              if (user.getId() != null && hasText(user.getName())) {
+                resolved.put(user.getId(), user.getName());
               }
             });
 
-    for (Long unresolvedId : unresolvedIds) {
-      Member member = memberMap.get(unresolvedId);
-      if (member == null) continue;
-      String userName = userNameMap.get(member.userId());
-      if (userName != null) {
-        resolved.put(unresolvedId, userName);
+    return resolved;
+  }
+
+  private Map<Long, Long> resolveInterviewerMemberIdMap(
+      String tenantId, List<Long> interviewerIds) {
+    if (interviewerIds == null || interviewerIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, Long> resolved = new HashMap<>();
+    memberReader
+        .getMembersByIds(interviewerIds)
+        .forEach(member -> resolved.put(member.id(), member.id()));
+
+    for (Long interviewerId : interviewerIds) {
+      if (interviewerId == null || resolved.containsKey(interviewerId)) {
+        continue;
+      }
+      Member member = memberReader.getMember(tenantId, interviewerId);
+      if (member != null && member.id() != null) {
+        resolved.put(interviewerId, member.id());
       }
     }
     return resolved;
@@ -544,7 +571,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
 
     Map<Long, String> resolved = new HashMap<>();
     applicantRepository
-        .findAllByTenantIdAndIdIn(tenantId, applicantIds)
+        .findByTenantIdAndIdIn(tenantId, applicantIds)
         .forEach(
             applicant -> {
               if (applicant.getId() != null && applicant.getName() != null) {
@@ -563,8 +590,21 @@ public class InterviewRepositoryImpl implements InterviewRepository {
 
     applicantRepository
         .findAllByIdIn(unresolvedIds)
-        .forEach(applicant -> resolved.putIfAbsent(applicant.getId(), applicant.getName()));
+        .forEach(
+            applicant -> {
+              if (applicant.getId() != null && hasText(applicant.getName())) {
+                resolved.putIfAbsent(applicant.getId(), applicant.getName());
+              }
+            });
     return resolved;
+  }
+
+  private String fallbackName(String value, String fallback) {
+    return hasText(value) ? value : fallback;
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   private String requireTenantId() {
