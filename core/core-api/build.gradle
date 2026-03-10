@@ -2,7 +2,7 @@ bootJar.enabled = true
 jar.enabled = false
 
 dependencies {
-    // 도메인 모듈
+    // ?�메??모듈
     implementation project(':core:domain-user')
     implementation project(':core:domain-workspace')
     implementation project(':core:domain-applicant')
@@ -17,23 +17,24 @@ dependencies {
     implementation project(':core:domain-career')
     implementation project(':core:domain-application')
 
-    // 지원 모듈
+    // 지??모듈
     implementation project(':support:monitoring')
     implementation project(':support:logging')
     implementation project(':support:security')
     implementation project(':support:event')
     implementation project(':support:error')
+    implementation project(':support:email')
 
-    // 스토리지
+    // ?�토리�?
     implementation project(':storage:db-core')
 
     // clients
     implementation project(':clients')
 
-    // 외부 클라이언트 (MSA)
+    // ?��? ?�라?�언??(MSA)
     implementation project(':clients:google-calendar')
 
-    // 테스트 - REST Docs
+    // ?�스??- REST Docs
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
     testImplementation 'org.springframework.restdocs:spring-restdocs-restassured'
     testImplementation 'io.rest-assured:spring-mock-mvc'
@@ -87,3 +88,4 @@ tasks.register('jacocoMergedReport', JacocoReport) {
         html.outputLocation = layout.buildDirectory.dir("reports/jacoco/jacocoMergedReport/html")
     }
 }
+

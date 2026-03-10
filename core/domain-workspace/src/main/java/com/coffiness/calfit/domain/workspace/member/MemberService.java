@@ -31,6 +31,9 @@ public class MemberService {
   public MemberInfo getMember(String workspaceId, Long userId) {
     UserInfo user = userReader.getUser(userId);
     Member member = memberReader.getMember(workspaceId, userId);
+    if (member == null) {
+      throw new CoreException(ErrorType.NOT_FOUND);
+    }
     Map<Long, String> groupNameMap =
         member.groupId() != null
             ? groupReader.getGroupNameMap(List.of(member.groupId()))

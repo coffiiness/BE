@@ -1,11 +1,18 @@
 spring.application.name: core-api
 spring.profiles.active: local
 
+app:
+  email:
+    enabled: ${APP_EMAIL_ENABLED:true}
+    sender: ${APP_EMAIL_SENDER:${SPRING_MAIL_USERNAME:no-reply@calfit.com}}
+    api-base-url: ${APP_EMAIL_API_BASE_URL:http://localhost:8080}
+    frontend-base-url: ${APP_EMAIL_FRONTEND_BASE_URL:http://localhost:5173}
+
 aws:
   region: ap-northeast-2
 
 s3:
-  applicant-bucket: calfit-applicant   # 실제 버킷명
+  applicant-bucket: calfit-applicant   # ??쇱젫 甕곌쑵沅ο쭗?
   key-prefix: uploads
   presign-expire-minutes: 10
 
@@ -17,14 +24,28 @@ spring:
       - db-core.yml
       - optional:google-calendar.yml
   web.resources.add-mappings: false
+  mail:
+    host: ${SPRING_MAIL_HOST:}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: ${SPRING_MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:true}
+      mail.smtp.starttls.required: ${SPRING_MAIL_SMTP_STARTTLS_REQUIRED:false}
+      mail.smtp.ssl.enable: ${SPRING_MAIL_SMTP_SSL_ENABLE:false}
+      mail.smtp.connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTION_TIMEOUT:5000}
+      mail.smtp.timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
+      mail.smtp.writetimeout: ${SPRING_MAIL_SMTP_WRITE_TIMEOUT:5000}
 
-# JWT 설정
+# JWT ??쇱젟
 jwt:
   secret: ${JWT_SECRET:}
-  access-token-expiration: 3600000   # 1시간 (ms)
-  refresh-token-expiration: 604800000 # 7일 (ms)
+  access-token-expiration: 3600000   # 1??볦퍢 (ms)
+  refresh-token-expiration: 604800000 # 7??(ms)
 
-# 토스페이먼츠 설정
+# ?醫롫뮞??륁뵠?믪눘????쇱젟
 toss:
   payments:
     client-key: ${TOSS_CLIENT_KEY:test_default}
@@ -62,3 +83,5 @@ cors:
   allowed-origins:
     - https://calfit.co.kr
     - https://www.calfit.co.kr
+
+
