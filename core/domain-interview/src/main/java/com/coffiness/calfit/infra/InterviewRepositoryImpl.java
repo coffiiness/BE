@@ -176,6 +176,51 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   }
 
   @Override
+  public List<ApplicantBusySlotRow> findApplicantBusySlots(
+      List<Long> applicantIds, LocalDateTime from, LocalDateTime to) {
+    if (applicantIds == null || applicantIds.isEmpty()) {
+      return List.of();
+    }
+
+    String tenantId = requireTenantId();
+    List<InterviewScheduleApplicantEntity> mappings =
+        applicantMappingRepository.findAllByTenantIdAndApplicantIdIn(tenantId, applicantIds);
+
+    Set<Long> scheduleIds =
+        mappings.stream()
+            .map(InterviewScheduleApplicantEntity::getInterviewScheduleId)
+            .collect(Collectors.toSet());
+    if (scheduleIds.isEmpty()) {
+      return List.of();
+    }
+
+    List<InterviewScheduleEntity> schedules =
+        interviewScheduleRepository.findAllByTenantIdAndIdInAndStatusNotAndScheduledAtBefore(
+            tenantId, new ArrayList<>(scheduleIds), InterviewStatus.CANCELLED, to);
+
+    Map<Long, InterviewScheduleEntity> scheduleMap = new HashMap<>();
+    for (InterviewScheduleEntity schedule : schedules) {
+      LocalDateTime start = schedule.getScheduledAt();
+      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+      if (start.isBefore(to) && from.isBefore(end)) {
+        scheduleMap.put(schedule.getId(), schedule);
+      }
+    }
+
+    List<ApplicantBusySlotRow> result = new ArrayList<>();
+    for (InterviewScheduleApplicantEntity mapping : mappings) {
+      InterviewScheduleEntity schedule = scheduleMap.get(mapping.getInterviewScheduleId());
+      if (schedule == null) {
+        continue;
+      }
+      LocalDateTime start = schedule.getScheduledAt();
+      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+      result.add(new ApplicantBusySlotRow(mapping.getApplicantId(), schedule.getId(), start, end));
+    }
+    return result;
+  }
+
+  @Override
   public List<InterviewScheduleCalendarRow> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to) {
     if (recruitmentId == null || from == null || to == null || !from.isBefore(to)) {

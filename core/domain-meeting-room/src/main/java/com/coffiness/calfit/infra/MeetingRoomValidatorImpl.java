@@ -84,11 +84,6 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (conflicts > 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
-    long userConflicts =
-        meetingRoomReader.countOverlappingReservationsByUser(userId, startDatetime, endDatetime);
-    if (userConflicts > 0) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR);
-    }
   }
 
   @Override

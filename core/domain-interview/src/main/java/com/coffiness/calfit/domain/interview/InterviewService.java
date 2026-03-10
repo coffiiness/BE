@@ -92,7 +92,11 @@ public class InterviewService {
 
   @Transactional(readOnly = true)
   public InterviewAvailability getAvailability(
-      Long userId, LocalDateTime from, List<Long> meetingRoomIds, List<Long> interviewerIds) {
+      Long userId,
+      LocalDateTime from,
+      List<Long> meetingRoomIds,
+      List<Long> interviewerIds,
+      List<Long> applicantIds) {
 
     interviewValidator.validateHrMember(userId);
     interviewValidator.validateFromDate(from);
@@ -101,6 +105,7 @@ public class InterviewService {
 
     meetingRoomIds = meetingRoomIds == null ? List.of() : meetingRoomIds;
     interviewerIds = interviewerIds == null ? List.of() : interviewerIds;
+    applicantIds = applicantIds == null ? List.of() : applicantIds;
 
     List<InterviewAvailability.MeetingRoomBusySlot> meetingRoomBusySlots =
         interviewReader.findMeetingRoomBusySlots(meetingRoomIds, from, to);
@@ -108,7 +113,11 @@ public class InterviewService {
     List<InterviewAvailability.InterviewerBusySlot> interviewerBusySlots =
         interviewReader.findInterviewerBusySlots(interviewerIds, from, to);
 
-    return new InterviewAvailability(meetingRoomBusySlots, interviewerBusySlots);
+    List<InterviewAvailability.ApplicantBusySlot> applicantBusySlots =
+        interviewReader.findApplicantBusySlots(applicantIds, from, to);
+
+    return new InterviewAvailability(
+        meetingRoomBusySlots, interviewerBusySlots, applicantBusySlots);
   }
 
   private boolean isLockException(Throwable throwable) {

@@ -18,8 +18,13 @@ public class InterviewFacade {
 
   @Transactional(readOnly = true)
   public InterviewAvailability getAvailability(
-      Long userId, LocalDateTime from, List<Long> meetingRoomIds, List<Long> interviewerIds) {
-    return interviewService.getAvailability(userId, from, meetingRoomIds, interviewerIds);
+      Long userId,
+      LocalDateTime from,
+      List<Long> meetingRoomIds,
+      List<Long> interviewerIds,
+      List<Long> applicantIds) {
+    return interviewService.getAvailability(
+        userId, from, meetingRoomIds, interviewerIds, applicantIds);
   }
 
   @Transactional
