@@ -120,6 +120,11 @@ public class InterviewService {
         meetingRoomBusySlots, interviewerBusySlots, applicantBusySlots);
   }
 
+  @Transactional
+  public void cancelConfirmedSchedule(Long userId, Long interviewScheduleId) {
+    interviewStore.cancelConfirmedSchedule(userId, interviewScheduleId);
+  }
+
   private boolean isLockException(Throwable throwable) {
     Throwable current = throwable;
     while (current != null) {
