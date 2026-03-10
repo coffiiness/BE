@@ -93,7 +93,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   public List<MeetingRoomReservation> getActiveReservations(
       LocalDateTime fromDatetime, LocalDateTime toDatetime) {
     String tenantId = requireTenantId();
-    syncReservationStatuses(tenantId);
     if (fromDatetime == null || toDatetime == null || !fromDatetime.isBefore(toDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }

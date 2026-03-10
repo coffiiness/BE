@@ -7,7 +7,6 @@ import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
-import com.coffiness.calfit.storage.db.core.applicant.ApplicantEntity;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
@@ -24,7 +23,6 @@ import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepositor
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
-import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
@@ -485,9 +483,15 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       return Map.of();
     }
 
-    Map<Long, String> resolved =
-        userRepository.findAllById(interviewerIds).stream()
-            .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+    Map<Long, String> resolved = new HashMap<>();
+    userRepository
+        .findAllById(interviewerIds)
+        .forEach(
+            user -> {
+              if (user.getId() != null && user.getName() != null) {
+                resolved.put(user.getId(), user.getName());
+              }
+            });
 
     List<Long> unresolvedIds =
         interviewerIds.stream()
@@ -500,7 +504,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
 
     Map<Long, Member> memberMap =
         memberReader.getMembersByIds(unresolvedIds).stream()
-            .collect(Collectors.toMap(Member::id, member -> member));
+            .collect(Collectors.toMap(Member::id, member -> member, (left, right) -> left));
 
     List<Long> userIdsToLookup =
         memberMap.values().stream()
@@ -512,9 +516,15 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       return resolved;
     }
 
-    Map<Long, String> userNameMap =
-        userRepository.findAllById(userIdsToLookup).stream()
-            .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+    Map<Long, String> userNameMap = new HashMap<>();
+    userRepository
+        .findAllById(userIdsToLookup)
+        .forEach(
+            user -> {
+              if (user.getId() != null && user.getName() != null) {
+                userNameMap.put(user.getId(), user.getName());
+              }
+            });
 
     for (Long unresolvedId : unresolvedIds) {
       Member member = memberMap.get(unresolvedId);
@@ -532,9 +542,15 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       return Map.of();
     }
 
-    Map<Long, String> resolved =
-        applicantRepository.findAllByTenantIdAndIdIn(tenantId, applicantIds).stream()
-            .collect(Collectors.toMap(ApplicantEntity::getId, ApplicantEntity::getName));
+    Map<Long, String> resolved = new HashMap<>();
+    applicantRepository
+        .findAllByTenantIdAndIdIn(tenantId, applicantIds)
+        .forEach(
+            applicant -> {
+              if (applicant.getId() != null && applicant.getName() != null) {
+                resolved.put(applicant.getId(), applicant.getName());
+              }
+            });
 
     List<Long> unresolvedIds =
         applicantIds.stream()
