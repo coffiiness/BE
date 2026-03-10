@@ -77,4 +77,3 @@ public class ExternalCalendarReaderImpl implements ExternalCalendarReader {
         entity.getChannelExpiresAt());
   }
 }
-

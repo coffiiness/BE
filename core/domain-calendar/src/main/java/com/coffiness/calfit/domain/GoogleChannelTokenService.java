@@ -1,13 +1,12 @@
 package com.coffiness.calfit.domain;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 /*
  * 구글 watch 채널 토큰을 생성하고 검증하는 서비스
@@ -90,7 +89,8 @@ public class GoogleChannelTokenService {
 
     try {
       Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-      mac.init(new SecretKeySpec(watchTokenSecret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
+      mac.init(
+          new SecretKeySpec(watchTokenSecret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
       byte[] signature = mac.doFinal(payloadEncoded.getBytes(StandardCharsets.UTF_8));
 
       return encodeBase64Url(signature);

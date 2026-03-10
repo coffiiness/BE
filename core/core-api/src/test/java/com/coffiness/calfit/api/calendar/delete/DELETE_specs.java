@@ -179,7 +179,13 @@ public class DELETE_specs {
             () ->
                 verify(googleCalendarPort, times(1))
                     .createEvent(
-                        anyString(), anyString(), anyString(), anyString(), any(), any(), anyBoolean()));
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        any(),
+                        anyBoolean()));
 
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(3).toString();

@@ -3,12 +3,11 @@ package com.coffiness.calfit.domain;
 import com.coffiness.calfit.model.OAuthExchangeResult;
 import com.coffiness.calfit.model.OAuthRefreshResult;
 import com.coffiness.calfit.port.GoogleOAuthPort;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.time.LocalDateTime;
 
 /*
  * 구글 캘린더 토큰의 만료 판단과 갱신을 담당
@@ -38,11 +37,7 @@ public class GoogleCalendarTokenService {
       String refreshToken =
           resolveRefreshToken(result.refreshToken(), existingByCalendarId.refreshToken());
       return externalCalendarStore.updateConnectedCalendar(
-          existingByCalendarId.id(),
-          calendarId,
-          result.accessToken(),
-          refreshToken,
-          expiresAt);
+          existingByCalendarId.id(), calendarId, result.accessToken(), refreshToken, expiresAt);
     }
 
     ExternalCalendar existing = externalCalendarReader.readSyncEnabledByUserId(userId);

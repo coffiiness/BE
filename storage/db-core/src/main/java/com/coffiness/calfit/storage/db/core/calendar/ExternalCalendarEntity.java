@@ -5,13 +5,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.Objects;
 
 /*
  * 구글 계정 연동 엔티티
@@ -115,7 +114,8 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   }
 
   // 토큰 갱신 메소드
-  public void updateAuthTokens(String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
+  public void updateAuthTokens(
+      String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
     this.accessToken = accessToken;
     this.tokenExpiresAt = tokenExpiresAt;
     // null 덮어쓰기 방지

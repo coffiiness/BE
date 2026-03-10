@@ -35,11 +35,7 @@ public class CalendarConnectFacade {
     String workspaceName = resolveWorkspaceName(member.workspaceId());
 
     return calendarConnectService.connectGoogleCalendar(
-        authCode,
-        redirectUri,
-        userId,
-        member.workspaceId(),
-        workspaceName);
+        authCode, redirectUri, userId, member.workspaceId(), workspaceName);
   }
 
   @Transactional
@@ -66,10 +62,7 @@ public class CalendarConnectFacade {
     try {
       tokenPayload = googleChannelTokenService.parseToken(channelToken);
     } catch (IllegalArgumentException e) {
-      log.warn(
-          "잘못된 구글 채널 토큰입니다. channelId={}, resourceId={}",
-          channelId,
-          resourceId);
+      log.warn("잘못된 구글 채널 토큰입니다. channelId={}, resourceId={}", channelId, resourceId);
       return;
     }
 
@@ -97,7 +90,8 @@ public class CalendarConnectFacade {
         return;
       }
 
-      calendarConnectService.syncGoogleCalendarByExternalCalendarId(externalCalendar.id(), member.id());
+      calendarConnectService.syncGoogleCalendarByExternalCalendarId(
+          externalCalendar.id(), member.id());
     } catch (IllegalArgumentException e) {
       log.warn(
           "웹훅 동기화를 건너뜁니다. tenantId={}, externalCalendarId={}",

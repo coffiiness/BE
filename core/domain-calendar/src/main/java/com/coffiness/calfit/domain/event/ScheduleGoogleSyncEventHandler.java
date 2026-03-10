@@ -7,18 +7,17 @@ import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 /*
  * 일정 변경 이벤트를 받아 구글 캘린더 반영을 수행하는 핸들러
@@ -64,7 +63,8 @@ public class ScheduleGoogleSyncEventHandler {
     }
 
     if (!hasText(externalCalendar.calendarId())) {
-      log.warn("구글 동기화를 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.", externalCalendar.id());
+      log.warn(
+          "구글 동기화를 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.", externalCalendar.id());
       return;
     }
 

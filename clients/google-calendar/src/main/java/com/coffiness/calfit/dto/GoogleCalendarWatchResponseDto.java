@@ -1,4 +1,4 @@
-﻿package com.coffiness.calfit.dto;
+package com.coffiness.calfit.dto;
 
 import com.coffiness.calfit.model.GoogleCalendarWatchResult;
 import java.time.Instant;

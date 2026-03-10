@@ -170,7 +170,13 @@ public class POST_specs {
             () ->
                 verify(googleCalendarPort, times(1))
                     .createEvent(
-                        anyString(), anyString(), anyString(), anyString(), any(), any(), anyBoolean()));
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        any(),
+                        anyBoolean()));
 
     ScheduleSyncRequest syncRequest =
         new ScheduleSyncRequest(

@@ -11,16 +11,15 @@ import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 /*
  * 구글 캘린더 연동 서비스 클래스
@@ -48,11 +47,7 @@ public class CalendarConnectService {
 
   // 인가 코드 교환 후 사용자 구글 계정 기준으로 연동 토큰을 저장
   public String connectGoogleCalendar(
-      String authCode,
-      String redirectUri,
-      Long userId,
-      String tenantId,
-      String workspaceName) {
+      String authCode, String redirectUri, Long userId, String tenantId, String workspaceName) {
     OAuthExchangeResult exchangeResult =
         googleOAuthPort.exchangeAuthorizationCode(authCode, redirectUri);
 
@@ -63,7 +58,8 @@ public class CalendarConnectService {
             exchangeResult.accessToken(), tenantId, workspaceName);
 
     ExternalCalendar externalCalendar =
-        googleCalendarTokenService.upsertConnectedToken(userId, workspaceCalendarId, exchangeResult);
+        googleCalendarTokenService.upsertConnectedToken(
+            userId, workspaceCalendarId, exchangeResult);
 
     registerWatchChannel(externalCalendar, tenantId);
     return googleEmail;
@@ -143,8 +139,7 @@ public class CalendarConnectService {
 
     if (!hasText(externalCalendar.calendarId())) {
       log.warn(
-          "watch 등록을 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.",
-          externalCalendar.id());
+          "watch 등록을 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.", externalCalendar.id());
       return;
     }
 

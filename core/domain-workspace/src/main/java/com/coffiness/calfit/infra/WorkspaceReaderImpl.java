@@ -4,10 +4,9 @@ import com.coffiness.calfit.domain.workspace.Workspace;
 import com.coffiness.calfit.domain.workspace.WorkspaceReader;
 import com.coffiness.calfit.storage.db.core.workspace.WorkspaceEntity;
 import com.coffiness.calfit.storage.db.core.workspace.WorkspaceRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor

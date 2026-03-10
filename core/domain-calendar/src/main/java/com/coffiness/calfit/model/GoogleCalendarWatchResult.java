@@ -1,4 +1,4 @@
-﻿package com.coffiness.calfit.model;
+package com.coffiness.calfit.model;
 
 import java.time.LocalDateTime;
 
