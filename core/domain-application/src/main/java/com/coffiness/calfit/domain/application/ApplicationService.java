@@ -89,7 +89,7 @@ public class ApplicationService {
             birthDate,
             request.phone(),
             request.email(),
-            request.schema().toString());
+            request.formFields().toString());
 
     ApplicationEntity saved = applicationRepository.save(entity);
     return saved.getId();

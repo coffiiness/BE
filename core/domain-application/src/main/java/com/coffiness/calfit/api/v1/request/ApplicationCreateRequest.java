@@ -19,4 +19,4 @@ public record ApplicationCreateRequest(
     @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate birthDate,
     @NotBlank @Size(max = 20) String phone,
     @NotBlank @Email @Size(max = 50) String email,
-    @NotNull JsonNode schema) {}
+    @NotNull JsonNode formFields) {}

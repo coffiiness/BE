@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "applicationTemplates")
+@Table(name = "application_templates")
 @NoArgsConstructor
 @Getter
 public class ApplicationTemplateEntity extends TenantBaseEntity {
