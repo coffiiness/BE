@@ -58,11 +58,11 @@ public class ApplicationTemplateController {
     validateUser(user);
 
     String name = request.resolveName();
-    String schema = request.resolveSchema(objectMapper);
+    String formFields = request.resolveFormFields(objectMapper);
 
     ApplicationTemplateEntity saved =
         applicationTemplateRepository.save(
-            ApplicationTemplateEntity.create(name, schema, request.isDefault()));
+            ApplicationTemplateEntity.create(name, formFields, request.isDefault()));
 
     return ApiResponse.success(ApplicationTemplateResponse.from(saved));
   }
@@ -79,7 +79,8 @@ public class ApplicationTemplateController {
             .findByIdAndStatus(templateId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    entity.update(request.resolveName(), request.resolveSchema(objectMapper), request.isDefault());
+    entity.update(
+        request.resolveName(), request.resolveFormFields(objectMapper), request.isDefault());
     ApplicationTemplateEntity saved = applicationTemplateRepository.save(entity);
 
     return ApiResponse.success(ApplicationTemplateResponse.from(saved));
@@ -110,7 +111,7 @@ public class ApplicationTemplateController {
   public record ApplicationTemplateRequest(
       String name,
       String title,
-      String schema,
+      String formFields,
       List<Map<String, Object>> customFields,
       Boolean isDefault) {
 
@@ -122,9 +123,9 @@ public class ApplicationTemplateController {
       return resolved;
     }
 
-    public String resolveSchema(ObjectMapper objectMapper) {
-      if (schema != null && !schema.isBlank()) {
-        return schema;
+    public String resolveFormFields(ObjectMapper objectMapper) {
+      if (formFields != null && !formFields.isBlank()) {
+        return formFields;
       }
       try {
         List<Map<String, Object>> source = customFields != null ? customFields : List.of();
@@ -139,7 +140,7 @@ public class ApplicationTemplateController {
       Long id,
       @NotBlank String name,
       String title,
-      String schema,
+      String formFields,
       Boolean isDefault,
       String status,
       LocalDateTime createdAt,
@@ -150,7 +151,7 @@ public class ApplicationTemplateController {
           entity.getId(),
           entity.getName(),
           entity.getName(),
-          entity.getSchema(),
+          entity.getFormFields(),
           Boolean.TRUE.equals(entity.getIsDefault()),
           entity.isActive() ? "ACTIVE" : "DELETED",
           entity.getCreatedAt(),

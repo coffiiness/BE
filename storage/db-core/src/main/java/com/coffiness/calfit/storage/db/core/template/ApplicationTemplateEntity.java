@@ -30,16 +30,17 @@ public class ApplicationTemplateEntity extends TenantBaseEntity {
   @Column(nullable = false, unique = true, length = 50)
   private String email;
 
-  @Column(name = "schema", columnDefinition = "JSON", nullable = false)
-  private String schema;
+  @Column(name = "form_fields", columnDefinition = "JSON", nullable = false)
+  private String formFields;
 
   @Column(name = "is_default")
   private Boolean isDefault = false;
 
-  public static ApplicationTemplateEntity create(String name, String schema, Boolean isDefault) {
+  public static ApplicationTemplateEntity create(
+      String name, String formFields, Boolean isDefault) {
     ApplicationTemplateEntity entity = new ApplicationTemplateEntity();
     entity.name = name;
-    entity.schema = schema;
+    entity.formFields = formFields;
     entity.isDefault = Boolean.TRUE.equals(isDefault);
 
     // legacy non-null columns
@@ -50,9 +51,9 @@ public class ApplicationTemplateEntity extends TenantBaseEntity {
     return entity;
   }
 
-  public void update(String name, String schema, Boolean isDefault) {
+  public void update(String name, String formFields, Boolean isDefault) {
     this.name = name;
-    this.schema = schema;
+    this.formFields = formFields;
     this.isDefault = Boolean.TRUE.equals(isDefault);
   }
 
