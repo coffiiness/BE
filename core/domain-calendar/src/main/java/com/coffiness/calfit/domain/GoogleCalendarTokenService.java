@@ -3,11 +3,12 @@ package com.coffiness.calfit.domain;
 import com.coffiness.calfit.model.OAuthExchangeResult;
 import com.coffiness.calfit.model.OAuthRefreshResult;
 import com.coffiness.calfit.port.GoogleOAuthPort;
-import java.time.Clock;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 /*
  * 구글 캘린더 토큰의 만료 판단과 갱신을 담당
@@ -24,18 +25,31 @@ public class GoogleCalendarTokenService {
   private final GoogleOAuthPort googleOAuthPort;
   private final Clock clock;
 
-  // 구글 연결 직후 받은 토큰을 신규 저장하거나 기존 연결 토큰을 갱신
-  public void upsertConnectedToken(Long userId, String calendarId, OAuthExchangeResult result) {
+  // 구글 연결 직후 토큰을 저장하거나 기존 연결을 워크스페이스 캘린더 기준으로 갱신
+  public ExternalCalendar upsertConnectedToken(
+      Long userId, String calendarId, OAuthExchangeResult result) {
     validateExchangeResult(result);
 
     LocalDateTime expiresAt = calculateExpiresAt(result.expiresIn());
 
-    ExternalCalendar existing = externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
+    ExternalCalendar existingByCalendarId =
+        externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
+    if (existingByCalendarId != null) {
+      String refreshToken =
+          resolveRefreshToken(result.refreshToken(), existingByCalendarId.refreshToken());
+      return externalCalendarStore.updateConnectedCalendar(
+          existingByCalendarId.id(),
+          calendarId,
+          result.accessToken(),
+          refreshToken,
+          expiresAt);
+    }
+
+    ExternalCalendar existing = externalCalendarReader.readSyncEnabledByUserId(userId);
     if (existing != null) {
       String refreshToken = resolveRefreshToken(result.refreshToken(), existing.refreshToken());
-      externalCalendarStore.updateAuthTokens(
-          existing.id(), result.accessToken(), refreshToken, expiresAt);
-      return;
+      return externalCalendarStore.updateConnectedCalendar(
+          existing.id(), calendarId, result.accessToken(), refreshToken, expiresAt);
     }
 
     if (isBlank(result.refreshToken())) {
@@ -56,7 +70,7 @@ public class GoogleCalendarTokenService {
             null,
             null);
 
-    externalCalendarStore.store(toCreate);
+    return externalCalendarStore.store(toCreate);
   }
 
   // 현재 사용 가능한 access token 을 반환하고, 만료 임박 시 refresh 후 갱신
@@ -124,6 +138,9 @@ public class GoogleCalendarTokenService {
   // authorization code 교환 응답의 유효성을 검증
   private void validateExchangeResult(OAuthExchangeResult result) {
     if (result == null || isBlank(result.accessToken())) {
+      throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE");
+    }
+    if (isBlank(result.idToken())) {
       throw new IllegalStateException("GOOGLE_OAUTH_INVALID_RESPONSE");
     }
   }

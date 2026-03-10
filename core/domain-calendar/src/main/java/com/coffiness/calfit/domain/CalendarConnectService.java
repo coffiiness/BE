@@ -48,15 +48,24 @@ public class CalendarConnectService {
 
   // 인가 코드 교환 후 사용자 구글 계정 기준으로 연동 토큰을 저장
   public String connectGoogleCalendar(
-      String authCode, String redirectUri, Long userId, String tenantId) {
+      String authCode,
+      String redirectUri,
+      Long userId,
+      String tenantId,
+      String workspaceName) {
     OAuthExchangeResult exchangeResult =
         googleOAuthPort.exchangeAuthorizationCode(authCode, redirectUri);
 
     String googleEmail = extractEmailFromIdToken(exchangeResult.idToken());
 
-    googleCalendarTokenService.upsertConnectedToken(userId, googleEmail, exchangeResult);
-    registerWatchChannel(userId, googleEmail, tenantId);
+    String workspaceCalendarId =
+        googleCalendarPort.resolveWorkspaceCalendarId(
+            exchangeResult.accessToken(), tenantId, workspaceName);
 
+    ExternalCalendar externalCalendar =
+        googleCalendarTokenService.upsertConnectedToken(userId, workspaceCalendarId, exchangeResult);
+
+    registerWatchChannel(externalCalendar, tenantId);
     return googleEmail;
   }
 
@@ -71,7 +80,7 @@ public class CalendarConnectService {
       return;
     }
 
-    registerWatchChannel(userId, externalCalendar.calendarId(), tenantId);
+    registerWatchChannel(externalCalendar, tenantId);
   }
 
   // 구글 증분 동기화를 수행하고 이벤트별로 캘핏 일정에 반영한 뒤 syncToken을 갱신
@@ -96,6 +105,11 @@ public class CalendarConnectService {
 
   // 지정된 외부 캘린더를 기준으로 구글 증분 동기화를 수행
   private void syncExternalCalendar(Long memberId, ExternalCalendar externalCalendar) {
+    if (!hasText(externalCalendar.calendarId())) {
+      log.warn("동기화를 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.", externalCalendar.id());
+      return;
+    }
+
     String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
 
     GoogleCalendarSyncResult syncResult =
@@ -117,20 +131,20 @@ public class CalendarConnectService {
   }
 
   // 구글 watch 채널을 등록하고 채널 메타데이터를 저장
-  private void registerWatchChannel(Long userId, String calendarId, String tenantId) {
-    if (!hasText(tenantId)) {
-      log.warn("watch 등록을 건너뜁니다: tenantId가 비어 있습니다.");
+  private void registerWatchChannel(ExternalCalendar externalCalendar, String tenantId) {
+    if (externalCalendar == null) {
       return;
     }
 
-    ExternalCalendar externalCalendar =
-        externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
+    if (!hasText(tenantId)) {
+      log.warn("watch 등록을 건너뜁니다. tenantId가 비어 있습니다.");
+      return;
+    }
 
-    if (externalCalendar == null) {
+    if (!hasText(externalCalendar.calendarId())) {
       log.warn(
-          "watch 등록 대상 연동 정보를 찾을 수 없습니다. userId={}, calendarId={}",
-          userId,
-          calendarId);
+          "watch 등록을 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.",
+          externalCalendar.id());
       return;
     }
 
@@ -140,7 +154,11 @@ public class CalendarConnectService {
 
       GoogleCalendarWatchResult watchResult =
           googleCalendarPort.watchEvents(
-              accessToken, watchCallbackUrl, channelToken, resolveWatchTtlSeconds());
+              accessToken,
+              externalCalendar.calendarId(),
+              watchCallbackUrl,
+              channelToken,
+              resolveWatchTtlSeconds());
 
       externalCalendarStore.updateWatchChannel(
           externalCalendar.id(),
@@ -149,8 +167,7 @@ public class CalendarConnectService {
           watchResult.channelExpiresAt());
     } catch (RuntimeException e) {
       log.warn(
-          "watch 등록에 실패했습니다. userId={}, externalCalendarId={}, callbackUrl={}",
-          userId,
+          "watch 등록에 실패했습니다. externalCalendarId={}, callbackUrl={}",
           externalCalendar.id(),
           watchCallbackUrl,
           e);
@@ -171,17 +188,19 @@ public class CalendarConnectService {
     return externalCalendar.channelExpiresAt().isAfter(refreshThreshold);
   }
 
+  // sync token 만료 시 전체 동기화로 복구
   private GoogleCalendarSyncResult syncGoogleEventsWithRecovery(
       String accessToken, ExternalCalendar externalCalendar) {
     try {
-      return googleCalendarPort.syncEvent(accessToken, externalCalendar.syncToken());
+      return googleCalendarPort.syncEvent(
+          accessToken, externalCalendar.calendarId(), externalCalendar.syncToken());
     } catch (IllegalStateException e) {
       if (!"GOOGLE_SYNC_TOKEN_EXPIRED".equals(e.getMessage())) {
         throw e;
       }
 
       externalCalendarStore.updateSyncToken(externalCalendar.id(), null);
-      return googleCalendarPort.syncEvent(accessToken, null);
+      return googleCalendarPort.syncEvent(accessToken, externalCalendar.calendarId(), null);
     }
   }
 

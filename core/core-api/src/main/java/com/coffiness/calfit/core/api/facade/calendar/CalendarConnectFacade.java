@@ -5,6 +5,8 @@ import com.coffiness.calfit.domain.ExternalCalendar;
 import com.coffiness.calfit.domain.ExternalCalendarReader;
 import com.coffiness.calfit.domain.GoogleChannelTokenService;
 import com.coffiness.calfit.domain.GoogleChannelTokenService.ChannelTokenPayload;
+import com.coffiness.calfit.domain.workspace.Workspace;
+import com.coffiness.calfit.domain.workspace.WorkspaceReader;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CalendarConnectFacade {
 
   private final MemberReader memberReader;
+  private final WorkspaceReader workspaceReader;
   private final CalendarConnectService calendarConnectService;
   private final ExternalCalendarReader externalCalendarReader;
   private final GoogleChannelTokenService googleChannelTokenService;
@@ -29,9 +32,14 @@ public class CalendarConnectFacade {
   @Transactional
   public String connectGoogleCalendar(long userId, String authCode, String redirectUri) {
     Member member = validateAndGetMember(userId);
+    String workspaceName = resolveWorkspaceName(member.workspaceId());
 
     return calendarConnectService.connectGoogleCalendar(
-        authCode, redirectUri, userId, member.workspaceId());
+        authCode,
+        redirectUri,
+        userId,
+        member.workspaceId(),
+        workspaceName);
   }
 
   @Transactional
@@ -68,7 +76,8 @@ public class CalendarConnectFacade {
     try {
       TenantContext.setTenantId(tokenPayload.tenantId());
 
-      ExternalCalendar externalCalendar = externalCalendarReader.read(tokenPayload.externalCalendarId());
+      ExternalCalendar externalCalendar =
+          externalCalendarReader.read(tokenPayload.externalCalendarId());
       if (!isChannelMatched(externalCalendar, channelId, resourceId)) {
         log.warn(
             "채널 정보가 일치하지 않습니다. tenantId={}, externalCalendarId={}, channelId={}, resourceId={}",
@@ -100,6 +109,16 @@ public class CalendarConnectFacade {
     }
   }
 
+  // workspaceId 기준으로 표시용 워크스페이스 이름을 조회
+  private String resolveWorkspaceName(String workspaceId) {
+    Workspace workspace = workspaceReader.getWorkspace(workspaceId);
+    if (workspace == null || !hasText(workspace.name())) {
+      return workspaceId;
+    }
+
+    return workspace.name();
+  }
+
   private Member validateAndGetMember(long userId) {
     String currentWorkspaceId = TenantContext.getTenantId();
     Member member = memberReader.getMember(currentWorkspaceId, userId);
@@ -111,7 +130,7 @@ public class CalendarConnectFacade {
     return member;
   }
 
-  // 수신한 채널 정보가 저장된 watch 채널과 일치하는지 검증
+  // 수신된 채널 정보가 저장된 watch 채널과 일치하는지 검증
   private boolean isChannelMatched(
       ExternalCalendar externalCalendar, String channelId, String resourceId) {
     return hasText(externalCalendar.channelId())

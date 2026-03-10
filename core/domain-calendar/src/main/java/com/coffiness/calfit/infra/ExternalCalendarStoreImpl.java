@@ -5,9 +5,10 @@ import com.coffiness.calfit.domain.ExternalCalendar;
 import com.coffiness.calfit.domain.ExternalCalendarStore;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ExternalCalendarRepository;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -32,6 +33,25 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
             .build();
 
     ExternalCalendarEntity saved = externalCalendarRepository.save(entity);
+    return toDomain(saved);
+  }
+
+  // 워크스페이스 캘린더 ID 및 인증 토큰을 함께 갱신
+  @Override
+  public ExternalCalendar updateConnectedCalendar(
+      Long externalCalendarId,
+      String calendarId,
+      String accessToken,
+      String refreshToken,
+      LocalDateTime tokenExpiresAt) {
+    ExternalCalendarEntity entity =
+        externalCalendarRepository
+            .findByIdAndStatus(externalCalendarId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("구글 캘린더 연동 정보를 찾을 수 없습니다."));
+
+    entity.updateConnectedCalendar(calendarId, accessToken, refreshToken, tokenExpiresAt);
+    ExternalCalendarEntity saved = externalCalendarRepository.save(entity);
+
     return toDomain(saved);
   }
 
@@ -98,4 +118,3 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
         entity.getChannelExpiresAt());
   }
 }
-

@@ -6,6 +6,14 @@ public interface ExternalCalendarStore {
 
   ExternalCalendar store(ExternalCalendar externalCalendar);
 
+  // 워크스페이스 전용 calendarId 및 인증 토큰을 함께 갱신
+  ExternalCalendar updateConnectedCalendar(
+      Long externalCalendarId,
+      String calendarId,
+      String accessToken,
+      String refreshToken,
+      LocalDateTime tokenExpiresAt);
+
   ExternalCalendar updateAuthTokens(
       Long externalCalendarId,
       String accessToken,

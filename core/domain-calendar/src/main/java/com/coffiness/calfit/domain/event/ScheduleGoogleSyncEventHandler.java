@@ -7,17 +7,18 @@ import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /*
  * 일정 변경 이벤트를 받아 구글 캘린더 반영을 수행하는 핸들러
@@ -62,31 +63,39 @@ public class ScheduleGoogleSyncEventHandler {
       return;
     }
 
+    if (!hasText(externalCalendar.calendarId())) {
+      log.warn("구글 동기화를 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.", externalCalendar.id());
+      return;
+    }
+
     String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
+    String calendarId = externalCalendar.calendarId();
 
     if (event.actionType() == ScheduleSyncActionType.CREATE) {
-      runWithScheduleLock(event.scheduleId(), () -> syncCreate(accessToken, event.scheduleId()));
+      runWithScheduleLock(
+          event.scheduleId(), () -> syncCreate(accessToken, calendarId, event.scheduleId()));
       return;
     }
 
     if (event.actionType() == ScheduleSyncActionType.UPDATE) {
-      runWithScheduleLock(event.scheduleId(), () -> syncUpdate(accessToken, event.scheduleId()));
+      runWithScheduleLock(
+          event.scheduleId(), () -> syncUpdate(accessToken, calendarId, event.scheduleId()));
       return;
     }
 
     if (event.actionType() == ScheduleSyncActionType.DELETE) {
-      syncDelete(accessToken, event.googleEventId());
+      syncDelete(accessToken, calendarId, event.googleEventId());
     }
   }
 
-  // 멤버 기준으로 동기화가 활성화된 외부 캘린더를 조회
+  // 멤버 기준으로 동기화 활성화된 외부 캘린더를 조회
   private ExternalCalendar readSyncEnabledCalendar(Long memberId) {
     Member member = memberReader.getMemberById(memberId);
     return externalCalendarReader.readSyncEnabledByUserId(member.userId());
   }
 
   // 일정 생성 이벤트를 구글 일정 생성으로 반영
-  private void syncCreate(String accessToken, Long scheduleId) {
+  private void syncCreate(String accessToken, String calendarId, Long scheduleId) {
     Schedule schedule = scheduleReader.read(scheduleId);
     if (hasText(schedule.googleEventId())) {
       return;
@@ -95,6 +104,7 @@ public class ScheduleGoogleSyncEventHandler {
     GoogleCalendarClientResult created =
         googleCalendarPort.createEvent(
             accessToken,
+            calendarId,
             schedule.title(),
             schedule.description(),
             toZonedDateTime(schedule.startTime()),
@@ -105,13 +115,14 @@ public class ScheduleGoogleSyncEventHandler {
   }
 
   // 일정 수정 이벤트를 구글 일정 수정으로 반영하고 미연결 상태면 생성으로 대체
-  private void syncUpdate(String accessToken, Long scheduleId) {
+  private void syncUpdate(String accessToken, String calendarId, Long scheduleId) {
     Schedule schedule = scheduleReader.read(scheduleId);
 
     if (!hasText(schedule.googleEventId())) {
       GoogleCalendarClientResult created =
           googleCalendarPort.createEvent(
               accessToken,
+              calendarId,
               schedule.title(),
               schedule.description(),
               toZonedDateTime(schedule.startTime()),
@@ -125,6 +136,7 @@ public class ScheduleGoogleSyncEventHandler {
     GoogleCalendarClientResult updated =
         googleCalendarPort.updateEvent(
             accessToken,
+            calendarId,
             schedule.googleEventId(),
             schedule.title(),
             schedule.description(),
@@ -140,12 +152,12 @@ public class ScheduleGoogleSyncEventHandler {
   }
 
   // 일정 삭제 이벤트를 구글 일정 삭제로 반영
-  private void syncDelete(String accessToken, String googleEventId) {
+  private void syncDelete(String accessToken, String calendarId, String googleEventId) {
     if (!hasText(googleEventId)) {
       return;
     }
 
-    googleCalendarPort.deleteEvent(accessToken, googleEventId);
+    googleCalendarPort.deleteEvent(accessToken, calendarId, googleEventId);
   }
 
   // 구글 이벤트 ID가 정상 응답된 경우 내부 일정에 이벤트 ID를 저장
@@ -157,6 +169,7 @@ public class ScheduleGoogleSyncEventHandler {
     scheduleStore.updateGoogleEventId(scheduleId, result.googleEventId());
   }
 
+  // 일정 단위로 동시 동기화 충돌을 방지
   private void runWithScheduleLock(Long scheduleId, Runnable work) {
     if (scheduleId == null) {
       work.run();
@@ -175,7 +188,7 @@ public class ScheduleGoogleSyncEventHandler {
     }
   }
 
-  // ZonedDateTime으로 변환
+  // LocalDateTime을 ZonedDateTime으로 변환
   private ZonedDateTime toZonedDateTime(java.time.LocalDateTime time) {
     return time.atZone(ZoneId.systemDefault());
   }

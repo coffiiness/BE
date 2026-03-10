@@ -1,16 +1,13 @@
 package com.coffiness.calfit.api;
 
-import com.coffiness.calfit.dto.GoogleCalendarSyncResponseDto;
-import com.coffiness.calfit.dto.GoogleCalendarWatchRequestDto;
-import com.coffiness.calfit.dto.GoogleCalendarWatchResponseDto;
-import com.coffiness.calfit.dto.GoogleEventRequestDto;
-import com.coffiness.calfit.dto.GoogleEventResponseDto;
+import com.coffiness.calfit.dto.*;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
 import com.coffiness.calfit.model.GoogleCalendarWatchResult;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import feign.FeignException;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -24,23 +21,112 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GoogleCalendarClient implements GoogleCalendarPort {
 
+  private static final String CALENDAR_NAME_PREFIX = "CalFit - ";
+  private static final String DEFAULT_WORKSPACE_NAME = "Workspace";
+  private static final String WORKSPACE_MARKER_PREFIX = "calfit_workspace_id=";
+
   private final GoogleCalendarApi googleCalendarApi;
 
   // 캘린더에 하나의 일정 추가
   @Override
+  public String resolveWorkspaceCalendarId(
+      String accessToken, String workspaceId, String workspaceName) {
+    if (!hasText(workspaceId)) {
+      throw new IllegalStateException("GOOGLE_WORKSPACE_ID_MISSING");
+    }
+
+    String bearerToken = "Bearer " + accessToken;
+    String workspaceMarker = buildWorkspaceMarker(workspaceId);
+
+    try {
+      String existingCalendarId = findWorkspaceCalendarId(bearerToken, workspaceMarker);
+      if (hasText(existingCalendarId)) {
+        return existingCalendarId;
+      }
+
+      GoogleCalendarCreateRequestDto requestDto =
+          new GoogleCalendarCreateRequestDto(
+              buildWorkspaceCalendarName(workspaceName),
+              workspaceMarker,
+              ZoneId.systemDefault().getId());
+
+      GoogleCalendarCreateResponseDto responseDto =
+          googleCalendarApi.createCalendar(bearerToken, requestDto);
+
+      if (responseDto == null || !hasText(responseDto.id())) {
+        throw new IllegalStateException("GOOGLE_CALENDAR_CREATE_FAILED");
+      }
+
+      return responseDto.id();
+    } catch (FeignException e) {
+      if (e.status() == 400 || e.status() == 401 || e.status() == 403) {
+        throw new IllegalStateException("GOOGLE_OAUTH_ERROR", e);
+      }
+      if (e.status() >= 500) {
+        throw new IllegalStateException("GOOGLE_TEMPORARY_ERROR", e);
+      }
+      throw new IllegalStateException("GOOGLE_CALENDAR_CREATE_FAILED", e);
+    }
+  }
+
+  // 캘린더 목록에서 현재 워크스페이스 마커와 일치하는 캘린더를 찾음
+  private String findWorkspaceCalendarId(String bearerToken, String workspaceMarker) {
+    String pageToken = null;
+
+    do {
+      GoogleCalendarListResponseDto responseDto =
+          googleCalendarApi.listCalendars(bearerToken, pageToken, false, null);
+
+      if (responseDto != null && responseDto.items() != null) {
+        for (GoogleCalendarListResponseDto.Item item : responseDto.items()) {
+          if (item == null || Boolean.TRUE.equals(item.deleted())) {
+            continue;
+          }
+          if (!hasText(item.id()) || !hasText(item.description())) {
+            continue;
+          }
+          if (item.description().contains(workspaceMarker)) {
+            return item.id();
+          }
+        }
+      }
+
+      pageToken = responseDto != null ? responseDto.nextPageToken() : null;
+    } while (hasText(pageToken));
+
+    return null;
+  }
+
+  // 워크스페이스 식별 마커 문자열을 생성
+  private String buildWorkspaceMarker(String workspaceId) {
+    return WORKSPACE_MARKER_PREFIX + workspaceId;
+  }
+
+  // 워크스페이스 이름 기반의 구글 캘린더 이름을 생성
+  private String buildWorkspaceCalendarName(String workspaceName) {
+    String resolvedWorkspaceName = hasText(workspaceName) ? workspaceName : DEFAULT_WORKSPACE_NAME;
+    return CALENDAR_NAME_PREFIX + resolvedWorkspaceName;
+  }
+
+  // 캘린더에 하나의 일정을 추가
+  @Override
   public GoogleCalendarClientResult createEvent(
       String accessToken,
+      String calendarId,
       String summary,
       String description,
       ZonedDateTime start,
       ZonedDateTime end,
       boolean isAllDay) {
 
+    validateCalendarId(calendarId);
+
     GoogleEventRequestDto requestDto =
         createEventRequest(summary, description, start, end, isAllDay);
 
     String bearerToken = "Bearer " + accessToken;
-    GoogleEventResponseDto responseDto = googleCalendarApi.createEvent(bearerToken, requestDto);
+    GoogleEventResponseDto responseDto =
+        googleCalendarApi.createEvent(bearerToken, calendarId, requestDto);
 
     return responseDto.toResult();
   }
@@ -49,6 +135,7 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
   @Override
   public GoogleCalendarClientResult updateEvent(
       String accessToken,
+      String calendarId,
       String googleEventId,
       String summary,
       String description,
@@ -56,26 +143,33 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
       ZonedDateTime end,
       boolean isAllDay) {
 
+    validateCalendarId(calendarId);
+
     GoogleEventRequestDto requestDto =
         createEventRequest(summary, description, start, end, isAllDay);
 
     String bearerToken = "Bearer " + accessToken;
     GoogleEventResponseDto responseDto =
-        googleCalendarApi.updateEvent(bearerToken, googleEventId, requestDto);
+        googleCalendarApi.updateEvent(bearerToken, calendarId, googleEventId, requestDto);
 
     return responseDto.toResult();
   }
 
   // 캘린더 일정 삭제
   @Override
-  public void deleteEvent(String accessToken, String googleEventId) {
+  public void deleteEvent(String accessToken, String calendarId, String googleEventId) {
+    validateCalendarId(calendarId);
+
     String bearerToken = "Bearer " + accessToken;
-    googleCalendarApi.deleteEvent(bearerToken, googleEventId);
+    googleCalendarApi.deleteEvent(bearerToken, calendarId, googleEventId);
   }
 
   // 캘린더에 있는 일정 가져오기
   @Override
-  public GoogleCalendarSyncResult syncEvent(String accessToken, String syncToken) {
+  public GoogleCalendarSyncResult syncEvent(
+      String accessToken, String calendarId, String syncToken) {
+    validateCalendarId(calendarId);
+
     String bearerToken = "Bearer " + accessToken;
     List<SyncEventModel> allEvents = new ArrayList<>();
     String pageToken = null;
@@ -84,7 +178,7 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
     try {
       do {
         GoogleCalendarSyncResponseDto responseDto =
-            googleCalendarApi.syncEvent(bearerToken, syncToken, pageToken);
+            googleCalendarApi.syncEvent(bearerToken, calendarId, syncToken, pageToken);
 
         GoogleCalendarSyncResult partialResult = responseDto.toResult();
         if (partialResult.items() != null) {
@@ -108,7 +202,13 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
   // 구글 이벤트 변경 알림을 받기 위한 watch 채널 생성
   @Override
   public GoogleCalendarWatchResult watchEvents(
-      String accessToken, String callbackUrl, String channelToken, Long ttlSeconds) {
+      String accessToken,
+      String calendarId,
+      String callbackUrl,
+      String channelToken,
+      Long ttlSeconds) {
+    validateCalendarId(calendarId);
+
     if (callbackUrl == null || callbackUrl.isBlank()) {
       throw new IllegalStateException("GOOGLE_WATCH_CALLBACK_URL_MISSING");
     }
@@ -124,7 +224,7 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
 
     try {
       GoogleCalendarWatchResponseDto responseDto =
-          googleCalendarApi.watchEvents(bearerToken, requestDto);
+          googleCalendarApi.watchEvents(bearerToken, calendarId, requestDto);
       return responseDto.toResult();
     } catch (FeignException e) {
       if (e.status() == 400 || e.status() == 401 || e.status() == 403) {
@@ -134,6 +234,13 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
         throw new IllegalStateException("GOOGLE_TEMPORARY_ERROR", e);
       }
       throw new IllegalStateException("GOOGLE_OAUTH_ERROR", e);
+    }
+  }
+
+  // 캘린더 ID 유효성을 검사
+  private void validateCalendarId(String calendarId) {
+    if (!hasText(calendarId)) {
+      throw new IllegalStateException("GOOGLE_CALENDAR_ID_MISSING");
     }
   }
 
@@ -170,5 +277,10 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
     }
 
     return Map.of("ttl", String.valueOf(ttlSeconds));
+  }
+
+  // 문자열이 null 또는 공백인지 확인
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }
