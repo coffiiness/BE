@@ -53,10 +53,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/careers/**")
                     .permitAll()
-                    .requestMatchers(
-                        "/api/v1/invitations/*/accept",
-                        "/api/v1/invitations/*/view",
-                        "/api/v1/invitations/*")
+                    .requestMatchers("/api/v1/invitations/*/view", "/api/v1/invitations/*")
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
                     .permitAll()

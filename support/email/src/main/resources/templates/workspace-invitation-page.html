@@ -17,34 +17,11 @@
         </div>
         <p>초대받은 이메일로 먼저 회원가입을 완료했다면 바로 참여할 수 있습니다.</p>
         <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 24px;">
-          <button id="accept-button" style="padding: 14px 28px; border-radius: 999px; border: 0; background: #2563eb; color: #ffffff; font-size: 18px; font-weight: 700; cursor: pointer;">워크스페이스 참여하기</button>
+          <a th:href="${acceptUrl}" style="padding: 14px 28px; border-radius: 999px; border: 0; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 18px; font-weight: 700; cursor: pointer;">워크스페이스 참여하기</a>
           <a th:href="${loginUrl}" style="padding: 14px 28px; border-radius: 999px; border: 1px solid #cbd5e1; color: #334155; text-decoration: none; font-size: 18px; font-weight: 700;">로그인으로 이동</a>
         </div>
-        <p id="status" style="margin-top: 20px; color: #475569;"></p>
       </div>
     </div>
-    <script th:inline="javascript">
-      const acceptUrl = [[${acceptUrl}]];
-      const loginUrl = [[${loginUrl}]];
-      const button = document.getElementById('accept-button');
-      const status = document.getElementById('status');
-
-      button.addEventListener('click', async () => {
-        button.disabled = true;
-        status.textContent = '초대를 수락하는 중입니다...';
-        try {
-          const response = await fetch(acceptUrl, { method: 'POST' });
-          if (!response.ok) {
-            throw new Error('초대 수락에 실패했습니다.');
-          }
-          status.textContent = '초대가 수락되었습니다. 로그인 화면으로 이동합니다.';
-          window.location.href = loginUrl;
-        } catch (error) {
-          button.disabled = false;
-          status.textContent = '초대 수락에 실패했습니다. 초대받은 이메일로 먼저 회원가입했는지 확인해 주세요.';
-        }
-      });
-    </script>
   </body>
 </html>
 
