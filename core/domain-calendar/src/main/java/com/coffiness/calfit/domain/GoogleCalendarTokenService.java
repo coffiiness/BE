@@ -30,8 +30,7 @@ public class GoogleCalendarTokenService {
 
     LocalDateTime expiresAt = calculateExpiresAt(result.expiresIn());
 
-    ExternalCalendar existing =
-        externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
+    ExternalCalendar existing = externalCalendarReader.readByUserIdAndCalendarId(userId, calendarId);
     if (existing != null) {
       String refreshToken = resolveRefreshToken(result.refreshToken(), existing.refreshToken());
       externalCalendarStore.updateAuthTokens(
@@ -52,7 +51,10 @@ public class GoogleCalendarTokenService {
             result.refreshToken(),
             expiresAt,
             null,
-            true);
+            true,
+            null,
+            null,
+            null);
 
     externalCalendarStore.store(toCreate);
   }

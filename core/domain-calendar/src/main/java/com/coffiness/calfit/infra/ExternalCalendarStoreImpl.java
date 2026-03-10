@@ -26,6 +26,9 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
             .tokenExpiresAt(externalCalendar.tokenExpiresAt())
             .syncToken(externalCalendar.syncToken())
             .isSyncEnabled(externalCalendar.isSyncEnabled())
+            .channelId(externalCalendar.channelId())
+            .channelResourceId(externalCalendar.channelResourceId())
+            .channelExpiresAt(externalCalendar.channelExpiresAt())
             .build();
 
     ExternalCalendarEntity saved = externalCalendarRepository.save(entity);
@@ -62,6 +65,24 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
     return toDomain(saved);
   }
 
+  // 저장된 외부 캘린더 엔티티의 watch 채널 메타데이터를 업데이트
+  @Override
+  public ExternalCalendar updateWatchChannel(
+      Long externalCalendarId,
+      String channelId,
+      String channelResourceId,
+      LocalDateTime channelExpiresAt) {
+    ExternalCalendarEntity entity =
+        externalCalendarRepository
+            .findByIdAndStatus(externalCalendarId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("구글 캘린더 연동 정보를 찾을 수 없습니다."));
+
+    entity.updateWatchChannel(channelId, channelResourceId, channelExpiresAt);
+    ExternalCalendarEntity saved = externalCalendarRepository.save(entity);
+
+    return toDomain(saved);
+  }
+
   private ExternalCalendar toDomain(ExternalCalendarEntity entity) {
     return new ExternalCalendar(
         entity.getId(),
@@ -71,6 +92,10 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
         entity.getRefreshToken(),
         entity.getTokenExpiresAt(),
         entity.getSyncToken(),
-        entity.isSyncEnabled());
+        entity.isSyncEnabled(),
+        entity.getChannelId(),
+        entity.getChannelResourceId(),
+        entity.getChannelExpiresAt());
   }
 }
+

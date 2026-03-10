@@ -1,17 +1,22 @@
 package com.coffiness.calfit.api;
 
 import com.coffiness.calfit.dto.GoogleCalendarSyncResponseDto;
+import com.coffiness.calfit.dto.GoogleCalendarWatchRequestDto;
+import com.coffiness.calfit.dto.GoogleCalendarWatchResponseDto;
 import com.coffiness.calfit.dto.GoogleEventRequestDto;
 import com.coffiness.calfit.dto.GoogleEventResponseDto;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
+import com.coffiness.calfit.model.GoogleCalendarWatchResult;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import feign.FeignException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -100,6 +105,38 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
     }
   }
 
+  // 구글 이벤트 변경 알림을 받기 위한 watch 채널 생성
+  @Override
+  public GoogleCalendarWatchResult watchEvents(
+      String accessToken, String callbackUrl, String channelToken, Long ttlSeconds) {
+    if (callbackUrl == null || callbackUrl.isBlank()) {
+      throw new IllegalStateException("GOOGLE_WATCH_CALLBACK_URL_MISSING");
+    }
+
+    String bearerToken = "Bearer " + accessToken;
+    GoogleCalendarWatchRequestDto requestDto =
+        new GoogleCalendarWatchRequestDto(
+            UUID.randomUUID().toString(),
+            "web_hook",
+            callbackUrl,
+            channelToken,
+            createWatchParams(ttlSeconds));
+
+    try {
+      GoogleCalendarWatchResponseDto responseDto =
+          googleCalendarApi.watchEvents(bearerToken, requestDto);
+      return responseDto.toResult();
+    } catch (FeignException e) {
+      if (e.status() == 400 || e.status() == 401 || e.status() == 403) {
+        throw new IllegalStateException("GOOGLE_WATCH_REGISTRATION_FAILED", e);
+      }
+      if (e.status() >= 500) {
+        throw new IllegalStateException("GOOGLE_TEMPORARY_ERROR", e);
+      }
+      throw new IllegalStateException("GOOGLE_OAUTH_ERROR", e);
+    }
+  }
+
   private GoogleEventRequestDto createEventRequest(
       String summary,
       String description,
@@ -124,5 +161,14 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
       return new GoogleEventRequestDto.EventDateTime(
           time.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), null, timeZoneId);
     }
+  }
+
+  // watch 채널 생성 요청에 전달할 TTL 파라미터를 구성
+  private Map<String, String> createWatchParams(Long ttlSeconds) {
+    if (ttlSeconds == null || ttlSeconds <= 0) {
+      return Map.of();
+    }
+
+    return Map.of("ttl", String.valueOf(ttlSeconds));
   }
 }

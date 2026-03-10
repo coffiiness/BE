@@ -13,4 +13,11 @@ public interface ExternalCalendarStore {
       LocalDateTime tokenExpiresAt);
 
   ExternalCalendar updateSyncToken(Long externalCalendarId, String syncToken);
+
+  // 외부 캘린더의 watch 채널 정보를 갱신
+  ExternalCalendar updateWatchChannel(
+      Long externalCalendarId,
+      String channelId,
+      String channelResourceId,
+      LocalDateTime channelExpiresAt);
 }

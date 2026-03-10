@@ -2,6 +2,7 @@ package com.coffiness.calfit.port;
 
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
+import com.coffiness.calfit.model.GoogleCalendarWatchResult;
 import java.time.ZonedDateTime;
 
 public interface GoogleCalendarPort {
@@ -26,4 +27,8 @@ public interface GoogleCalendarPort {
   void deleteEvent(String accessToken, String googleEventId);
 
   GoogleCalendarSyncResult syncEvent(String accessToken, String syncToken);
+
+  // 구글 이벤트 변경 알림 수신을 위한 watch 채널을 생성
+  GoogleCalendarWatchResult watchEvents(
+      String accessToken, String callbackUrl, String channelToken, Long ttlSeconds);
 }

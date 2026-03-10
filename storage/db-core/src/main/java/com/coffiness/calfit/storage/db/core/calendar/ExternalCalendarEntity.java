@@ -52,6 +52,18 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   @Column(name = "is_sync_enabled", nullable = false)
   private boolean isSyncEnabled;
 
+  // 구글 watch 채널 ID
+  @Column(name = "channel_id")
+  private String channelId;
+
+  // 구글 watch 리소스 ID
+  @Column(name = "channel_resource_id")
+  private String channelResourceId;
+
+  // 구글 watch 만료 시각(UTC)
+  @Column(name = "channel_expires_at")
+  private LocalDateTime channelExpiresAt;
+
   @Builder
   public ExternalCalendarEntity(
       String tenantId,
@@ -61,7 +73,10 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
       String refreshToken,
       LocalDateTime tokenExpiresAt,
       String syncToken,
-      boolean isSyncEnabled) {
+      boolean isSyncEnabled,
+      String channelId,
+      String channelResourceId,
+      LocalDateTime channelExpiresAt) {
     super(tenantId);
     this.userId = userId;
     this.calendarId = calendarId;
@@ -70,6 +85,9 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
     this.tokenExpiresAt = tokenExpiresAt;
     this.syncToken = syncToken;
     this.isSyncEnabled = isSyncEnabled;
+    this.channelId = channelId;
+    this.channelResourceId = channelResourceId;
+    this.channelExpiresAt = channelExpiresAt;
   }
 
   // 토큰 재발급 메소드
@@ -86,5 +104,13 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   // 새로운 동기화 지점을 저장 메소드
   public void updateSyncToken(String syncToken) {
     this.syncToken = syncToken;
+  }
+
+  // watch 채널 정보를 저장하는 메소드
+  public void updateWatchChannel(
+      String channelId, String channelResourceId, LocalDateTime channelExpiresAt) {
+    this.channelId = channelId;
+    this.channelResourceId = channelResourceId;
+    this.channelExpiresAt = channelExpiresAt;
   }
 }

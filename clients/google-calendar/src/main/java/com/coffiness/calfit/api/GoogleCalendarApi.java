@@ -1,6 +1,8 @@
 package com.coffiness.calfit.api;
 
 import com.coffiness.calfit.dto.GoogleCalendarSyncResponseDto;
+import com.coffiness.calfit.dto.GoogleCalendarWatchRequestDto;
+import com.coffiness.calfit.dto.GoogleCalendarWatchResponseDto;
 import com.coffiness.calfit.dto.GoogleEventRequestDto;
 import com.coffiness.calfit.dto.GoogleEventResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -43,4 +45,10 @@ interface GoogleCalendarApi {
       @RequestHeader("Authorization") String bearerToken,
       @RequestParam(value = "syncToken", required = false) String nextSyncToken,
       @RequestParam(value = "pageToken", required = false) String pageToken);
+
+  // 구글 캘린더 watch 채널 생성
+  @PostMapping(value = "/watch", consumes = MediaType.APPLICATION_JSON_VALUE)
+  GoogleCalendarWatchResponseDto watchEvents(
+      @RequestHeader("Authorization") String bearerToken,
+      @RequestBody GoogleCalendarWatchRequestDto request);
 }

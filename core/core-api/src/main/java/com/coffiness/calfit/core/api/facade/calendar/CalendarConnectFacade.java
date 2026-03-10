@@ -1,10 +1,15 @@
 package com.coffiness.calfit.core.api.facade.calendar;
 
 import com.coffiness.calfit.domain.CalendarConnectService;
+import com.coffiness.calfit.domain.ExternalCalendar;
+import com.coffiness.calfit.domain.ExternalCalendarReader;
+import com.coffiness.calfit.domain.GoogleChannelTokenService;
+import com.coffiness.calfit.domain.GoogleChannelTokenService.ChannelTokenPayload;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,23 +18,86 @@ import org.springframework.transaction.annotation.Transactional;
  * */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class CalendarConnectFacade {
 
   private final MemberReader memberReader;
   private final CalendarConnectService calendarConnectService;
+  private final ExternalCalendarReader externalCalendarReader;
+  private final GoogleChannelTokenService googleChannelTokenService;
 
   @Transactional
   public String connectGoogleCalendar(long userId, String authCode, String redirectUri) {
-    validateAndGetMember(userId);
+    Member member = validateAndGetMember(userId);
 
-    return calendarConnectService.connectGoogleCalendar(authCode, redirectUri, userId);
+    return calendarConnectService.connectGoogleCalendar(
+        authCode, redirectUri, userId, member.workspaceId());
   }
 
   @Transactional
   public void syncGoogleCalendar(long userId) {
     Member member = validateAndGetMember(userId);
 
+    calendarConnectService.ensureWatchChannel(userId, member.workspaceId());
     calendarConnectService.syncGoogleCalendar(userId, member.id());
+  }
+
+  // 구글 웹훅 헤더를 검증하고 해당 테넌트와 멤버 기준으로 즉시 동기화를 수행
+  @Transactional
+  public void handleGoogleCalendarNotification(
+      String channelId, String resourceId, String channelToken, String resourceState) {
+    if (!hasText(channelId) || !hasText(resourceId) || !hasText(channelToken)) {
+      return;
+    }
+
+    if (!isSupportedResourceState(resourceState)) {
+      return;
+    }
+
+    ChannelTokenPayload tokenPayload;
+    try {
+      tokenPayload = googleChannelTokenService.parseToken(channelToken);
+    } catch (IllegalArgumentException e) {
+      log.warn(
+          "잘못된 구글 채널 토큰입니다. channelId={}, resourceId={}",
+          channelId,
+          resourceId);
+      return;
+    }
+
+    try {
+      TenantContext.setTenantId(tokenPayload.tenantId());
+
+      ExternalCalendar externalCalendar = externalCalendarReader.read(tokenPayload.externalCalendarId());
+      if (!isChannelMatched(externalCalendar, channelId, resourceId)) {
+        log.warn(
+            "채널 정보가 일치하지 않습니다. tenantId={}, externalCalendarId={}, channelId={}, resourceId={}",
+            tokenPayload.tenantId(),
+            tokenPayload.externalCalendarId(),
+            channelId,
+            resourceId);
+        return;
+      }
+
+      Member member = memberReader.getMember(tokenPayload.tenantId(), externalCalendar.userId());
+      if (member == null) {
+        log.warn(
+            "웹훅 대상 멤버를 찾을 수 없습니다. tenantId={}, userId={}",
+            tokenPayload.tenantId(),
+            externalCalendar.userId());
+        return;
+      }
+
+      calendarConnectService.syncGoogleCalendarByExternalCalendarId(externalCalendar.id(), member.id());
+    } catch (IllegalArgumentException e) {
+      log.warn(
+          "웹훅 동기화를 건너뜁니다. tenantId={}, externalCalendarId={}",
+          tokenPayload.tenantId(),
+          tokenPayload.externalCalendarId(),
+          e);
+    } finally {
+      TenantContext.clear();
+    }
   }
 
   private Member validateAndGetMember(long userId) {
@@ -41,5 +109,26 @@ public class CalendarConnectFacade {
     }
 
     return member;
+  }
+
+  // 수신한 채널 정보가 저장된 watch 채널과 일치하는지 검증
+  private boolean isChannelMatched(
+      ExternalCalendar externalCalendar, String channelId, String resourceId) {
+    return hasText(externalCalendar.channelId())
+        && hasText(externalCalendar.channelResourceId())
+        && channelId.equals(externalCalendar.channelId())
+        && resourceId.equals(externalCalendar.channelResourceId());
+  }
+
+  // 구글 알림 상태 중 동기화 대상 상태인지 확인
+  private boolean isSupportedResourceState(String resourceState) {
+    return "sync".equalsIgnoreCase(resourceState)
+        || "exists".equalsIgnoreCase(resourceState)
+        || "not_exists".equalsIgnoreCase(resourceState);
+  }
+
+  // 문자열이 null이나 공백이 아닌지 확인
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }
