@@ -25,5 +25,5 @@ public record RecruitmentUpdateRequest(
     @NotNull(message = "면접관 지정은 필수입니다.") @Size(min = 1, message = "면접관은 최소 1명 이상이어야 합니다.")
         List<@NotNull(message = "interviewerIds의 원소는 null일 수 없습니다.") Long> interviewerIds,
     @NotNull(message = "채용 단계는 필수입니다.") @Size(min = 1, message = "채용 단계는 최소 1가지 이상이어야 합니다.")
-        List<@Valid @NotNull(message = "stages의 원소는 null일 수 없습니다.") RecruitmentStageRequest>
+        List<@Valid @NotNull(message = "stages 값은 null일 수 없습니다.") RecruitmentStageRequest>
             stages) {}
