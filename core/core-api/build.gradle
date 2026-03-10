@@ -23,11 +23,12 @@ dependencies {
     implementation project(':support:security')
     implementation project(':support:event')
     implementation project(':support:error')
+    implementation project(':support:email')
 
     // 스토리지
     implementation project(':storage:db-core')
 
-    // clients
+    // 클라이언트
     implementation project(':clients')
 
     // 외부 클라이언트 (MSA)
@@ -45,12 +46,14 @@ dependencies {
     // OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
-    //AWS
+    // ShedLock
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+
+    // AWS
     implementation platform("software.amazon.awssdk:bom:2.42.3")
     implementation "software.amazon.awssdk:s3"
     implementation "software.amazon.awssdk:auth"
-
-
 }
 
 def snippetsDir = file("$buildDir/generated-snippets")

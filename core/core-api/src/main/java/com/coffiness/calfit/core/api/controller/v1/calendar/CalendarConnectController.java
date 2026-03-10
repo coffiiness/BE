@@ -1,7 +1,7 @@
 package com.coffiness.calfit.core.api.controller.v1.calendar;
 
+import com.coffiness.calfit.core.api.facade.calendar.CalendarConnectFacade;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.CalendarConnectService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import com.coffiness.calfit.v1.request.CalendarConnectRequest;
 import jakarta.validation.Valid;
@@ -15,16 +15,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CalendarConnectController {
 
-  private final CalendarConnectService calendarConnectService;
+  private final CalendarConnectFacade calendarConnectFacade;
 
+  // 계정 연동
   @PostMapping("/api/v1/calendars/google/connect")
   public ApiResponse<String> connectGoogleCalendar(
       @Valid @RequestBody CalendarConnectRequest request,
       @AuthenticationPrincipal SecurityUser securityUser) {
     String googleEmail =
-        calendarConnectService.connectGoogleCalendar(
-            request.authCode(), request.redirectUri(), securityUser.userId());
+        calendarConnectFacade.connectGoogleCalendar(
+            securityUser.userId(), request.authCode(), request.redirectUri());
 
     return ApiResponse.success(googleEmail);
+  }
+
+  // 구글 -> CalFit 일정 동기화
+  @PostMapping("/api/v1/calendars/google/sync")
+  public ApiResponse<Void> syncGoogleCalendar(@AuthenticationPrincipal SecurityUser securityUser) {
+    calendarConnectFacade.syncGoogleCalendar(securityUser.userId());
+
+    return ApiResponse.success(null);
   }
 }

@@ -7,7 +7,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ApplicationFileRepository extends JpaRepository<ApplicationFileEntity, Long> {
-  Optional<ApplicationFileEntity> findByApplicationIdAndFieldKey(Long applicationId, String fieldKey);
+  Optional<ApplicationFileEntity> findByApplicationIdAndFieldKey(
+      Long applicationId, String fieldKey);
 
   List<ApplicationFileEntity> findByApplicationIdAndStatusAndUploadStatus(
       Long applicationId, EntityStatus status, UploadStatus uploadStatus);

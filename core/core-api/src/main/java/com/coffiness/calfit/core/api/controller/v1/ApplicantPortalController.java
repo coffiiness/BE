@@ -40,7 +40,8 @@ public class ApplicantPortalController {
     setTenantFromWorkspace(workspaceId);
     ApplicantLoginResult result = applicantPortalService.login(request.email(), request.password());
     return ApiResponse.success(
-        new ApplicantLoginResponse(result.accessToken(), ApplicantResponse.from(result.applicant())));
+        new ApplicantLoginResponse(
+            result.accessToken(), ApplicantResponse.from(result.applicant())));
   }
 
   private void setTenantFromWorkspace(String workspaceId) {

@@ -21,9 +21,8 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
 
   private final GoogleCalendarApi googleCalendarApi;
 
-  /*
-   * 캘린더에 하나의 일정 추가 (POST)
-   */
+  // 캘린더에 하나의 일정 추가
+  @Override
   public GoogleCalendarClientResult createEvent(
       String accessToken,
       String summary,
@@ -32,11 +31,8 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
       ZonedDateTime end,
       boolean isAllDay) {
 
-    GoogleEventRequestDto.EventDateTime startDto = createEventDateTime(start, isAllDay);
-    GoogleEventRequestDto.EventDateTime endDto = createEventDateTime(end, isAllDay);
-
     GoogleEventRequestDto requestDto =
-        new GoogleEventRequestDto(summary, description, startDto, endDto);
+        createEventRequest(summary, description, start, end, isAllDay);
 
     String bearerToken = "Bearer " + accessToken;
     GoogleEventResponseDto responseDto = googleCalendarApi.createEvent(bearerToken, requestDto);
@@ -44,9 +40,36 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
     return responseDto.toResult();
   }
 
-  /*
-   * 캘린더에 있는 일정 가져오기 (GET)
-   */
+  // 캘린더에 하나의 일정 수정
+  @Override
+  public GoogleCalendarClientResult updateEvent(
+      String accessToken,
+      String googleEventId,
+      String summary,
+      String description,
+      ZonedDateTime start,
+      ZonedDateTime end,
+      boolean isAllDay) {
+
+    GoogleEventRequestDto requestDto =
+        createEventRequest(summary, description, start, end, isAllDay);
+
+    String bearerToken = "Bearer " + accessToken;
+    GoogleEventResponseDto responseDto =
+        googleCalendarApi.updateEvent(bearerToken, googleEventId, requestDto);
+
+    return responseDto.toResult();
+  }
+
+  // 캘린더 일정 삭제
+  @Override
+  public void deleteEvent(String accessToken, String googleEventId) {
+    String bearerToken = "Bearer " + accessToken;
+    googleCalendarApi.deleteEvent(bearerToken, googleEventId);
+  }
+
+  // 캘린더에 있는 일정 가져오기
+  @Override
   public GoogleCalendarSyncResult syncEvent(String accessToken, String syncToken) {
     String bearerToken = "Bearer " + accessToken;
     List<SyncEventModel> allEvents = new ArrayList<>();
@@ -62,7 +85,8 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
         if (partialResult.items() != null) {
           allEvents.addAll(partialResult.items());
         }
-        // pageToken이 없을 때까지 모든 일정 저장
+
+        // pageToken 이 없을 때까지 모든 일정 조회
         pageToken = responseDto.nextPageToken();
         if (pageToken == null) {
           finalSyncToken = responseDto.nextSyncToken();
@@ -76,9 +100,19 @@ public class GoogleCalendarClient implements GoogleCalendarPort {
     }
   }
 
-  /*
-   * 내부 시간 변환 헬퍼 메소드
-   */
+  private GoogleEventRequestDto createEventRequest(
+      String summary,
+      String description,
+      ZonedDateTime start,
+      ZonedDateTime end,
+      boolean isAllDay) {
+    GoogleEventRequestDto.EventDateTime startDto = createEventDateTime(start, isAllDay);
+    GoogleEventRequestDto.EventDateTime endDto = createEventDateTime(end, isAllDay);
+
+    return new GoogleEventRequestDto(summary, description, startDto, endDto);
+  }
+
+  // 이벤트 시간 변환 헬퍼 메소드
   private GoogleEventRequestDto.EventDateTime createEventDateTime(
       ZonedDateTime time, boolean isAllDay) {
     String timeZoneId = time.getZone().getId();

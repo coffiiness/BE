@@ -4,6 +4,11 @@ import com.coffiness.calfit.core.enums.InvitationStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.storage.db.core.invitation.WorkspaceInvitationEntity;
 import com.coffiness.calfit.storage.db.core.invitation.WorkspaceInvitationRepository;
+import com.coffiness.calfit.storage.db.core.user.UserRepository;
+import com.coffiness.calfit.storage.db.core.workspace.WorkspaceRepository;
+import com.coffiness.calfit.support.email.EmailProperties;
+import com.coffiness.calfit.support.email.EmailService;
+import com.coffiness.calfit.support.email.InvitationEmailMessage;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
@@ -16,7 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class InvitationService {
   private static final long EXPIRATION_HOURS = 72;
+
+  private static final String SUBJECT_SUFFIX = "워크스페이스 초대";
+  private static final String MEMBER_TYPE_HR = "인사담당자";
+  private static final String MEMBER_TYPE_INTERVIEWER = "면접관";
+
   private final WorkspaceInvitationRepository invitationRepository;
+  private final WorkspaceRepository workspaceRepository;
+  private final UserRepository userRepository;
+  private final EmailService emailService;
+  private final EmailProperties emailProperties;
 
   @Transactional
   public Invitation createInvitation(
@@ -34,6 +48,7 @@ public class InvitationService {
             workspaceId, email, token, memberType, invitedBy, expiresAt);
     WorkspaceInvitationEntity saved = invitationRepository.save(entity);
 
+    sendInvitationEmail(saved);
     return toInvitation(saved);
   }
 
@@ -59,6 +74,39 @@ public class InvitationService {
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
     entity.accept();
+  }
+
+  private void sendInvitationEmail(WorkspaceInvitationEntity invitation) {
+    String workspaceName =
+        workspaceRepository
+            .findByWorkspaceId(invitation.getWorkspaceId())
+            .map(workspace -> workspace.getName())
+            .orElse("CalFit Workspace");
+    String inviterName =
+        userRepository
+            .findById(invitation.getInvitedBy())
+            .map(user -> user.getName())
+            .orElse("CalFit");
+
+    InvitationEmailMessage message =
+        InvitationEmailMessage.builder()
+            .invitedEmail(invitation.getEmail())
+            .workspaceName(workspaceName)
+            .inviterName(inviterName)
+            .memberTypeLabel(toMemberTypeLabel(invitation.getMemberType()))
+            .subject(String.format("[CalFit] %s %s", workspaceName, SUBJECT_SUFFIX))
+            .invitationUrl(emailProperties.getInvitationViewUrl(invitation.getToken()))
+            .expiresAt(invitation.getExpiresAt())
+            .build();
+
+    emailService.sendInvitationEmail(emailProperties.getSender(), message);
+  }
+
+  private String toMemberTypeLabel(MemberType memberType) {
+    return switch (memberType) {
+      case HR -> MEMBER_TYPE_HR;
+      case INTERVIEWER -> MEMBER_TYPE_INTERVIEWER;
+    };
   }
 
   private Invitation toInvitation(WorkspaceInvitationEntity entity) {

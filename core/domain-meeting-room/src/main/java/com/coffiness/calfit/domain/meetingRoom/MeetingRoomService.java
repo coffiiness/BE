@@ -1,6 +1,5 @@
 package com.coffiness.calfit.domain.meetingRoom;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,25 +38,5 @@ public class MeetingRoomService {
   @Transactional(readOnly = true)
   public List<MeetingRoom> list() {
     return meetingRoomReader.getMeetingRooms();
-  }
-
-  @Transactional
-  public List<MeetingRoomReservation> listReservations(
-      LocalDateTime fromDatetime, LocalDateTime toDatetime) {
-    return meetingRoomReader.getActiveReservations(fromDatetime, toDatetime);
-  }
-
-  @Transactional
-  public MeetingRoomReservation reserve(
-      Long userId, Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
-    meetingRoomValidator.validateReserveRequest(userId, meetingRoomId, startDatetime, endDatetime);
-    return meetingRoomStore.reserve(meetingRoomId, userId, startDatetime, endDatetime);
-  }
-
-  @Transactional
-  public MeetingRoomReservation cancelReservation(
-      Long userId, Long meetingRoomId, Long reservationId) {
-    meetingRoomValidator.validateCancelReservationRequest(userId, meetingRoomId, reservationId);
-    return meetingRoomStore.cancelReservation(meetingRoomId, reservationId, userId);
   }
 }

@@ -203,6 +203,7 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
         entity.getId(),
         entity.getMeetingRoomId(),
         entity.getUserId(),
+        entity.getInterviewScheduleId(),
         entity.getStartDatetime(),
         entity.getEndDatetime(),
         entity.getReservationStatus());

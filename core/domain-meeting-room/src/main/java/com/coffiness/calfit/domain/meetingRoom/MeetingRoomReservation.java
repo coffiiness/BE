@@ -7,6 +7,7 @@ public record MeetingRoomReservation(
     Long id,
     Long meetingRoomId,
     Long userId,
+    Long interviewScheduleId,
     LocalDateTime startDatetime,
     LocalDateTime endDatetime,
     MeetingRoomStatus status) {}

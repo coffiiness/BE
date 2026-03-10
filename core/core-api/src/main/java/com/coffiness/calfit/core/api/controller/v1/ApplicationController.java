@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.controller.v1;
 
 import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
+import com.coffiness.calfit.api.v1.request.ApplicationStageUpdateRequest;
 import com.coffiness.calfit.api.v1.response.ApplicationCreateResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
@@ -21,6 +22,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -71,8 +73,7 @@ public class ApplicationController {
 
   @GetMapping("/api/v1/applications/{applicationId}")
   public ApiResponse<ApplicationDetailResponse> getApplicationDetail(
-      @AuthenticationPrincipal SecurityUser user,
-      @PathVariable Long applicationId) {
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long applicationId) {
     if (user == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
@@ -81,7 +82,20 @@ public class ApplicationController {
     }
     return ApiResponse.success(applicationService.getDetail(applicationId));
   }
-
+  
+  @PatchMapping("/api/v1/applications/{applicationId}/stage")
+  public ApiResponse<ApplicationDetailResponse> updateApplicationStage(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long applicationId,
+      @Valid @RequestBody ApplicationStageUpdateRequest request) {
+    if (user == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if ("APPLICANT".equalsIgnoreCase(user.role())) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return ApiResponse.success(applicationService.updateStage(applicationId, request));
+  }
   @GetMapping("/api/v1/applications/board")
   public ApiResponse<KanbanBoard> getKanbanBoard(
       @AuthenticationPrincipal SecurityUser user, @RequestParam Long recruitmentId) {

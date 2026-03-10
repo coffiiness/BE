@@ -4,11 +4,12 @@ import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
-import com.coffiness.calfit.domain.meetingRoom.MeetingRoomService;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationService;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,13 +17,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/*
+ * 일정 API의 멤버 검증과 회의실 예약 연동 담당
+ * */
 @Component
 @RequiredArgsConstructor
 public class ScheduleFacade {
 
   private final MemberReader memberReader;
   private final ScheduleService scheduleService;
-  private final MeetingRoomService meetingRoomService;
+  private final MeetingRoomReservationService meetingRoomReservationService;
 
   private Member validateAndGetMember(long userId) {
     String currentWorkspaceId = TenantContext.getTenantId();
@@ -40,12 +44,19 @@ public class ScheduleFacade {
 
     if (request.roomId() != null) {
       MeetingRoomReservation reservation =
-          meetingRoomService.reserve(
+          meetingRoomReservationService.reserve(
               member.id(), request.roomId(), request.startTime(), request.endTime());
       reservationId = reservation.id();
     }
 
     scheduleService.createSchedule(member.id(), reservationId, request);
+  }
+
+  @Transactional
+  public void syncSchedule(long userId, ScheduleSyncRequest request) {
+    Member member = validateAndGetMember(userId);
+
+    scheduleService.upsertScheduleByGoogleEventId(member.id(), request);
   }
 
   @Transactional(readOnly = true)
@@ -83,13 +94,13 @@ public class ScheduleFacade {
 
     if (scheduleDetailInfo.roomId() != null && scheduleDetailInfo.reservationId() != null) {
       if (roomIdChanged || timeChanged) {
-        meetingRoomService.cancelReservation(
+        meetingRoomReservationService.cancelReservation(
             member.id(), scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
-        newReservationId = null; // 기존 예약은 취소됨
+        newReservationId = null;
       }
     }
 
-    // 새로운 회의실 점유 로직
+    // 회의실 또는 시간 정보가 변경되면 새 예약을 생성한다.
     if (targetRoomId != null && (roomIdChanged || timeChanged)) {
       LocalDateTime startTime =
           request.startTime() != null ? request.startTime() : scheduleDetailInfo.startTime();
@@ -97,7 +108,7 @@ public class ScheduleFacade {
           request.endTime() != null ? request.endTime() : scheduleDetailInfo.endTime();
 
       MeetingRoomReservation reservation =
-          meetingRoomService.reserve(member.id(), targetRoomId, startTime, endTime);
+          meetingRoomReservationService.reserve(member.id(), targetRoomId, startTime, endTime);
       newReservationId = reservation.id();
     }
 
@@ -111,7 +122,7 @@ public class ScheduleFacade {
     ScheduleDetailInfo scheduleInfo = scheduleService.getDetailSchedule(member.id(), scheduleId);
 
     if (scheduleInfo.roomId() != null && scheduleInfo.reservationId() != null) {
-      meetingRoomService.cancelReservation(
+      meetingRoomReservationService.cancelReservation(
           member.id(), scheduleInfo.roomId(), scheduleInfo.reservationId());
     }
 
