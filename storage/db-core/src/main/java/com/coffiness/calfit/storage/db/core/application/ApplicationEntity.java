@@ -56,6 +56,7 @@ public class ApplicationEntity extends TenantBaseEntity {
   @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
   private String schema;
 
+
   @Builder
   private ApplicationEntity(
       Long applicantId,
@@ -103,8 +104,12 @@ public class ApplicationEntity extends TenantBaseEntity {
         email,
         schema);
   }
-
+  
   public void changeRecruitmentProcess(Long recruitmentProcessId) {
+    this.recruitmentProcessId = recruitmentProcessId;
+  }
+
+  public void updateRecruitmentProcessId(Long recruitmentProcessId) {
     this.recruitmentProcessId = recruitmentProcessId;
   }
 }

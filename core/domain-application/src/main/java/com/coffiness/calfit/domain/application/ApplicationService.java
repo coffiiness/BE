@@ -13,8 +13,16 @@ import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationFileRepository;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.automation.AutomationEventEntity;
+import com.coffiness.calfit.storage.db.core.automation.AutomationEventRepository;
+import com.coffiness.calfit.storage.db.core.automation.AutomationRuleEntity;
+import com.coffiness.calfit.storage.db.core.automation.AutomationRuleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentEntity;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryEntity;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
@@ -24,6 +32,8 @@ import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.email.EmailService;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.core.enums.AutomationEventStatus;
+import com.coffiness.calfit.core.enums.AutomationTriggerType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -46,6 +56,10 @@ public class ApplicationService {
   private final WorkspaceRepository workspaceRepository;
   private final EmailService emailService;
   private final EmailProperties emailProperties;
+  private final ApplicationProcessHistoryRepository applicationProcessHistoryRepository;
+  private final AutomationRuleRepository automationRuleRepository;
+  private final AutomationEventRepository automationEventRepository;
+  private final AutomationEventExecutor automationEventExecutor;
 
   @Transactional
   public Long create(ApplicationCreateRequest request, Long requesterUserId) {
@@ -274,6 +288,85 @@ public class ApplicationService {
     }
 
     return requestProcessId;
+  }
+  @Transactional(readOnly = true)
+  public KanbanBoard getKanbanBoard(Long recruitmentId) {
+    requireTenant();
+    if (recruitmentId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    List<RecruitmentStageEntity> stages = recruitmentStageRepository.findByRecruitmentId(recruitmentId);
+    if (stages.isEmpty()) {
+      return new KanbanBoard(List.of());
+    }
+
+    List<KanbanColumn> columns =
+        stages.stream()
+            .sorted((a, b) -> a.getStageStep().compareTo(b.getStageStep()))
+            .map(
+                stage -> {
+                  List<ApplicationEntity> applications =
+                      applicationRepository.findByRecruitmentIdAndRecruitmentProcessIdAndStatus(
+                          recruitmentId, stage.getId(), EntityStatus.ACTIVE);
+                  List<ApplicationSummaryResponse> summaries =
+                      applications.stream().map(ApplicationSummaryResponse::from).toList();
+                  return new KanbanColumn(
+                      stage.getId(),
+                      stage.getStageName(),
+                      stage.getStageStep(),
+                      stage.getStageType(),
+                      summaries);
+                })
+            .toList();
+
+    return new KanbanBoard(columns);
+  }
+
+  @Transactional
+  public void updateProcess(Long applicationId, Long recruitmentProcessId, Long actorId) {
+    requireTenant();
+    if (applicationId == null || recruitmentProcessId == null || actorId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    ApplicationEntity entity =
+        applicationRepository
+            .findByIdAndStatus(applicationId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    if (!recruitmentStageRepository.existsByIdAndRecruitmentId(
+        recruitmentProcessId, entity.getRecruitmentId())) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    if (recruitmentProcessId.equals(entity.getRecruitmentProcessId())) {
+      return;
+    }
+
+    Long beforeProcessId = entity.getRecruitmentProcessId();
+    entity.updateRecruitmentProcessId(recruitmentProcessId);
+
+    applicationProcessHistoryRepository.save(
+        ApplicationProcessHistoryEntity.builder()
+            .applicationId(applicationId)
+            .fromRecruitmentProcessId(beforeProcessId)
+            .toRecruitmentProcessId(recruitmentProcessId)
+            .actorId(actorId)
+            .build());
+
+    List<AutomationRuleEntity> rules =
+        automationRuleRepository.findByRecruitmentIdAndRecruitmentProcessIdAndTriggerType(
+            entity.getRecruitmentId(), recruitmentProcessId, AutomationTriggerType.ON_ENTER);
+    for (AutomationRuleEntity rule : rules) {
+      automationEventRepository.save(
+          AutomationEventEntity.builder()
+              .applicationId(applicationId)
+              .ruleId(rule.getId())
+              .actionType(rule.getActionType())
+              .eventStatus(AutomationEventStatus.PENDING)
+              .build());
+    }
+
+    automationEventExecutor.executePendingForApplication(applicationId);
   }
 
   private void requireTenant() {
