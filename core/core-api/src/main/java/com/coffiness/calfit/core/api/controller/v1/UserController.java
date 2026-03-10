@@ -4,6 +4,7 @@ import com.coffiness.calfit.api.v1.request.LoginRequest;
 import com.coffiness.calfit.api.v1.request.SignUpRequest;
 import com.coffiness.calfit.api.v1.response.LoginResponse;
 import com.coffiness.calfit.api.v1.response.UserResponse;
+import com.coffiness.calfit.api.v1.response.UserWorkspaceResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.user.User;
 import com.coffiness.calfit.domain.user.UserService;
@@ -44,6 +45,13 @@ public class UserController {
   public ApiResponse<UserResponse> getMe(@AuthenticationPrincipal SecurityUser securityUser) {
     User user = userService.getUser(securityUser.userId());
     return ApiResponse.success(UserResponse.from(user));
+  }
+
+  @GetMapping("/api/v1/users/me/workspace")
+  public ApiResponse<UserWorkspaceResponse> getMyWorkspace(
+      @AuthenticationPrincipal SecurityUser securityUser) {
+    String workspaceId = userService.getWorkspaceId(securityUser.userId());
+    return ApiResponse.success(new UserWorkspaceResponse(workspaceId));
   }
 
   @DeleteMapping("/api/v1/users/me")

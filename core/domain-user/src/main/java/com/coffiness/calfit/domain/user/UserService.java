@@ -81,6 +81,11 @@ public class UserService {
   }
 
   @Transactional(readOnly = true)
+  public String getWorkspaceId(Long userId) {
+    return memberRepository.findTenantIdByUserId(userId).orElse(null);
+  }
+
+  @Transactional(readOnly = true)
   public User getUser(Long userId) {
     UserEntity userEntity =
         userRepository
