@@ -93,7 +93,8 @@ public class ApplicationController {
     if ("APPLICANT".equalsIgnoreCase(user.role())) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
-    return ApiResponse.success(applicationService.updateStage(applicationId, request));
+    return ApiResponse.success(
+        applicationService.updateStage(applicationId, request, user.userId()));
   }
 
   @GetMapping("/api/v1/applications/board")

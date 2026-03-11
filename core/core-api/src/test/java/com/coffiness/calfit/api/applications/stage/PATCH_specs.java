@@ -1,9 +1,6 @@
 package com.coffiness.calfit.api.applications.stage;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.UserFixture;
@@ -19,16 +16,15 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.automation.ApplicationProcessHistoryRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
-import com.coffiness.calfit.support.email.EmailService;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,16 +35,15 @@ import org.springframework.http.ResponseEntity;
 @CalfitApiTest
 public class PATCH_specs {
 
-  @MockBean private EmailService emailService;
-
   @Test
-  void document_stage_move_updates_stage_and_requests_result_email(
+  void document_stage_move_updates_stage_and_stores_process_history(
       @Autowired TestRestTemplate restTemplate,
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentRepository recruitmentRepository,
       @Autowired RecruitmentStageRepository recruitmentStageRepository,
-      @Autowired ApplicationRepository applicationRepository) {
+      @Autowired ApplicationRepository applicationRepository,
+      @Autowired ApplicationProcessHistoryRepository applicationProcessHistoryRepository) {
     String token = userFixture.createUserAndGetToken();
     WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
     String tenantId = workspace.workspaceId();
@@ -131,10 +126,15 @@ public class PATCH_specs {
           .get()
           .extracting(ApplicationEntity::getRecruitmentProcessId)
           .isEqualTo(nextStageId);
+
+      assertThat(applicationProcessHistoryRepository.findByApplicationId(applicationId))
+          .hasSize(1)
+          .first()
+          .extracting(
+              history -> history.getApplicationId(), history -> history.getToRecruitmentProcessId())
+          .containsExactly(applicationId, nextStageId);
     } finally {
       TenantContext.clear();
     }
-
-    verify(emailService).sendApplicantResultEmail(anyString(), any());
   }
 }
