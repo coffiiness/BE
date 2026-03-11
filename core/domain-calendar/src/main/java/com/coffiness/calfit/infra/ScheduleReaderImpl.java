@@ -33,8 +33,8 @@ public class ScheduleReaderImpl implements ScheduleReader {
 
   @Override
   public List<Schedule> findOverlappingSchedules(
-      Long memberId, LocalDateTime startDate, LocalDateTime endDate) {
-    return scheduleRepository.findOverlappingSchedules(memberId, startDate, endDate).stream()
+      Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+    return scheduleRepository.findOverlappingSchedules(userId, startDate, endDate).stream()
         .map(this::toDomain)
         .toList();
   }
@@ -124,7 +124,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
   private Schedule toDomain(ScheduleEntity entity) {
     return new Schedule(
         entity.getId(),
-        entity.getMemberId(),
+        entity.getUserId(),
         entity.getTitle(),
         entity.getDescription(),
         entity.getType(),

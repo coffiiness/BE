@@ -1,13 +1,12 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.*;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
 import java.util.Comparator;
 import java.util.List;
@@ -30,7 +29,6 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
   private final UserReader userReader;
   private final GroupReader groupReader;
-  private final MemberReader memberReader;
 
   @Override
   public List<RecruitmentListInfo> readList(
@@ -38,9 +36,11 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     Page<RecruitmentEntity> recruitments;
 
     if (recruitmentStatus == null) {
-      recruitments = recruitmentRepository.findAll(pageable);
+      recruitments = recruitmentRepository.findByStatus(EntityStatus.ACTIVE, pageable);
     } else {
-      recruitments = recruitmentRepository.findByRecruitmentStatus(recruitmentStatus, pageable);
+      recruitments =
+          recruitmentRepository.findByRecruitmentStatusAndStatus(
+              recruitmentStatus, EntityStatus.ACTIVE, pageable);
     }
 
     if (recruitments.isEmpty()) {}
@@ -59,18 +59,16 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         allInterviewers.stream()
             .collect(Collectors.groupingBy(RecruitmentInterviewerEntity::getRecruitmentId));
 
-    // member와 user 맵핑 로직
-    List<Long> memberIds =
+    // 외부 유저 도메인 정보 가져오기
+    List<Long> userIds =
         allInterviewers.stream()
-            .map(RecruitmentInterviewerEntity::getMemberId)
+            .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
-
-    Map<Long, Long> memberIdToUserIdMap = resolveStoredInterviewerIdToUserIdMap(memberIds);
-
-    List<Long> userIds = memberIdToUserIdMap.values().stream().distinct().toList();
-    Map<Long, String> userNameMap = getUserNameMap(userIds);
+    Map<Long, String> userNameMap =
+        userReader.getUsers(userIds).stream()
+            .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
 
     // 그룹 도메인 정보 외부에서 가져오기
     List<Long> leadGroupIds =
@@ -107,13 +105,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   interviewerMap.getOrDefault(recruitmentId, List.of()).stream()
                       .map(
                           i -> {
-                            Long memberId = i.getMemberId();
-                            Long userId = memberIdToUserIdMap.get(memberId);
-                            String name =
-                                userId != null
-                                    ? userNameMap.getOrDefault(userId, "알 수 없는 사용자")
-                                    : "알 수 없는 사용자";
-
+                            Long userId = i.getUserId();
+                            String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
                             return new RecruitmentListInfo.AssigneeSummaryInfo(userId, name);
                           })
                       .filter(assignee -> assignee.userId() != null)
@@ -140,7 +133,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // TODO: 에러 처리 (CoreException) 추후 삽입
     RecruitmentEntity entity =
         recruitmentRepository
-            .findById(recruitmentId)
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
 
     // Group Name 가져오기
@@ -154,30 +147,25 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // 면접관 정보 매핑
     List<RecruitmentInterviewerEntity> interviewers =
         recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId);
-
-    List<Long> memberIds =
+    List<Long> userIds =
         interviewers.stream()
-            .map(RecruitmentInterviewerEntity::getMemberId)
+            .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
 
-    Map<Long, Long> memberIdToUserIdMap = resolveStoredInterviewerIdToUserIdMap(memberIds);
-
-    List<Long> userIds = memberIdToUserIdMap.values().stream().distinct().toList();
-    Map<Long, String> userNameMap = getUserNameMap(userIds);
+    Map<Long, String> userNameMap =
+        userReader.getUsers(userIds).stream()
+            .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
 
     List<InterviewerInfo> interviewerInfos =
         interviewers.stream()
-            .filter(i -> i.getMemberId() != null)
+            .filter(i -> i.getUserId() != null)
             .map(
                 i -> {
-                  Long memberId = i.getMemberId();
-                  Long userId = memberIdToUserIdMap.get(memberId);
-                  String name =
-                      userId != null
-                          ? userNameMap.getOrDefault(userId, "알 수 없는 사용자")
-                          : "알 수 없는 사용자";
+                  Long userId = i.getUserId();
+                  String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
+                  // 체크박스는 우선 true
                   return new InterviewerInfo(userId, name, true);
                 })
             .filter(info -> info.userId() != null)
@@ -211,7 +199,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
   public Recruitment readById(Long recruitmentId) {
     RecruitmentEntity entity =
         recruitmentRepository
-            .findById(recruitmentId)
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
 
     List<RecruitmentStage> stages =
@@ -224,7 +212,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
     List<Long> interviewerIds =
         recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId).stream()
-            .map(RecruitmentInterviewerEntity::getMemberId)
+            .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .map(id -> resolveStoredInterviewerIdToUserIdMap(List.of(id)).get(id))
             .filter(Objects::nonNull)

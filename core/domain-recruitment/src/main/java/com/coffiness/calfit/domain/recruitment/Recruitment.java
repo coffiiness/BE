@@ -89,7 +89,7 @@ public record Recruitment(
         newTargetCount,
         newStartDate,
         newEndDate,
-        this.applicationTemplateId,
+        newApplicationTemplateId,
         newCareerType,
         newMinExperienceYears,
         newMaxExperienceYears,

@@ -1,12 +1,14 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ public class RecruitmentService {
 
     // TODO : 에러처리 등 각종 검증 로직
 
+    validateCreatableSchedule(request.startDate(), request.endDate(), LocalDateTime.now());
+
     List<RecruitmentStage> stages = toStagesWithRequiredFail(request.stages());
 
     /*
@@ -33,13 +37,16 @@ public class RecruitmentService {
      * 도메인 내 정적 메소드 : 반대로 서비스 코드가 간결해지지만, 개발자가 내부를 타고 들어가봐야 알 수 있음
      * DTO : API 계층은 도메인을 쓰기 위해 존재하므로 도메인을 import 해서 쓰는 것이 맞지만 도메인이 API에 의존해서는 되는가?
      */
+    RecruitmentStatus initialStatus =
+        resolveStatusAtCreation(request.startDate(), request.endDate(), LocalDateTime.now());
+
     Recruitment newRecruitment =
         new Recruitment(
             null,
             userId,
             request.title(),
             request.contents(),
-            RecruitmentStatus.DRAFT,
+            initialStatus,
             request.targetCount(),
             request.startDate(),
             request.endDate(),
@@ -80,7 +87,7 @@ public class RecruitmentService {
   }
 
   public Recruitment updateRecruitment(
-      long memberId, Long recruitmentId, RecruitmentUpdateRequest request) {
+      long userId, Long recruitmentId, RecruitmentUpdateRequest request) {
 
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
@@ -112,7 +119,7 @@ public class RecruitmentService {
 
     recruitmentHistoryAppender.append(
         updatedRecruitment.id(),
-        memberId,
+        userId,
         RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
         "채용 공고 수정",
         updatedRecruitment);
@@ -120,12 +127,12 @@ public class RecruitmentService {
     return savedRecruitment;
   }
 
-  public void assertCanAccess(long memberId, Long recruitmentId) {
+  public void assertCanAccess(long userId, Long recruitmentId) {
     RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
 
     boolean isInterviewer =
         recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.userId().equals(memberId));
+            .anyMatch(interviewer -> interviewer.userId().equals(userId));
 
     if (isInterviewer) {
       return;
@@ -134,7 +141,7 @@ public class RecruitmentService {
     throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
-  public void deleteRecruitment(Long memberId, Long recruitmentId) {
+  public void deleteRecruitment(Long userId, Long recruitmentId) {
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
       throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
@@ -147,11 +154,42 @@ public class RecruitmentService {
     recruitmentStore.delete(recruitmentId);
 
     recruitmentHistoryAppender.append(
-        recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+        recruitmentId, userId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+  }
+
+  // 전달받은 타임스탬프를 기준으로 채용 공고 상태를 일괄 전환
+  public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule(
+      LocalDateTime currentTime) {
+    int closedCount = recruitmentStore.closeEndedRecruitments(currentTime);
+    int openedCount = recruitmentStore.openScheduledRecruitments(currentTime);
+    return new RecruitmentStatusTransitionResult(openedCount, closedCount);
+  }
+
+  // 현재 서버 시간을 기준으로 채용 공고 상태를 일괄 전환
+  public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule() {
+    return updateRecruitmentStatusBySchedule(LocalDateTime.now());
+  }
+
+  private RecruitmentStatus resolveStatusAtCreation(
+      LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
+    if (endDate != null && !endDate.isAfter(currentTime)) {
+      return RecruitmentStatus.CLOSED;
+    }
+    if (startDate != null && !startDate.isAfter(currentTime)) {
+      return RecruitmentStatus.OPEN;
+    }
+    return RecruitmentStatus.DRAFT;
+  }
+
+  private void validateCreatableSchedule(
+      LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
+    if (endDate != null && !endDate.isAfter(currentTime)) {
+      throw new IllegalArgumentException("이미 종료된 기간으로는 채용 공고를 생성할 수 없습니다.");
+    }
   }
 
   private List<RecruitmentStage> toStagesWithRequiredFail(
-      List<com.coffiness.calfit.api.v1.request.RecruitmentStageRequest> stageRequests) {
+      List<RecruitmentStageRequest> stageRequests) {
     List<RecruitmentStage> stages =
         stageRequests == null
             ? List.of()
@@ -166,10 +204,9 @@ public class RecruitmentService {
     }
 
     int nextStep = stages.stream().mapToInt(RecruitmentStage::stageStep).max().orElse(0) + 1;
-    return java.util.stream.Stream.concat(
+    return Stream.concat(
             stages.stream(),
-            java.util.stream.Stream.of(
-                new RecruitmentStage(null, "불합격", nextStep, RecruitmentStageType.FAIL)))
+            Stream.of(new RecruitmentStage(null, "불합격", nextStep, RecruitmentStageType.FAIL)))
         .toList();
   }
 }

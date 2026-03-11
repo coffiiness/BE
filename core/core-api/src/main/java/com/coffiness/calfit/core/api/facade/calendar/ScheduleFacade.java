@@ -45,11 +45,11 @@ public class ScheduleFacade {
     if (request.roomId() != null) {
       MeetingRoomReservation reservation =
           meetingRoomReservationService.reserve(
-              member.userId(), request.roomId(), request.startTime(), request.endTime(), List.of());
+              userId, request.roomId(), request.startTime(), request.endTime(), List.of());
       reservationId = reservation.id();
     }
 
-    scheduleService.createSchedule(member.id(), reservationId, request);
+    scheduleService.createSchedule(userId, reservationId, request);
   }
 
   @Transactional
@@ -95,7 +95,7 @@ public class ScheduleFacade {
     if (scheduleDetailInfo.roomId() != null && scheduleDetailInfo.reservationId() != null) {
       if (roomIdChanged || timeChanged) {
         meetingRoomReservationService.cancelReservation(
-            member.userId(), scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
+            userId, scheduleDetailInfo.roomId(), scheduleDetailInfo.reservationId());
         newReservationId = null;
       }
     }
@@ -109,11 +109,11 @@ public class ScheduleFacade {
 
       MeetingRoomReservation reservation =
           meetingRoomReservationService.reserve(
-              member.userId(), targetRoomId, startTime, endTime, List.of());
+              userId, targetRoomId, startTime, endTime, List.of());
       newReservationId = reservation.id();
     }
 
-    return scheduleService.updateSchedule(member.id(), scheduleId, newReservationId, request);
+    return scheduleService.updateSchedule(userId, scheduleId, newReservationId, request);
   }
 
   @Transactional
@@ -124,9 +124,9 @@ public class ScheduleFacade {
 
     if (scheduleInfo.roomId() != null && scheduleInfo.reservationId() != null) {
       meetingRoomReservationService.cancelReservation(
-          member.userId(), scheduleInfo.roomId(), scheduleInfo.reservationId());
+          userId, scheduleInfo.roomId(), scheduleInfo.reservationId());
     }
 
-    scheduleService.deleteSchedule(member.id(), scheduleId);
+    scheduleService.deleteSchedule(userId, scheduleId);
   }
 }

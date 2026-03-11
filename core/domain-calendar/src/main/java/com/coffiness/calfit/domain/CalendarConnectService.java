@@ -47,12 +47,7 @@ public class CalendarConnectService {
 
   // 인가 코드 교환 후 사용자 구글 계정 기준으로 연동 토큰을 저장
   public String connectGoogleCalendar(
-      String authCode,
-      String redirectUri,
-      Long userId,
-      Long memberId,
-      String tenantId,
-      String workspaceName) {
+      String authCode, String redirectUri, Long userId, String tenantId, String workspaceName) {
     OAuthExchangeResult exchangeResult =
         googleOAuthPort.exchangeAuthorizationCode(authCode, redirectUri);
 
@@ -64,7 +59,7 @@ public class CalendarConnectService {
 
     ExternalCalendar externalCalendar =
         googleCalendarTokenService.upsertConnectedToken(
-            userId, memberId, workspaceCalendarId, exchangeResult);
+            userId, workspaceCalendarId, exchangeResult);
 
     registerWatchChannel(externalCalendar, tenantId);
     return googleEmail;
@@ -85,27 +80,27 @@ public class CalendarConnectService {
   }
 
   // 구글 증분 동기화를 수행하고 이벤트별로 캘핏 일정에 반영한 뒤 syncToken을 갱신
-  public void syncGoogleCalendar(Long userId, Long memberId) {
+  public void syncGoogleCalendar(Long userId) {
     ExternalCalendar externalCalendar = externalCalendarReader.readSyncEnabledByUserId(userId);
     if (externalCalendar == null) {
       return;
     }
 
-    syncExternalCalendar(memberId, externalCalendar);
+    syncExternalCalendar(userId, externalCalendar);
   }
 
   // 웹훅으로 들어온 특정 외부캘린더 기준 동기화
-  public void syncGoogleCalendarByExternalCalendarId(Long externalCalendarId, Long memberId) {
+  public void syncGoogleCalendarByExternalCalendarId(Long externalCalendarId, Long userId) {
     ExternalCalendar externalCalendar = externalCalendarReader.read(externalCalendarId);
     if (externalCalendar == null || !externalCalendar.isSyncEnabled()) {
       return;
     }
 
-    syncExternalCalendar(memberId, externalCalendar);
+    syncExternalCalendar(userId, externalCalendar);
   }
 
   // 지정된 외부 캘린더를 기준으로 구글 증분 동기화를 수행
-  private void syncExternalCalendar(Long memberId, ExternalCalendar externalCalendar) {
+  private void syncExternalCalendar(Long userId, ExternalCalendar externalCalendar) {
     if (!hasText(externalCalendar.calendarId())) {
       log.warn("동기화를 건너뜁니다. externalCalendarId={} 의 calendarId가 비어 있습니다.", externalCalendar.id());
       return;
@@ -122,7 +117,7 @@ public class CalendarConnectService {
 
     if (syncResult.items() != null) {
       for (SyncEventModel syncEvent : syncResult.items()) {
-        syncSingleEvent(memberId, syncEvent);
+        syncSingleEvent(userId, syncEvent);
       }
     }
 
@@ -205,13 +200,13 @@ public class CalendarConnectService {
   }
 
   // 단일 구글 이벤트를 상태별로 일정 처리
-  private void syncSingleEvent(Long memberId, SyncEventModel syncEvent) {
+  private void syncSingleEvent(Long userId, SyncEventModel syncEvent) {
     if (syncEvent == null || !hasText(syncEvent.googleEventId())) {
       return;
     }
 
     if ("cancelled".equalsIgnoreCase(syncEvent.status())) {
-      scheduleService.deleteScheduleByGoogleEventId(memberId, syncEvent.googleEventId());
+      scheduleService.deleteScheduleByGoogleEventId(userId, syncEvent.googleEventId());
       return;
     }
 
@@ -229,7 +224,7 @@ public class CalendarConnectService {
             syncEvent.endTime().withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
             syncEvent.allDay());
 
-    scheduleService.upsertScheduleByGoogleEventId(memberId, request);
+    scheduleService.upsertScheduleByGoogleEventId(userId, request);
   }
 
   // idToken payload 에서 사용자 email 값을 추출
