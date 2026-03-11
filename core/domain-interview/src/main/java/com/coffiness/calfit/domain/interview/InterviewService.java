@@ -1,8 +1,11 @@
 package com.coffiness.calfit.domain.interview;
 
 import com.coffiness.calfit.core.enums.InterviewRound;
+import com.coffiness.calfit.domain.interview.event.InterviewCreatedEvent;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.support.event.DomainEventPublisher;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.PessimisticLockException;
 import java.time.LocalDateTime;
@@ -22,6 +25,7 @@ public class InterviewService {
   private final InterviewReader interviewReader;
   private final InterviewStore interviewStore;
   private final InterviewValidator interviewValidator;
+  private final DomainEventPublisher domainEventPublisher;
 
   @Transactional
   public Interview create(
@@ -76,6 +80,17 @@ public class InterviewService {
     if (scheduleId == null) {
       throw new CoreException(ErrorType.DEFAULT_ERROR);
     }
+
+    domainEventPublisher.publish(
+        InterviewCreatedEvent.of(
+            currentTenantId(),
+            scheduleId,
+            recruitmentId,
+            userId,
+            meetingRoomId,
+            scheduledAt,
+            durationMinutes,
+            interviewerIds));
 
     return Interview.confirmed(
         scheduleId,
@@ -146,5 +161,13 @@ public class InterviewService {
       Thread.currentThread().interrupt();
       throw new CoreException(ErrorType.DEFAULT_ERROR);
     }
+  }
+
+  private String currentTenantId() {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    return tenantId;
   }
 }
