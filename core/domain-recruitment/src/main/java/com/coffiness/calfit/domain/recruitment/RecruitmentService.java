@@ -33,13 +33,16 @@ public class RecruitmentService {
      * 도메인 내 정적 메소드 : 반대로 서비스 코드가 간결해지지만, 개발자가 내부를 타고 들어가봐야 알 수 있음
      * DTO : API 계층은 도메인을 쓰기 위해 존재하므로 도메인을 import 해서 쓰는 것이 맞지만 도메인이 API에 의존해서는 되는가?
      */
+    RecruitmentStatus initialStatus =
+        resolveStatusAtCreation(request.startDate(), request.endDate(), LocalDateTime.now());
+
     Recruitment newRecruitment =
         new Recruitment(
             null,
             userId,
             request.title(),
             request.contents(),
-            RecruitmentStatus.DRAFT,
+            initialStatus,
             request.targetCount(),
             request.startDate(),
             request.endDate(),
@@ -161,6 +164,17 @@ public class RecruitmentService {
   // 현재 서버 시간을 기준으로 채용 공고 상태를 일괄 전환
   public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule() {
     return updateRecruitmentStatusBySchedule(LocalDateTime.now());
+  }
+
+  private RecruitmentStatus resolveStatusAtCreation(
+      LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
+    if (endDate != null && !endDate.isAfter(currentTime)) {
+      return RecruitmentStatus.CLOSED;
+    }
+    if (startDate != null && !startDate.isAfter(currentTime)) {
+      return RecruitmentStatus.OPEN;
+    }
+    return RecruitmentStatus.DRAFT;
   }
 
   private List<RecruitmentStage> toStagesWithRequiredFail(
