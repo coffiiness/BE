@@ -1,3 +1,3 @@
 package com.coffiness.calfit.domain.interview;
 
-public record InterviewerInfo(Long memberId, String name, boolean enabled) {}
+public record InterviewerInfo(Long userId, String name, boolean enabled) {}

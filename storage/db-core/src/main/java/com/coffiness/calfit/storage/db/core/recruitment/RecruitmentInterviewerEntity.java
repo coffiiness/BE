@@ -22,11 +22,11 @@ public class RecruitmentInterviewerEntity extends TenantBaseEntity {
   private Long recruitmentId;
 
   @Column(name = "member_id", nullable = false)
-  private Long memberId;
+  private Long userId;
 
   @Builder
-  public RecruitmentInterviewerEntity(Long recruitmentId, Long memberId) {
+  public RecruitmentInterviewerEntity(Long recruitmentId, Long userId) {
     this.recruitmentId = recruitmentId;
-    this.memberId = memberId;
+    this.userId = userId;
   }
 }

@@ -2,7 +2,7 @@ bootJar.enabled = true
 jar.enabled = false
 
 dependencies {
-    // ?�메??모듈
+    // 도메인 모듈
     implementation project(':core:domain-user')
     implementation project(':core:domain-workspace')
     implementation project(':core:domain-applicant')
@@ -16,8 +16,9 @@ dependencies {
     implementation project(':core:domain-recruitment')
     implementation project(':core:domain-career')
     implementation project(':core:domain-application')
+    implementation project(':core:domain-notification')
 
-    // 지??모듈
+    // 지원 모듈
     implementation project(':support:monitoring')
     implementation project(':support:logging')
     implementation project(':support:security')
@@ -25,16 +26,16 @@ dependencies {
     implementation project(':support:error')
     implementation project(':support:email')
 
-    // ?�토리�?
+    // 스토리지
     implementation project(':storage:db-core')
 
-    // clients
+    // 클라이언트
     implementation project(':clients')
 
-    // ?��? ?�라?�언??(MSA)
+    // 외부 클라이언트 (MSA)
     implementation project(':clients:google-calendar')
 
-    // ?�스??- REST Docs
+    // 테스트 - REST Docs
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
     testImplementation 'org.springframework.restdocs:spring-restdocs-restassured'
     testImplementation 'io.rest-assured:spring-mock-mvc'
@@ -46,12 +47,14 @@ dependencies {
     // OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
-    //AWS
+    // ShedLock
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+
+    // AWS
     implementation platform("software.amazon.awssdk:bom:2.42.3")
     implementation "software.amazon.awssdk:s3"
     implementation "software.amazon.awssdk:auth"
-
-
 }
 
 def snippetsDir = file("$buildDir/generated-snippets")
@@ -88,4 +91,3 @@ tasks.register('jacocoMergedReport', JacocoReport) {
         html.outputLocation = layout.buildDirectory.dir("reports/jacoco/jacocoMergedReport/html")
     }
 }
-

@@ -5,8 +5,13 @@ import com.coffiness.calfit.api.v1.request.ApplicationStageUpdateRequest;
 import com.coffiness.calfit.api.v1.response.ApplicationCreateResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
+import com.coffiness.calfit.core.api.request.ApplicationProcessUpdateRequest;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.application.ApplicationService;
+import com.coffiness.calfit.domain.application.KanbanBoard;
+import com.coffiness.calfit.domain.workspace.member.Member;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.support.error.CoreException;
@@ -30,6 +35,7 @@ public class ApplicationController {
 
   private final ApplicationService applicationService;
   private final RecruitmentRepository recruitmentRepository;
+  private final MemberReader memberReader;
 
   @PostMapping("/api/v1/applications")
   public ApiResponse<ApplicationCreateResponse> createApplication(
@@ -90,6 +96,34 @@ public class ApplicationController {
     return ApiResponse.success(applicationService.updateStage(applicationId, request));
   }
 
+  @GetMapping("/api/v1/applications/board")
+  public ApiResponse<KanbanBoard> getKanbanBoard(
+      @AuthenticationPrincipal SecurityUser user, @RequestParam Long recruitmentId) {
+    if (user == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if ("APPLICANT".equalsIgnoreCase(user.role())) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return ApiResponse.success(applicationService.getKanbanBoard(recruitmentId));
+  }
+
+  @PatchMapping("/api/v1/applications/{applicationId}/process")
+  public ApiResponse<Void> updateApplicationProcess(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long applicationId,
+      @Valid @RequestBody ApplicationProcessUpdateRequest request) {
+    if (user == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if ("APPLICANT".equalsIgnoreCase(user.role())) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    validateHrMember(user.userId());
+    applicationService.updateProcess(applicationId, request.recruitmentProcessId(), user.userId());
+    return ApiResponse.success(null);
+  }
+
   private void setTenantFromRecruitment(Long recruitmentId) {
     if (recruitmentId == null) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
@@ -99,5 +133,19 @@ public class ApplicationController {
             .findTenantIdById(recruitmentId)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
     TenantContext.setTenantId(tenantId);
+  }
+
+  private Member validateHrMember(Long userId) {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank() || userId == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    Member member = memberReader.getMember(tenantId, userId);
+    if (member == null || member.memberType() != MemberType.HR) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    return member;
   }
 }

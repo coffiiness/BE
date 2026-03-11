@@ -41,6 +41,10 @@ public class AnnouncementBoardReaderImpl implements AnnouncementBoardReader {
 
   private AnnouncementBoard toAnnouncementBoard(AnnouncementBoardEntity entity) {
     return new AnnouncementBoard(
-        entity.getId(), entity.getTitle(), entity.getContent(), entity.getPinned());
+        entity.getId(),
+        entity.getTitle(),
+        entity.getContent(),
+        entity.getPinned(),
+        entity.getCreatedAt());
   }
 }

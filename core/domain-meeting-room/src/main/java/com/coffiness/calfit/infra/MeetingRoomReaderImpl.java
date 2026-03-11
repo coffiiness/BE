@@ -61,6 +61,20 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   }
 
   @Override
+  public long countOverlappingReservationsByUser(
+      Long userId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
+    String tenantId = requireTenantId();
+    syncReservationStatuses(tenantId);
+    return reservationRepository
+        .countByTenantIdAndUserIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+            tenantId,
+            userId,
+            List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+            endDatetime,
+            startDatetime);
+  }
+
+  @Override
   public MeetingRoomReservation getActiveReservation(Long meetingRoomId, Long reservationId) {
     String tenantId = requireTenantId();
     syncReservationStatuses(tenantId);
@@ -79,7 +93,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   public List<MeetingRoomReservation> getActiveReservations(
       LocalDateTime fromDatetime, LocalDateTime toDatetime) {
     String tenantId = requireTenantId();
-    syncReservationStatuses(tenantId);
     if (fromDatetime == null || toDatetime == null || !fromDatetime.isBefore(toDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
@@ -124,6 +137,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
         entity.getId(),
         entity.getMeetingRoomId(),
         entity.getUserId(),
+        entity.getInterviewScheduleId(),
         entity.getStartDatetime(),
         entity.getEndDatetime(),
         entity.getReservationStatus());

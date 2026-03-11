@@ -47,16 +47,15 @@ public class SecurityConfig {
                         "/api/v1/users/login",
                         "/api/v1/users/signup/verify")
                     .permitAll()
+                    .requestMatchers("/api/v1/calendars/google/notifications")
+                    .permitAll()
                     .requestMatchers(
                         "/api/v1/workspaces/*/applicants/signup",
                         "/api/v1/workspaces/*/applicants/login")
                     .permitAll()
                     .requestMatchers("/api/v1/careers/**")
                     .permitAll()
-                    .requestMatchers(
-                        "/api/v1/invitations/*/accept",
-                        "/api/v1/invitations/*/view",
-                        "/api/v1/invitations/*")
+                    .requestMatchers("/api/v1/invitations/*/view", "/api/v1/invitations/*")
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
                     .permitAll()

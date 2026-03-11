@@ -1,11 +1,14 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
+import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,28 +25,20 @@ public class RecruitmentService {
 
   public Long createRecruitment(long userId, RecruitmentCreateRequest request) {
 
-    // TODO : 에러처리 등 각종 검증 로직
+    validateCreatableSchedule(request.startDate(), request.endDate(), LocalDateTime.now());
 
-    List<RecruitmentStage> stages =
-        request.stages() == null
-            ? List.of()
-            : request.stages().stream()
-                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
-                .toList();
+    List<RecruitmentStage> stages = toStagesWithRequiredFail(request.stages());
 
-    /*
-     * TODO : 도메인에 정적 생성 메소드를 둘까 vs 지금처럼? vs DTO에?
-     * 지금처럼 : 서비스 계층 코드가 어떻게 동작하는지 알기 쉽지만, 서비스 코드가 뚱뚱해보임
-     * 도메인 내 정적 메소드 : 반대로 서비스 코드가 간결해지지만, 개발자가 내부를 타고 들어가봐야 알 수 있음
-     * DTO : API 계층은 도메인을 쓰기 위해 존재하므로 도메인을 import 해서 쓰는 것이 맞지만 도메인이 API에 의존해서는 되는가?
-     */
+    RecruitmentStatus initialStatus =
+        resolveStatusAtCreation(request.startDate(), request.endDate(), LocalDateTime.now());
+
     Recruitment newRecruitment =
         new Recruitment(
             null,
             userId,
             request.title(),
             request.contents(),
-            determineInitialStatus(request.startDate()),
+            initialStatus,
             request.targetCount(),
             request.startDate(),
             request.endDate(),
@@ -68,17 +63,6 @@ public class RecruitmentService {
     return saveRecruitment.id();
   }
 
-  private RecruitmentStatus determineInitialStatus(LocalDateTime startDate) {
-    if (startDate == null) {
-      return RecruitmentStatus.DRAFT;
-    }
-
-    return startDate.isAfter(LocalDateTime.now())
-        ? RecruitmentStatus.DRAFT
-        : RecruitmentStatus.OPEN;
-  }
-
-  // TODO : userId는 facade에서 검증으로 추후 제거 예정
   @Transactional(readOnly = true)
   public List<RecruitmentListInfo> getRecruitmentList(
       long userId, RecruitmentStatus recruitmentStatus, Pageable pageable) {
@@ -88,8 +72,6 @@ public class RecruitmentService {
 
   @Transactional(readOnly = true)
   public RecruitmentDetailInfo getRecruitmentDetail(long userId, Long recruitmentId) {
-
-    // TODO : 이 멤버가 이 채용 공고를 볼 권한이 있는지 + 멤버를 매개변수로 받고 user로 변환하는 로직
     return recruitmentReader.readDetail(recruitmentId);
   }
 
@@ -101,15 +83,9 @@ public class RecruitmentService {
       throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
     }
 
-    // 채용 게시일이 현재 날짜보다 지났다면 채용 공고 수정 불가
     recruitment.validateUpdatable(LocalDateTime.now());
 
-    List<RecruitmentStage> newStages =
-        request.stages() == null
-            ? List.of()
-            : request.stages().stream()
-                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
-                .toList();
+    List<RecruitmentStage> newStages = toStagesWithRequiredFail(request.stages());
 
     Recruitment updatedRecruitment =
         recruitment.updateDetails(
@@ -144,7 +120,7 @@ public class RecruitmentService {
 
     boolean isInterviewer =
         recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.memberId().equals(memberId));
+            .anyMatch(interviewer -> interviewer.userId().equals(memberId));
 
     if (isInterviewer) {
       return;
@@ -167,5 +143,56 @@ public class RecruitmentService {
 
     recruitmentHistoryAppender.append(
         recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+  }
+
+  public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule(
+      LocalDateTime currentTime) {
+    int closedCount = recruitmentStore.closeEndedRecruitments(currentTime);
+    int openedCount = recruitmentStore.openScheduledRecruitments(currentTime);
+    return new RecruitmentStatusTransitionResult(openedCount, closedCount);
+  }
+
+  public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule() {
+    return updateRecruitmentStatusBySchedule(LocalDateTime.now());
+  }
+
+  private RecruitmentStatus resolveStatusAtCreation(
+      LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
+    if (endDate != null && !endDate.isAfter(currentTime)) {
+      return RecruitmentStatus.CLOSED;
+    }
+    if (startDate != null && !startDate.isAfter(currentTime)) {
+      return RecruitmentStatus.OPEN;
+    }
+    return RecruitmentStatus.DRAFT;
+  }
+
+  private void validateCreatableSchedule(
+      LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
+    if (endDate != null && !endDate.isAfter(currentTime)) {
+      throw new IllegalArgumentException("이미 종료된 기간으로는 채용 공고를 생성할 수 없습니다.");
+    }
+  }
+
+  private List<RecruitmentStage> toStagesWithRequiredFail(
+      List<RecruitmentStageRequest> stageRequests) {
+    List<RecruitmentStage> stages =
+        stageRequests == null
+            ? List.of()
+            : stageRequests.stream()
+                .map(s -> new RecruitmentStage(null, s.stageName(), s.stageStep(), s.stageType()))
+                .toList();
+
+    boolean hasFailStage =
+        stages.stream().anyMatch(stage -> stage.stageType() == RecruitmentStageType.FAIL);
+    if (hasFailStage) {
+      return stages;
+    }
+
+    int nextStep = stages.stream().mapToInt(RecruitmentStage::stageStep).max().orElse(0) + 1;
+    return Stream.concat(
+            stages.stream(),
+            Stream.of(new RecruitmentStage(null, "불합격", nextStep, RecruitmentStageType.FAIL)))
+        .toList();
   }
 }

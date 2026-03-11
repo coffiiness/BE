@@ -2,19 +2,18 @@ package com.coffiness.calfit.core.api.controller.v1;
 
 import com.coffiness.calfit.api.v1.request.CreateInvitationRequest;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
+import com.coffiness.calfit.core.api.facade.workspace.InvitationFacade;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.user.User;
-import com.coffiness.calfit.domain.user.UserService;
 import com.coffiness.calfit.domain.workspace.invitation.Invitation;
 import com.coffiness.calfit.domain.workspace.invitation.InvitationService;
-import com.coffiness.calfit.domain.workspace.member.MemberService;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.email.EmailPageService;
 import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,16 +22,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping
 public class InvitationController {
   private final InvitationService invitationService;
-  private final UserService userService;
-  private final MemberService memberService;
+  private final InvitationFacade invitationFacade;
   private final EmailProperties emailProperties;
   private final EmailPageService emailPageService;
 
@@ -62,7 +58,7 @@ public class InvitationController {
               invitation.email(),
               toMemberTypeLabel(invitation.memberType()),
               invitation.expiresAt(),
-              "/api/v1/invitations/" + token + "/accept",
+              emailProperties.getInvitationViewUrl(token),
               emailProperties.getLoginUrl());
       return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(page);
     } catch (CoreException e) {
@@ -72,18 +68,20 @@ public class InvitationController {
   }
 
   @PostMapping("/api/v1/invitations/{token}/accept")
-  public ApiResponse<?> acceptInvitation(@PathVariable String token) {
-    Invitation invitation = invitationService.getByToken(token);
+  public ApiResponse<Map<String, String>> acceptInvitation(
+      @PathVariable String token, @AuthenticationPrincipal SecurityUser securityUser) {
+    // 1) 검증 (트랜잭션/TenantContext 무관)
+    Invitation invitation = invitationFacade.validateInvitation(token, securityUser.userId());
 
+    // 2) TenantContext를 트랜잭션 시작 전에 설정
     TenantContext.setTenantId(invitation.workspaceId());
     try {
-      User user = userService.getUserByEmail(invitation.email());
-      invitationService.acceptInvitation(token);
-      memberService.registerMember(user.id(), invitation.memberType());
-      return ApiResponse.success();
+      invitationFacade.acceptInvitation(token, securityUser.userId(), invitation.memberType());
     } finally {
       TenantContext.clear();
     }
+
+    return ApiResponse.success(Map.of("workspaceId", invitation.workspaceId()));
   }
 
   private String toMemberTypeLabel(MemberType memberType) {

@@ -22,9 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class InvitationService {
   private static final long EXPIRATION_HOURS = 72;
 
-  private static final String SUBJECT_SUFFIX = "\uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4 \uCD08\uB300";
-  private static final String MEMBER_TYPE_HR = "\uC778\uC0AC\uB2F4\uB2F9\uC790";
-  private static final String MEMBER_TYPE_INTERVIEWER = "\uBA74\uC811\uAD00";
+  private static final String SUBJECT_SUFFIX = "워크스페이스 초대";
+  private static final String MEMBER_TYPE_HR = "인사담당자";
+  private static final String MEMBER_TYPE_INTERVIEWER = "면접관";
 
   private final WorkspaceInvitationRepository invitationRepository;
   private final WorkspaceRepository workspaceRepository;

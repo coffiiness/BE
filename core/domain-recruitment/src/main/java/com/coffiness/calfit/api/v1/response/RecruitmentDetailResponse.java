@@ -39,7 +39,7 @@ public record RecruitmentDetailResponse(
         info.shareUrl(),
         info.recruitmentStatus(),
         info.interviewers().stream()
-            .map(i -> new InterviewerInfo(i.memberId(), i.name(), i.enabled()))
+            .map(i -> new InterviewerInfo(i.userId(), i.name(), i.enabled()))
             .toList());
   }
 }

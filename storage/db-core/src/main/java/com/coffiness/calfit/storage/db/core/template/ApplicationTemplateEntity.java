@@ -14,33 +14,27 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "applicationTemplates")
+@Table(name = "application_templates")
 @NoArgsConstructor
 @Getter
 public class ApplicationTemplateEntity extends TenantBaseEntity {
 
-  // Applicant name
   @Column(nullable = false, length = 50)
   private String name;
 
-  // Applicant gender
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Gender gender;
 
-  // Applicant birth date
   @Column(nullable = false)
   private LocalDateTime birthDate;
 
-  // Applicant phone number
   @Column(nullable = false, length = 20)
   private String phone;
 
-  // Applicant email
   @Column(nullable = false, unique = true, length = 50)
   private String email;
 
-  // Template form field payload
   @Column(name = "form_fields", columnDefinition = "JSON", nullable = false)
   private String formFields;
 
@@ -72,15 +66,25 @@ public class ApplicationTemplateEntity extends TenantBaseEntity {
         .gender(Gender.MALE)
         .birthDate(LocalDateTime.of(2000, 1, 1, 0, 0))
         .phone("000-0000-0000")
-        .email("t-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16) + "@cf.io")
+        .email(buildUniqueTemplateEmail())
         .formFields(formFields)
         .isDefault(inUse)
         .build();
   }
 
+  public static ApplicationTemplateEntity create(
+      String templateName, String formFields, Boolean isDefault) {
+    return create(templateName, formFields, Boolean.TRUE.equals(isDefault));
+  }
+
   public void updateTemplate(String templateName, String formFields) {
     this.name = templateName;
     this.formFields = formFields;
+  }
+
+  public void update(String templateName, String formFields, Boolean isDefault) {
+    updateTemplate(templateName, formFields);
+    this.isDefault = Boolean.TRUE.equals(isDefault);
   }
 
   public void updateUseStatus(boolean inUse) {
@@ -89,5 +93,9 @@ public class ApplicationTemplateEntity extends TenantBaseEntity {
 
   public boolean isInUse() {
     return Boolean.TRUE.equals(this.isDefault);
+  }
+
+  private static String buildUniqueTemplateEmail() {
+    return "t-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16) + "@cf.io";
   }
 }

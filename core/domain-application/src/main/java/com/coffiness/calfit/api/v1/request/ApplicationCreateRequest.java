@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api.v1.request;
 
 import com.coffiness.calfit.core.enums.Gender;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,4 +20,4 @@ public record ApplicationCreateRequest(
     @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate birthDate,
     @NotBlank @Size(max = 20) String phone,
     @NotBlank @Email @Size(max = 50) String email,
-    @NotNull JsonNode schema) {}
+    @JsonAlias("schema") @NotNull JsonNode formFields) {}

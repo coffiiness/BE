@@ -16,7 +16,7 @@ public record ApplicationDetailResponse(
     LocalDateTime birthDate,
     String phone,
     String email,
-    String schema,
+    String formFields,
     List<ApplicationFileResponse> files) {
 
   public static ApplicationDetailResponse from(
@@ -32,7 +32,7 @@ public record ApplicationDetailResponse(
         entity.getBirthDate(),
         entity.getPhone(),
         entity.getEmail(),
-        entity.getSchema(),
+        entity.getFormFields(),
         files);
   }
 }

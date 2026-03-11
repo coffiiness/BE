@@ -19,6 +19,13 @@ public interface MeetingRoomReservationRepository
           LocalDateTime endTime,
           LocalDateTime startTime);
 
+  long countByTenantIdAndUserIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+      String tenantId,
+      Long userId,
+      List<MeetingRoomStatus> reservationStatuses,
+      LocalDateTime endTime,
+      LocalDateTime startTime);
+
   List<MeetingRoomReservationEntity>
       findAllByTenantIdAndMeetingRoomIdInAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
           String tenantId,

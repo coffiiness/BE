@@ -29,7 +29,7 @@ public class EmailProperties {
   }
 
   public String getInvitationViewUrl(String token) {
-    return join(apiBaseUrl, "/api/v1/invitations/" + token + "/view");
+    return join(frontendBaseUrl, "/invitations/" + token);
   }
 
   private String join(String baseUrl, String path) {

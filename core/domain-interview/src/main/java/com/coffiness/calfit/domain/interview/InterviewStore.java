@@ -15,4 +15,6 @@ public interface InterviewStore {
       String memo,
       List<Long> interviewerIds,
       List<Long> applicantIds);
+
+  void cancelConfirmedSchedule(Long userId, Long interviewScheduleId);
 }

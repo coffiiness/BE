@@ -6,9 +6,9 @@ import com.coffiness.calfit.api.v1.request.MeetingRoomUpdateRequest;
 import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
-import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -87,7 +87,8 @@ public record MeetingRoomFixture(BaseFixture base) {
     return exchangeWithTenant(
         "/api/v1/meeting-rooms/" + meetingRoomId + "/reservations",
         HttpMethod.POST,
-        new MeetingRoomReservationCreateRequest(startDatetime, endDatetime),
+        new MeetingRoomReservationCreateRequest(
+            "테스트 예약", null, startDatetime, endDatetime, List.of()),
         token,
         tenantId,
         MeetingRoomReservationResponse.class);
@@ -104,17 +105,33 @@ public record MeetingRoomFixture(BaseFixture base) {
         MeetingRoomReservationResponse.class);
   }
 
-  public ApiResponse<MeetingRoom[]> list(String token) {
-    return base.get("/api/v1/meeting-rooms", token, MeetingRoom[].class);
-  }
-
-  public ApiResponse<MeetingRoom[]> list(String token, String tenantId) {
+  public ApiResponse<MeetingRoomReservationResponse[]> listReservations(
+      String token, String tenantId, LocalDateTime fromDatetime, LocalDateTime toDatetime) {
+    String url =
+        "/api/v1/meeting-rooms/reservations?fromDatetime="
+            + fromDatetime
+            + "&toDatetime="
+            + toDatetime;
     return exchangeWithTenant(
-        "/api/v1/meeting-rooms", HttpMethod.GET, null, token, tenantId, MeetingRoom[].class);
+        url, HttpMethod.GET, null, token, tenantId, MeetingRoomReservationResponse[].class);
   }
 
-  public ApiResponse<MeetingRoom[]> list() {
-    return base.get("/api/v1/meeting-rooms", MeetingRoom[].class);
+  public ApiResponse<MeetingRoomResponse[]> list(String token) {
+    return base.get("/api/v1/meeting-rooms", token, MeetingRoomResponse[].class);
+  }
+
+  public ApiResponse<MeetingRoomResponse[]> list(String token, String tenantId) {
+    return exchangeWithTenant(
+        "/api/v1/meeting-rooms",
+        HttpMethod.GET,
+        null,
+        token,
+        tenantId,
+        MeetingRoomResponse[].class);
+  }
+
+  public ApiResponse<MeetingRoomResponse[]> list() {
+    return base.get("/api/v1/meeting-rooms", MeetingRoomResponse[].class);
   }
 
   @SuppressWarnings("unchecked")

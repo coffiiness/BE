@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.Schedule;
 import com.coffiness.calfit.domain.ScheduleStore;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
@@ -9,6 +10,7 @@ import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   public Schedule store(Schedule schedule, List<Long> attendeeIds) {
     ScheduleEntity entity =
         ScheduleEntity.builder()
-            .memberId(schedule.memberId())
+            .userId(schedule.userId())
             .title(schedule.title())
             .description(schedule.description())
             .startTime(schedule.startTime())
@@ -56,7 +58,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   public void update(Schedule schedule, List<Long> attendeeIds) {
     ScheduleEntity entity =
         scheduleRepository
-            .findById(schedule.id())
+            .findByIdAndStatus(schedule.id(), EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
     entity.update(
@@ -87,20 +89,76 @@ public class ScheduleStoreImpl implements ScheduleStore {
   }
 
   @Override
+  @Transactional
+  public void updateGoogleEventId(Long scheduleId, String googleEventId) {
+    if (!hasText(googleEventId)) {
+      throw new IllegalArgumentException("GOOGLE_EVENT_ID_REQUIRED");
+    }
+
+    ScheduleEntity entity =
+        scheduleRepository
+            .findByIdAndStatus(scheduleId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
+
+    String currentGoogleEventId = entity.getGoogleEventId();
+
+    if (!hasText(currentGoogleEventId)) {
+      entity.updateGoogleEventId(googleEventId);
+      return;
+    }
+
+    if (currentGoogleEventId.equals(googleEventId)) {
+      return;
+    }
+
+    throw new IllegalStateException("GOOGLE_EVENT_ID_CONFLICT");
+  }
+
+  @Override
+  @Transactional
+  public void clearGoogleEventIdsByUserId(Long userId) {
+    if (userId == null) {
+      throw new IllegalArgumentException("USER_ID_REQUIRED");
+    }
+
+    scheduleRepository.clearGoogleEventIdsByUserIdAndStatus(userId, EntityStatus.ACTIVE);
+  }
+
+  @Override
   public void delete(Schedule schedule) {
     ScheduleEntity entity =
         scheduleRepository
-            .findById(schedule.id())
+            .findByIdAndStatus(schedule.id(), EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
 
     scheduleAttendeeRepository.deleteByScheduleId(schedule.id());
+    entity.updateGoogleEventId(null);
     entity.deleted();
+  }
+
+  @Override
+  public void deleteByReservationId(Long reservationId) {
+    if (reservationId == null) {
+      return;
+    }
+
+    List<ScheduleEntity> schedules =
+        scheduleRepository.findAllByReservationIdAndStatus(reservationId, EntityStatus.ACTIVE);
+    for (ScheduleEntity schedule : schedules) {
+      scheduleAttendeeRepository.deleteByScheduleId(schedule.getId());
+      schedule.updateGoogleEventId(null);
+      schedule.deleted();
+    }
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   private Schedule toDomain(ScheduleEntity entity) {
     return new Schedule(
         entity.getId(),
-        entity.getMemberId(),
+        entity.getUserId(),
         entity.getTitle(),
         entity.getDescription(),
         entity.getType(),

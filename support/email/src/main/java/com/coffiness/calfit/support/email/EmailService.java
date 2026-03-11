@@ -40,14 +40,14 @@ public class EmailService {
 
     JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
     if (mailSender == null) {
-      log.warn("JavaMailSender is not configured. skip email to={}", to);
-      return;
+      throw new IllegalStateException(
+          "JavaMailSender is not configured. Check SPRING_MAIL_HOST and related settings.");
     }
 
     String effectiveFrom = resolveFromAddress(from);
     if (!StringUtils.hasText(effectiveFrom)) {
-      log.error("Sender address is empty. Configure APP_EMAIL_SENDER or SPRING_MAIL_USERNAME.");
-      return;
+      throw new IllegalStateException(
+          "Sender address is empty. Configure APP_EMAIL_SENDER or SPRING_MAIL_USERNAME.");
     }
 
     try {

@@ -53,8 +53,8 @@ public class ApplicationEntity extends TenantBaseEntity {
   @Column(nullable = false, length = 50)
   private String email;
 
-  @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
-  private String schema;
+  @Column(name = "form_fields", columnDefinition = "JSON", nullable = false)
+  private String formFields;
 
   @Builder
   private ApplicationEntity(
@@ -67,7 +67,7 @@ public class ApplicationEntity extends TenantBaseEntity {
       LocalDateTime birthDate,
       String phone,
       String email,
-      String schema) {
+      String formFields) {
     this.applicantId = applicantId;
     this.recruitmentId = recruitmentId;
     this.recruitmentProcessId = recruitmentProcessId;
@@ -77,7 +77,7 @@ public class ApplicationEntity extends TenantBaseEntity {
     this.birthDate = birthDate;
     this.phone = phone;
     this.email = email;
-    this.schema = schema;
+    this.formFields = formFields;
   }
 
   public static ApplicationEntity create(
@@ -90,7 +90,7 @@ public class ApplicationEntity extends TenantBaseEntity {
       LocalDateTime birthDate,
       String phone,
       String email,
-      String schema) {
+      String formFields) {
     return new ApplicationEntity(
         applicantId,
         recruitmentId,
@@ -101,10 +101,14 @@ public class ApplicationEntity extends TenantBaseEntity {
         birthDate,
         phone,
         email,
-        schema);
+        formFields);
   }
 
   public void changeRecruitmentProcess(Long recruitmentProcessId) {
+    this.recruitmentProcessId = recruitmentProcessId;
+  }
+
+  public void updateRecruitmentProcessId(Long recruitmentProcessId) {
     this.recruitmentProcessId = recruitmentProcessId;
   }
 }

@@ -38,4 +38,9 @@ public class InterviewStoreImpl implements InterviewStore {
         interviewerIds,
         applicantIds);
   }
+
+  @Override
+  public void cancelConfirmedSchedule(Long userId, Long interviewScheduleId) {
+    interviewRepository.cancelConfirmedSchedule(userId, interviewScheduleId);
+  }
 }

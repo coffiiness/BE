@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.storage.db.core.email.EmailVerificationTokenEntity;
+import com.coffiness.calfit.storage.db.core.email.EmailVerificationTokenRepository;
 import com.coffiness.calfit.support.email.EmailService;
-import com.coffiness.calfit.support.email.EmailVerificationTokenEntity;
-import com.coffiness.calfit.support.email.EmailVerificationTokenRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

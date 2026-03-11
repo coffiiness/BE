@@ -23,7 +23,7 @@ public class MemberReaderImpl implements MemberReader {
     MemberEntity entity =
         memberRepository.findByTenantIdAndUserIdAndStatus(workspaceId, userId, EntityStatus.ACTIVE);
     if (entity == null) {
-      return null;
+      throw new CoreException(ErrorType.NOT_FOUND);
     }
     return toWorkspaceMember(entity);
   }
@@ -66,6 +66,17 @@ public class MemberReaderImpl implements MemberReader {
   @Override
   public List<Member> getMembersByIds(List<Long> memberIds) {
     return memberRepository.findAllById(memberIds).stream().map(this::toWorkspaceMember).toList();
+  }
+
+  @Override
+  public List<Member> getMembersByUserIds(String workspaceId, List<Long> userIds) {
+    if (workspaceId == null || workspaceId.isBlank() || userIds == null || userIds.isEmpty()) {
+      return List.of();
+    }
+
+    return memberRepository.findAllByTenantIdAndUserIdIn(workspaceId, userIds).stream()
+        .map(this::toWorkspaceMember)
+        .toList();
   }
 
   @Override

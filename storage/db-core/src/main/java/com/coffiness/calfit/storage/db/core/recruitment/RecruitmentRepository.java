@@ -2,12 +2,14 @@ package com.coffiness.calfit.storage.db.core.recruitment;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,7 +17,43 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
   Page<RecruitmentEntity> findByRecruitmentStatus(
       RecruitmentStatus recruitmentStatus, Pageable pageable);
 
+  Page<RecruitmentEntity> findByStatus(EntityStatus status, Pageable pageable);
+
+  Page<RecruitmentEntity> findByRecruitmentStatusAndStatus(
+      RecruitmentStatus recruitmentStatus, EntityStatus status, Pageable pageable);
+
   Optional<RecruitmentEntity> findByIdAndStatus(Long id, EntityStatus status);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      """
+            UPDATE RecruitmentEntity r
+               SET r.recruitmentStatus = :toStatus
+             WHERE r.status = :entityStatus
+               AND r.recruitmentStatus = :fromStatus
+               AND r.startDate <= :currentTime
+               AND r.endDate > :currentTime
+            """)
+  int openScheduledRecruitments(
+      @Param("currentTime") LocalDateTime currentTime,
+      @Param("entityStatus") EntityStatus entityStatus,
+      @Param("fromStatus") RecruitmentStatus fromStatus,
+      @Param("toStatus") RecruitmentStatus toStatus);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      """
+            UPDATE RecruitmentEntity r
+               SET r.recruitmentStatus = :toStatus
+             WHERE r.status = :entityStatus
+               AND r.recruitmentStatus IN :fromStatuses
+               AND r.endDate <= :currentTime
+            """)
+  int closeEndedRecruitments(
+      @Param("currentTime") LocalDateTime currentTime,
+      @Param("entityStatus") EntityStatus entityStatus,
+      @Param("fromStatuses") List<RecruitmentStatus> fromStatuses,
+      @Param("toStatus") RecruitmentStatus toStatus);
 
   @Query(
       value =
@@ -55,6 +93,12 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
               + " AND r.status = 'ACTIVE'",
       nativeQuery = true)
   Optional<String> findTenantIdById(@Param("recruitmentId") Long recruitmentId);
+
+  long countByRecruitmentStatusAndStatus(RecruitmentStatus recruitmentStatus, EntityStatus status);
+
+  long countByStatus(EntityStatus status);
+
+  List<RecruitmentEntity> findByStatusOrderByCreatedAtDesc(EntityStatus status);
 
   @Query(
       "SELECT DISTINCT r.applicationTemplateId FROM RecruitmentEntity r"

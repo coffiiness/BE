@@ -5,7 +5,8 @@ import java.util.List;
 
 public record InterviewAvailabilityResponse(
     List<MeetingRoomBusySlotResponse> meetingRoomBusySlots,
-    List<InterviewerBusySlotResponse> interviewerBusySlots) {
+    List<InterviewerBusySlotResponse> interviewerBusySlots,
+    List<ApplicantBusySlotResponse> applicantBusySlots) {
 
   public static InterviewAvailabilityResponse from(InterviewAvailability availability) {
     return new InterviewAvailabilityResponse(
@@ -14,6 +15,7 @@ public record InterviewAvailabilityResponse(
             .toList(),
         availability.interviewerBusySlots().stream()
             .map(InterviewerBusySlotResponse::from)
-            .toList());
+            .toList(),
+        availability.applicantBusySlots().stream().map(ApplicantBusySlotResponse::from).toList());
   }
 }

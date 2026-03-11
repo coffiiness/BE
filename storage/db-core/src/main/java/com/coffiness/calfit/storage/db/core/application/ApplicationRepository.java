@@ -1,9 +1,12 @@
 package com.coffiness.calfit.storage.db.core.application;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ApplicationRepository extends JpaRepository<ApplicationEntity, Long> {
   boolean existsByApplicantIdAndRecruitmentId(Long applicantId, Long recruitmentId);
@@ -12,5 +15,30 @@ public interface ApplicationRepository extends JpaRepository<ApplicationEntity, 
 
   List<ApplicationEntity> findByRecruitmentIdAndStatus(Long recruitmentId, EntityStatus status);
 
+  List<ApplicationEntity> findByRecruitmentIdAndRecruitmentProcessIdAndStatus(
+      Long recruitmentId, Long recruitmentProcessId, EntityStatus status);
+
   List<ApplicationEntity> findByStatus(EntityStatus status);
+
+  long countByStatus(EntityStatus status);
+
+  @Query(
+      "SELECT a.recruitmentProcessId, COUNT(a) FROM ApplicationEntity a"
+          + " WHERE a.status = :status"
+          + " GROUP BY a.recruitmentProcessId")
+  List<Object[]> countGroupByRecruitmentProcessId(@Param("status") EntityStatus status);
+
+  @Query(
+      "SELECT a.recruitmentId, COUNT(a) FROM ApplicationEntity a"
+          + " WHERE a.status = :status"
+          + " GROUP BY a.recruitmentId")
+  List<Object[]> countGroupByRecruitmentId(@Param("status") EntityStatus status);
+
+  @Query(
+      "SELECT year(a.createdAt), month(a.createdAt), COUNT(a) FROM ApplicationEntity a"
+          + " WHERE a.status = :status AND a.createdAt >= :from"
+          + " GROUP BY year(a.createdAt), month(a.createdAt)"
+          + " ORDER BY year(a.createdAt), month(a.createdAt)")
+  List<Object[]> countGroupByMonth(
+      @Param("status") EntityStatus status, @Param("from") LocalDateTime from);
 }

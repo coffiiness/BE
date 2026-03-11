@@ -47,11 +47,17 @@ public class FixtureConfiguration {
     return AnnouncementBoardFixture.create(environment, objectMapper);
   }
 
-  //  @Bean
-  //  @Scope("prototype")
-  //  InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
-  //    return InterviewFixture.create(environment, objectMapper);
-  //  }
+  @Bean
+  @Scope("prototype")
+  NotificationFixture notificationFixture(Environment environment, ObjectMapper objectMapper) {
+    return NotificationFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
+    return InterviewFixture.create(environment, objectMapper);
+  }
 
   @Bean
   @Scope("prototype")
@@ -82,5 +88,11 @@ public class FixtureConfiguration {
   ApplicationFileFixture applicationFileFixture(
       Environment environment, ObjectMapper objectMapper) {
     return ApplicationFileFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  ApplicationFixture applicationFixture(Environment environment, ObjectMapper objectMapper) {
+    return ApplicationFixture.create(environment, objectMapper);
   }
 }
