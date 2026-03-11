@@ -3,6 +3,7 @@ package com.coffiness.calfit.domain.notification;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationCreatedEvent;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -28,7 +29,7 @@ public class MeetingRoomReservationNotificationEventHandler {
       NotificationMessage message =
           notificationTemplateFactory.buildMeetingRoomReservationCreated(event);
       List<NotificationCreateCommand> commands =
-          event.participantUserIds().stream()
+          Stream.concat(Stream.of(event.actorUserId()), event.participantUserIds().stream())
               .filter(userId -> userId != null)
               .distinct()
               .map(
