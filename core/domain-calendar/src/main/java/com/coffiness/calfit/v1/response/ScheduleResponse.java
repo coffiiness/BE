@@ -13,6 +13,7 @@ public record ScheduleResponse(
     ScheduleType type,
     String description,
     Long roomId,
+    boolean isAllDay,
     boolean isBusy) {
 
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -28,6 +29,7 @@ public record ScheduleResponse(
         info.type(),
         info.description(),
         info.roomId(),
+        info.isAllDay(),
         info.isBusy());
   }
 }
