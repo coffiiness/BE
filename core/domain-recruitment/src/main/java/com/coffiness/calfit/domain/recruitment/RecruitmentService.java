@@ -150,6 +150,19 @@ public class RecruitmentService {
         recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
   }
 
+  // 전달받은 타임스탬프를 기준으로 채용 공고 상태를 일괄 전환
+  public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule(
+      LocalDateTime currentTime) {
+    int closedCount = recruitmentStore.closeEndedRecruitments(currentTime);
+    int openedCount = recruitmentStore.openScheduledRecruitments(currentTime);
+    return new RecruitmentStatusTransitionResult(openedCount, closedCount);
+  }
+
+  // 현재 서버 시간을 기준으로 채용 공고 상태를 일괄 전환
+  public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule() {
+    return updateRecruitmentStatusBySchedule(LocalDateTime.now());
+  }
+
   private List<RecruitmentStage> toStagesWithRequiredFail(
       List<com.coffiness.calfit.api.v1.request.RecruitmentStageRequest> stageRequests) {
     List<RecruitmentStage> stages =

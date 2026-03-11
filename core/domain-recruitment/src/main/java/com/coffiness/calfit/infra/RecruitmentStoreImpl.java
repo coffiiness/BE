@@ -1,9 +1,18 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.recruitment.Recruitment;
 import com.coffiness.calfit.domain.recruitment.RecruitmentStore;
-import com.coffiness.calfit.storage.db.core.recruitment.*;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentInterviewerEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentInterviewerRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentReferenceGroupEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentReferenceGroupRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -100,6 +109,23 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
             .orElseThrow(() -> new IllegalArgumentException("이미 삭제되었거나 존재하지 않는 채용 공고입니다."));
 
     entity.deleted();
+  }
+
+  @Override
+  // 시작 시각이 지난 DRAFT 공고를 OPEN으로 전환
+  public int openScheduledRecruitments(LocalDateTime currentTime) {
+    return recruitmentRepository.openScheduledRecruitments(
+        currentTime, EntityStatus.ACTIVE, RecruitmentStatus.DRAFT, RecruitmentStatus.OPEN);
+  }
+
+  @Override
+  // 종료 시각이 지난 DRAFT/OPEN 공고를 CLOSED로 전환
+  public int closeEndedRecruitments(LocalDateTime currentTime) {
+    return recruitmentRepository.closeEndedRecruitments(
+        currentTime,
+        EntityStatus.ACTIVE,
+        List.of(RecruitmentStatus.DRAFT, RecruitmentStatus.OPEN),
+        RecruitmentStatus.CLOSED);
   }
 
   private void insertChildren(Long recruitmentId, Recruitment recruitment) {
