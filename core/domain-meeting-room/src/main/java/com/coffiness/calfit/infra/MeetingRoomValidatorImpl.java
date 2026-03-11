@@ -2,6 +2,7 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.InterviewStatus;
+import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
@@ -14,6 +15,7 @@ import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
+import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
@@ -31,6 +33,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   private final UserReader userReader;
   private final InterviewScheduleInterviewerRepository interviewScheduleInterviewerRepository;
   private final InterviewScheduleRepository interviewScheduleRepository;
+  private final MeetingRoomReservationRepository meetingRoomReservationRepository;
   private final ScheduleRepository scheduleRepository;
 
   @Override
@@ -71,6 +74,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     meetingRoomReader.getMeetingRoom(meetingRoomId);
+    validateRoomHasNoFutureUsages(tenantId, meetingRoomId);
   }
 
   @Override
@@ -169,6 +173,36 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       if (interviewStart.isBefore(endDatetime) && startDatetime.isBefore(interviewEnd)) {
         throw new CoreException(ErrorType.VALIDATION_ERROR);
       }
+    }
+  }
+
+  private void validateRoomHasNoFutureUsages(String tenantId, Long meetingRoomId) {
+    LocalDateTime now = LocalDateTime.now();
+
+    long reservationCount =
+        meetingRoomReservationRepository
+            .countByTenantIdAndMeetingRoomIdAndReservationStatusInAndEndDatetimeAfter(
+                tenantId,
+                meetingRoomId,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+                now);
+    if (reservationCount > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    long interviewCount =
+        interviewScheduleRepository
+            .countByTenantIdAndMeetingRoomIdAndInterviewStatusNotAndScheduledAtAfter(
+                tenantId, meetingRoomId, InterviewStatus.CANCELLED, now);
+    if (interviewCount > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    long scheduleCount =
+        scheduleRepository.countByRoomIdAndStatusAndEndTimeAfter(
+            meetingRoomId, EntityStatus.ACTIVE, now);
+    if (scheduleCount > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }
 
