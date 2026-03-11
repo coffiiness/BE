@@ -70,7 +70,10 @@ public class ScheduleService {
             true,
             null);
 
-    scheduleStore.store(schedule, attendeeIds);
+    Schedule saved = scheduleStore.store(schedule, attendeeIds);
+
+    domainEventPublisher.publish(
+        ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), memberId, saved.id()));
   }
 
   @Transactional(readOnly = true)
@@ -156,7 +159,14 @@ public class ScheduleService {
   }
 
   public void deleteSchedulesByReservationId(Long reservationId) {
-    scheduleStore.deleteByReservationId(reservationId);
+    List<Schedule> schedules = scheduleReader.findByReservationId(reservationId);
+    for (Schedule schedule : schedules) {
+      String googleEventId = schedule.googleEventId();
+      scheduleStore.delete(schedule);
+      domainEventPublisher.publish(
+          ScheduleGoogleSyncRequestedEvent.deleted(
+              currentTenantId(), schedule.memberId(), schedule.id(), googleEventId));
+    }
   }
 
   public void deleteScheduleByGoogleEventId(long memberId, String googleEventId) {

@@ -93,6 +93,10 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (!userReader.exists(userId)) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
+    Member ownerMember = memberReader.getMember(tenantId, userId);
+    if (ownerMember == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
     meetingRoomReader.getMeetingRoom(meetingRoomId);
     long conflicts =
         meetingRoomReader.countOverlappingReservations(meetingRoomId, startDatetime, endDatetime);
@@ -100,23 +104,26 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     validateParticipantScheduleConflicts(
-        tenantId, participantMemberIds, startDatetime, endDatetime);
+        tenantId, ownerMember.id(), participantMemberIds, startDatetime, endDatetime);
   }
 
   private void validateParticipantScheduleConflicts(
       String tenantId,
+      Long ownerMemberId,
       List<Long> participantMemberIds,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime) {
-    List<Long> normalizedParticipantIds =
-        participantMemberIds == null
-            ? List.of()
-            : participantMemberIds.stream()
-                .filter(id -> id != null && id > 0)
-                .collect(
-                    java.util.stream.Collectors.collectingAndThen(
-                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
-                        List::copyOf));
+    LinkedHashSet<Long> uniqueParticipantIds = new LinkedHashSet<>();
+    if (ownerMemberId != null && ownerMemberId > 0) {
+      uniqueParticipantIds.add(ownerMemberId);
+    }
+    if (participantMemberIds != null) {
+      participantMemberIds.stream()
+          .filter(id -> id != null && id > 0)
+          .forEach(uniqueParticipantIds::add);
+    }
+
+    List<Long> normalizedParticipantIds = List.copyOf(uniqueParticipantIds);
 
     if (normalizedParticipantIds.isEmpty()) {
       return;

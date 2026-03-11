@@ -8,6 +8,8 @@ import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationService;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,10 @@ public class MeetingRoomReservationFacade {
             request.participantMemberIds());
 
     Member ownerMember = memberReader.getMember(TenantContext.getTenantId(), userId);
+    if (ownerMember == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
     scheduleService.createMeetingRoomReservationSchedule(
         ownerMember.id(),
         reservation.id(),
