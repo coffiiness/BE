@@ -46,6 +46,36 @@ public class ScheduleService {
         ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), memberId, saved.id()));
   }
 
+  public void createMeetingRoomReservationSchedule(
+      Long memberId,
+      Long reservationId,
+      Long roomId,
+      String title,
+      String description,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      List<Long> attendeeIds) {
+    Schedule schedule =
+        new Schedule(
+            null,
+            memberId,
+            title == null || title.isBlank() ? "회의실 예약" : title,
+            description,
+            com.coffiness.calfit.core.enums.ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            roomId,
+            reservationId,
+            true,
+            null);
+
+    Schedule saved = scheduleStore.store(schedule, attendeeIds);
+
+    domainEventPublisher.publish(
+        ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), memberId, saved.id()));
+  }
+
   @Transactional(readOnly = true)
   public List<ScheduleInfo> getSchedules(
       long memberId, LocalDateTime startDate, LocalDateTime endDate) {
@@ -126,6 +156,17 @@ public class ScheduleService {
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.deleted(
             currentTenantId(), memberId, scheduleId, googleEventId));
+  }
+
+  public void deleteSchedulesByReservationId(Long reservationId) {
+    List<Schedule> schedules = scheduleReader.findByReservationId(reservationId);
+    for (Schedule schedule : schedules) {
+      String googleEventId = schedule.googleEventId();
+      scheduleStore.delete(schedule);
+      domainEventPublisher.publish(
+          ScheduleGoogleSyncRequestedEvent.deleted(
+              currentTenantId(), schedule.memberId(), schedule.id(), googleEventId));
+    }
   }
 
   public void deleteScheduleByGoogleEventId(long memberId, String googleEventId) {

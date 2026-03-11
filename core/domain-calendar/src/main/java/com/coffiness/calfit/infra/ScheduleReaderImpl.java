@@ -57,6 +57,19 @@ public class ScheduleReaderImpl implements ScheduleReader {
   }
 
   @Override
+  public List<Schedule> findByReservationId(Long reservationId) {
+    if (reservationId == null) {
+      return List.of();
+    }
+
+    return scheduleRepository
+        .findAllByReservationIdAndStatus(reservationId, EntityStatus.ACTIVE)
+        .stream()
+        .map(this::toDomain)
+        .toList();
+  }
+
+  @Override
   public List<Long> readAttendeeIds(Long scheduleId) {
     return scheduleAttendeeRepository.findByScheduleId(scheduleId).stream()
         .map(ScheduleAttendeeEntity::getAttendeeId)

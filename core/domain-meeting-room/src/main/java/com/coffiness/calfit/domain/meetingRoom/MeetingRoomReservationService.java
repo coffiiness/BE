@@ -22,8 +22,13 @@ public class MeetingRoomReservationService {
 
   @Transactional
   public MeetingRoomReservation reserve(
-      Long userId, Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
-    meetingRoomValidator.validateReserveRequest(userId, meetingRoomId, startDatetime, endDatetime);
+      Long userId,
+      Long meetingRoomId,
+      LocalDateTime startDatetime,
+      LocalDateTime endDatetime,
+      List<Long> participantMemberIds) {
+    meetingRoomValidator.validateReserveRequest(
+        userId, meetingRoomId, startDatetime, endDatetime, participantMemberIds);
     return meetingRoomStore.reserve(meetingRoomId, userId, startDatetime, endDatetime);
   }
 
