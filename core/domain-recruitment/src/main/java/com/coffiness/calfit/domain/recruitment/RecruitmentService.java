@@ -1,12 +1,14 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -187,7 +189,7 @@ public class RecruitmentService {
   }
 
   private List<RecruitmentStage> toStagesWithRequiredFail(
-      List<com.coffiness.calfit.api.v1.request.RecruitmentStageRequest> stageRequests) {
+      List<RecruitmentStageRequest> stageRequests) {
     List<RecruitmentStage> stages =
         stageRequests == null
             ? List.of()
@@ -202,10 +204,9 @@ public class RecruitmentService {
     }
 
     int nextStep = stages.stream().mapToInt(RecruitmentStage::stageStep).max().orElse(0) + 1;
-    return java.util.stream.Stream.concat(
+    return Stream.concat(
             stages.stream(),
-            java.util.stream.Stream.of(
-                new RecruitmentStage(null, "불합격", nextStep, RecruitmentStageType.FAIL)))
+            Stream.of(new RecruitmentStage(null, "불합격", nextStep, RecruitmentStageType.FAIL)))
         .toList();
   }
 }
