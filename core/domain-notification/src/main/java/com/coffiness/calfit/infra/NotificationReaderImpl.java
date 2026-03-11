@@ -23,8 +23,7 @@ public class NotificationReaderImpl implements NotificationReader {
   public NotificationPage getRecentNotifications(
       String tenantId, Long recipientUserId, int page, int size) {
     org.springframework.data.domain.Page<NotificationEntity> notificationPage =
-        notificationRepository
-            .findByTenantIdAndRecipientUserIdAndStatusOrderByCreatedAtDesc(
+        notificationRepository.findByTenantIdAndRecipientUserIdAndStatusOrderByCreatedAtDesc(
             tenantId, recipientUserId, EntityStatus.ACTIVE, PageRequest.of(page, size));
 
     return new NotificationPage(
@@ -34,18 +33,15 @@ public class NotificationReaderImpl implements NotificationReader {
 
   @Override
   public NotificationPage getRecentNotifications(
-      String tenantId,
-      Long recipientUserId,
-      NotificationCategory category,
-      int page,
-      int size) {
+      String tenantId, Long recipientUserId, NotificationCategory category, int page, int size) {
     org.springframework.data.domain.Page<NotificationEntity> notificationPage =
-        notificationRepository.findByTenantIdAndRecipientUserIdAndStatusAndTypeInOrderByCreatedAtDesc(
-            tenantId,
-            recipientUserId,
-            EntityStatus.ACTIVE,
-            List.copyOf(category.types()),
-            PageRequest.of(page, size));
+        notificationRepository
+            .findByTenantIdAndRecipientUserIdAndStatusAndTypeInOrderByCreatedAtDesc(
+                tenantId,
+                recipientUserId,
+                EntityStatus.ACTIVE,
+                List.copyOf(category.types()),
+                PageRequest.of(page, size));
 
     return new NotificationPage(
         notificationPage.getContent().stream().map(this::toNotification).toList(),
@@ -67,11 +63,7 @@ public class NotificationReaderImpl implements NotificationReader {
 
   @Override
   public NotificationPage getUnreadNotifications(
-      String tenantId,
-      Long recipientUserId,
-      NotificationCategory category,
-      int page,
-      int size) {
+      String tenantId, Long recipientUserId, NotificationCategory category, int page, int size) {
     org.springframework.data.domain.Page<NotificationEntity> notificationPage =
         notificationRepository
             .findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseAndTypeInOrderByCreatedAtDesc(

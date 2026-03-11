@@ -1,11 +1,9 @@
 package com.coffiness.calfit.core.api.facade.notification;
 
-import com.coffiness.calfit.core.support.Page;
 import com.coffiness.calfit.domain.notification.Notification;
 import com.coffiness.calfit.domain.notification.NotificationCategory;
 import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.domain.notification.NotificationService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

@@ -93,7 +93,8 @@ public record AnnouncementBoardFixture(BaseFixture base) {
     return base.get("/api/v1/announcement-boards", AnnouncementBoardListResponse[].class);
   }
 
-  public ApiResponse<AnnouncementBoardResponse> detail(String token, String tenantId, long boardId) {
+  public ApiResponse<AnnouncementBoardResponse> detail(
+      String token, String tenantId, long boardId) {
     return exchangeWithTenant(
         "/api/v1/announcement-boards/" + boardId,
         HttpMethod.GET,
