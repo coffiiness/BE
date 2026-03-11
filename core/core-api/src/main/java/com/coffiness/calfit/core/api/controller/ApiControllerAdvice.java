@@ -3,6 +3,7 @@ package com.coffiness.calfit.core.api.controller;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,8 @@ public class ApiControllerAdvice {
   public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException e) {
     log.info("IllegalArgumentException : {}", e.getMessage());
     return new ResponseEntity<>(
-        ApiResponse.error(ErrorType.BAD_REQUEST), ErrorType.BAD_REQUEST.getStatus());
+        ApiResponse.error(ErrorType.BAD_REQUEST, Map.of("message", e.getMessage())),
+        ErrorType.BAD_REQUEST.getStatus());
   }
 
   @ExceptionHandler(IllegalStateException.class)

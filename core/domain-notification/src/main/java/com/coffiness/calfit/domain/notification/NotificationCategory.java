@@ -11,7 +11,11 @@ public enum NotificationCategory {
           NotificationType.INTERVIEW_REQUESTED,
           NotificationType.INTERVIEW_UPDATED,
           NotificationType.INTERVIEW_CANCELLED)),
-  SYSTEM(EnumSet.noneOf(NotificationType.class));
+  SCHEDULE(
+      EnumSet.of(
+          NotificationType.SCHEDULE_INVITED,
+          NotificationType.SCHEDULE_UPDATED,
+          NotificationType.SCHEDULE_CANCELLED));
 
   private final EnumSet<NotificationType> types;
 

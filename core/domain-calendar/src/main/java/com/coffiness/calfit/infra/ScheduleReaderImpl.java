@@ -2,23 +2,22 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.Schedule;
+import com.coffiness.calfit.domain.ScheduleAvailability;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleReader;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
-import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +28,6 @@ public class ScheduleReaderImpl implements ScheduleReader {
   private final ScheduleRepository scheduleRepository;
   private final ScheduleAttendeeRepository scheduleAttendeeRepository;
   private final MeetingRoomRepository meetingRoomRepository;
-  private final MemberReader memberReader;
   private final UserReader userReader;
 
   @Override
@@ -38,6 +36,33 @@ public class ScheduleReaderImpl implements ScheduleReader {
     return scheduleRepository.findOverlappingSchedules(userId, startDate, endDate).stream()
         .map(this::toDomain)
         .toList();
+  }
+
+  // 바쁜 일정 충돌 여부를 조회
+  @Override
+  public boolean existsBusyOverlappingScheduleConflict(
+      List<Long> userIds, LocalDateTime startDate, LocalDateTime endDate) {
+    if (userIds == null || userIds.isEmpty()) {
+      return false;
+    }
+
+    return !scheduleRepository
+        .findBusyOverlappingSchedulesByUserIds(userIds, startDate, endDate, EntityStatus.ACTIVE)
+        .isEmpty();
+  }
+
+  // 특정 일정을 제외하고 바쁜 일정 충돌 여부를 조회
+  @Override
+  public boolean existsBusyOverlappingScheduleConflictExcludingSchedule(
+      Long excludedScheduleId, List<Long> userIds, LocalDateTime startDate, LocalDateTime endDate) {
+    if (excludedScheduleId == null || userIds == null || userIds.isEmpty()) {
+      return false;
+    }
+
+    return !scheduleRepository
+        .findBusyOverlappingSchedulesByUserIdsExcludingScheduleId(
+            excludedScheduleId, userIds, startDate, endDate, EntityStatus.ACTIVE)
+        .isEmpty();
   }
 
   @Override
@@ -82,9 +107,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
     Schedule schedule = read(scheduleId);
     List<Long> attendeeIds = readAttendeeIds(scheduleId);
 
-    List<Member> members = memberReader.getMembersByUserIds(currentTenantId(), attendeeIds);
-
-    String location = "지정된 장소 없음";
+    String location = "지정한 장소 없음";
     if (schedule.roomId() != null) {
       location =
           meetingRoomRepository
@@ -93,35 +116,89 @@ public class ScheduleReaderImpl implements ScheduleReader {
               .orElse("알 수 없는 장소");
     }
 
-    List<Long> userIdsForAttendees = members.stream().map(Member::userId).toList();
+    List<Long> userIdsForLookup =
+        Stream.concat(Stream.of(schedule.userId()), attendeeIds.stream()).distinct().toList();
     Map<Long, UserInfo> userMap =
-        userReader.getUsers(userIdsForAttendees).stream()
-            .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
-
-    Map<Long, Member> memberMap =
-        members.stream()
-            .filter(member -> member.userId() != null)
-            .collect(Collectors.toMap(Member::userId, m -> m, (m1, m2) -> m1));
+        userReader.getUsers(userIdsForLookup).stream()
+            .collect(Collectors.toMap(UserInfo::id, Function.identity(), (left, right) -> left));
 
     List<String> attendees =
         attendeeIds.stream()
-            .map(
-                userId -> {
-                  Member member = memberMap.get(userId);
-                  if (member == null) {
-                    return "알 수 없는 멤버 (" + userId + ")";
-                  }
-                  UserInfo user = userMap.get(member.userId());
-                  if (user == null || user.name() == null) {
-                    return "이름 없는 사용자";
-                  }
-                  return String.format("%s (%s)", user.name(), member.memberType().name());
-                })
+            .map(attendeeId -> resolveUserName(userMap.get(attendeeId), attendeeId))
             .toList();
 
-    String applicantName = null;
+    String ownerName = resolveUserName(userMap.get(schedule.userId()), schedule.userId());
 
-    return ScheduleDetailInfo.of(schedule, location, attendeeIds, attendees, applicantName);
+    return ScheduleDetailInfo.of(schedule, location, ownerName, attendeeIds, attendees, null);
+  }
+
+  // 선택한 참석자들의 바쁜 일정 현황을 조회
+  @Override
+  public ScheduleAvailability readAttendeeAvailability(
+      List<Long> attendeeIds, LocalDateTime startDate, LocalDateTime endDate) {
+    if (attendeeIds == null || attendeeIds.isEmpty()) {
+      return ScheduleAvailability.empty();
+    }
+
+    List<Long> targetAttendeeIds =
+        attendeeIds.stream()
+            .filter(Objects::nonNull)
+            .filter(attendeeId -> attendeeId > 0)
+            .collect(
+                Collectors.collectingAndThen(
+                    Collectors.toCollection(LinkedHashSet::new), List::copyOf));
+
+    if (targetAttendeeIds.isEmpty()) {
+      return ScheduleAvailability.empty();
+    }
+
+    List<ScheduleEntity> busySchedules =
+        scheduleRepository.findBusyOverlappingSchedulesByUserIds(
+            targetAttendeeIds, startDate, endDate, EntityStatus.ACTIVE);
+
+    List<Long> scheduleIds = busySchedules.stream().map(ScheduleEntity::getId).toList();
+    Map<Long, List<Long>> attendeeIdsByScheduleId =
+        scheduleIds.isEmpty()
+            ? Map.of()
+            : scheduleAttendeeRepository.findAllByScheduleIdIn(scheduleIds).stream()
+                .collect(
+                    Collectors.groupingBy(
+                        ScheduleAttendeeEntity::getScheduleId,
+                        Collectors.mapping(
+                            ScheduleAttendeeEntity::getAttendeeId, Collectors.toList())));
+
+    Map<Long, UserInfo> userMap =
+        userReader.getUsers(targetAttendeeIds).stream()
+            .collect(Collectors.toMap(UserInfo::id, Function.identity(), (left, right) -> left));
+
+    List<ScheduleAvailability.AttendeeAvailability> attendeeAvailabilities =
+        targetAttendeeIds.stream()
+            .map(
+                attendeeId ->
+                    new ScheduleAvailability.AttendeeAvailability(
+                        attendeeId,
+                        resolveUserName(userMap.get(attendeeId), attendeeId),
+                        busySchedules.stream()
+                            .filter(
+                                schedule ->
+                                    isScheduleVisibleToAttendee(
+                                        attendeeId,
+                                        schedule,
+                                        attendeeIdsByScheduleId.getOrDefault(
+                                            schedule.getId(), List.of())))
+                            .sorted(Comparator.comparing(ScheduleEntity::getStartTime))
+                            .map(
+                                schedule ->
+                                    new ScheduleAvailability.BusySchedule(
+                                        schedule.getId(),
+                                        schedule.getTitle(),
+                                        schedule.getStartTime(),
+                                        schedule.getEndTime(),
+                                        schedule.isAllDay()))
+                            .toList()))
+            .toList();
+
+    return new ScheduleAvailability(attendeeAvailabilities);
   }
 
   private Schedule toDomain(ScheduleEntity entity) {
@@ -140,11 +217,17 @@ public class ScheduleReaderImpl implements ScheduleReader {
         entity.getGoogleEventId());
   }
 
-  private String currentTenantId() {
-    String tenantId = TenantContext.getTenantId();
-    if (tenantId == null || tenantId.isBlank()) {
-      throw new IllegalStateException("워크스페이스 ID가 필요합니다.");
+  // 참석자에게 해당 일정이 실제로 보이는지 확인
+  private boolean isScheduleVisibleToAttendee(
+      Long attendeeId, ScheduleEntity schedule, List<Long> attendeeIds) {
+    return Objects.equals(schedule.getUserId(), attendeeId) || attendeeIds.contains(attendeeId);
+  }
+
+  // 참석자 이름을 응답용 문자열로 변환
+  private String resolveUserName(UserInfo userInfo, Long attendeeId) {
+    if (userInfo == null || userInfo.name() == null || userInfo.name().isBlank()) {
+      return "이름 없는 사용자 (" + attendeeId + ")";
     }
-    return tenantId;
+    return userInfo.name();
   }
 }

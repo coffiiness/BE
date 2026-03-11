@@ -2,6 +2,7 @@ package com.coffiness.calfit.v1.response;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -14,8 +15,10 @@ public record ScheduleDetailResponse(
     ScheduleType type,
     String description,
     Long roomId,
-    boolean isBusy,
+    @JsonProperty("isAllDay") boolean isAllDay,
+    @JsonProperty("isBusy") boolean isBusy,
     String location,
+    String ownerName,
     List<Long> attendeeIds,
     List<String> attendees,
     String applicantName) {
@@ -32,8 +35,10 @@ public record ScheduleDetailResponse(
         info.type(),
         info.description(),
         info.roomId(),
+        info.isAllDay(),
         info.isBusy(),
         info.location(),
+        info.ownerName(),
         info.attendeeIds(),
         info.attendees(),
         info.applicantName());
