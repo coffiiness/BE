@@ -16,6 +16,11 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
   Page<RecruitmentEntity> findByRecruitmentStatus(
       RecruitmentStatus recruitmentStatus, Pageable pageable);
 
+  Page<RecruitmentEntity> findByStatus(EntityStatus status, Pageable pageable);
+
+  Page<RecruitmentEntity> findByRecruitmentStatusAndStatus(
+      RecruitmentStatus recruitmentStatus, EntityStatus status, Pageable pageable);
+
   Optional<RecruitmentEntity> findByIdAndStatus(Long id, EntityStatus status);
 
   // 시작 시간이 되면 DRAFT 상태 채용 공고를 OPEN으로 변경

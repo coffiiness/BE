@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.*;
@@ -38,9 +39,11 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     Page<RecruitmentEntity> recruitments;
 
     if (recruitmentStatus == null) {
-      recruitments = recruitmentRepository.findAll(pageable);
+      recruitments = recruitmentRepository.findByStatus(EntityStatus.ACTIVE, pageable);
     } else {
-      recruitments = recruitmentRepository.findByRecruitmentStatus(recruitmentStatus, pageable);
+      recruitments =
+          recruitmentRepository.findByRecruitmentStatusAndStatus(
+              recruitmentStatus, EntityStatus.ACTIVE, pageable);
     }
 
     if (recruitments.isEmpty()) {}
@@ -145,7 +148,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // TODO: 에러 처리 (CoreException) 추후 삽입
     RecruitmentEntity entity =
         recruitmentRepository
-            .findById(recruitmentId)
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
 
     // Group Name 가져오기
@@ -221,7 +224,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
   public Recruitment readById(Long recruitmentId) {
     RecruitmentEntity entity =
         recruitmentRepository
-            .findById(recruitmentId)
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
 
     List<RecruitmentStage> stages =
