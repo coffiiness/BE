@@ -31,8 +31,6 @@ public class ApplicantApiDocs extends RestDocsTest {
   private final ApplicantPortalService applicantPortalService = mock(ApplicantPortalService.class);
   private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
 
-  private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
-
   private final ApplicantPortalController applicantPortalController =
       new ApplicantPortalController(applicantPortalService, workspaceRepository);
 
@@ -43,8 +41,6 @@ public class ApplicantApiDocs extends RestDocsTest {
     when(workspaceRepository.findByWorkspaceId(anyString()))
         .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
     setUpMockMvc(applicantPortalController, restDocumentation);
-    when(workspaceRepository.findByWorkspaceId(anyString()))
-        .thenReturn(Optional.of(mock(WorkspaceEntity.class)));
   }
 
   @Test

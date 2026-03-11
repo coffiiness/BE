@@ -8,6 +8,7 @@ import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
