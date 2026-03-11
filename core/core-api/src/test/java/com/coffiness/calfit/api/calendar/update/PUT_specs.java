@@ -10,9 +10,12 @@ import static org.mockito.Mockito.verify;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -201,6 +204,141 @@ public class PUT_specs {
 
     ApiResponse<Void> updateResponse =
         calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 동일한_일정을_같은_시간으로_수정할_때_자기_자신은_충돌로_보지_않는다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(3).withHour(10).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "Self exclusion test",
+            "Keep same time",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            null);
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(token, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(5).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "Title only change",
+            "Time remains same",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            null);
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+  }
+
+  @Test
+  void 참석자에게_같은_시간대의_바쁜_일정이_있으면_일정_수정에_실패한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime conflictStart =
+        now.plusDays(2).withHour(14).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime conflictEnd = conflictStart.plusHours(1);
+
+    ScheduleCreateRequest attendeeSchedule =
+        new ScheduleCreateRequest(
+            "Attendee busy event",
+            "Update conflict test",
+            ScheduleType.MEETING,
+            conflictStart,
+            conflictEnd,
+            false,
+            null,
+            true,
+            null);
+    ApiResponse<Void> attendeeCreateResponse =
+        calendarFixture.createSchedule(attendeeToken, tenantId, attendeeSchedule);
+    assertThat(attendeeCreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ScheduleCreateRequest ownerSchedule =
+        new ScheduleCreateRequest(
+            "Original event",
+            "Initial time does not overlap",
+            ScheduleType.MEETING,
+            now.plusDays(2).withHour(9).withMinute(0).withSecond(0).withNano(0),
+            now.plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0),
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+    ApiResponse<Void> ownerCreateResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, ownerSchedule);
+    assertThat(ownerCreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(5).toString();
+    Long scheduleId =
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "Updated event",
+            "Now overlaps attendee",
+            ScheduleType.MEETING,
+            conflictStart,
+            conflictEnd,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(ownerToken, tenantId, scheduleId, updateRequest);
 
     assertThat(updateResponse.getResult()).isEqualTo(ResultType.ERROR);
   }

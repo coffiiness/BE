@@ -37,6 +37,23 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
       @Param("to") LocalDateTime to,
       @Param("status") EntityStatus status);
 
+  // 특정 일정을 제외하고 바쁜 일정 충돌을 조회
+  @Query(
+      "SELECT DISTINCT s FROM ScheduleEntity s "
+          + "LEFT JOIN ScheduleAttendeeEntity a ON a.scheduleId = s.id "
+          + "WHERE (s.userId IN :userIds OR a.attendeeId IN :userIds) "
+          + "AND s.startTime < :to "
+          + "AND s.endTime > :from "
+          + "AND s.status = :status "
+          + "AND s.isBusy = true "
+          + "AND s.id <> :excludedScheduleId")
+  List<ScheduleEntity> findBusyOverlappingSchedulesByUserIdsExcludingScheduleId(
+      @Param("excludedScheduleId") Long excludedScheduleId,
+      @Param("userIds") List<Long> userIds,
+      @Param("from") LocalDateTime from,
+      @Param("to") LocalDateTime to,
+      @Param("status") EntityStatus status);
+
   @Query(
       "SELECT s FROM ScheduleEntity s "
           + "WHERE s.roomId IN :roomIds "

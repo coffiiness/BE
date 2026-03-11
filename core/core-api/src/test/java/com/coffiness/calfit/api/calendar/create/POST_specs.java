@@ -10,10 +10,13 @@ import static org.mockito.Mockito.verify;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.UserResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -142,6 +145,124 @@ public class POST_specs {
     ApiResponse<Void> response = calendarFixture.createSchedule(token, tenantId, createRequest);
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 참석자에게_같은_시간대의_바쁜_일정이_있으면_일정_생성에_실패한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(1).withHour(13).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest attendeeSchedule =
+        new ScheduleCreateRequest(
+            "Attendee busy event",
+            "Existing busy schedule",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            null);
+    ApiResponse<Void> attendeeCreateResponse =
+        calendarFixture.createSchedule(attendeeToken, tenantId, attendeeSchedule);
+    assertThat(attendeeCreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ScheduleCreateRequest ownerSchedule =
+        new ScheduleCreateRequest(
+            "Overlapping meeting",
+            "Attendee conflict test",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> response =
+        calendarFixture.createSchedule(ownerToken, tenantId, ownerSchedule);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 참석자의_기존_일정이_한가함으로_표시되면_겹쳐도_일정_생성이_가능하다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(1).withHour(15).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest attendeeSchedule =
+        new ScheduleCreateRequest(
+            "Attendee free event",
+            "Existing non-busy schedule",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            false,
+            null);
+    ApiResponse<Void> attendeeCreateResponse =
+        calendarFixture.createSchedule(attendeeToken, tenantId, attendeeSchedule);
+    assertThat(attendeeCreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ScheduleCreateRequest ownerSchedule =
+        new ScheduleCreateRequest(
+            "Allowed overlap",
+            "Attendee free-time test",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> response =
+        calendarFixture.createSchedule(ownerToken, tenantId, ownerSchedule);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
   }
 
   @Test

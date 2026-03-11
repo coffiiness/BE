@@ -40,6 +40,33 @@ public class ScheduleReaderImpl implements ScheduleReader {
         .toList();
   }
 
+  // 바쁜 일정 충돌 여부를 조회
+  @Override
+  public boolean existsBusyOverlappingScheduleConflict(
+      List<Long> userIds, LocalDateTime startDate, LocalDateTime endDate) {
+    if (userIds == null || userIds.isEmpty()) {
+      return false;
+    }
+
+    return !scheduleRepository
+        .findBusyOverlappingSchedulesByUserIds(userIds, startDate, endDate, EntityStatus.ACTIVE)
+        .isEmpty();
+  }
+
+  // 특정 일정을 제외하고 바쁜 일정 충돌 여부를 조회
+  @Override
+  public boolean existsBusyOverlappingScheduleConflictExcludingSchedule(
+      Long excludedScheduleId, List<Long> userIds, LocalDateTime startDate, LocalDateTime endDate) {
+    if (excludedScheduleId == null || userIds == null || userIds.isEmpty()) {
+      return false;
+    }
+
+    return !scheduleRepository
+        .findBusyOverlappingSchedulesByUserIdsExcludingScheduleId(
+            excludedScheduleId, userIds, startDate, endDate, EntityStatus.ACTIVE)
+        .isEmpty();
+  }
+
   @Override
   public Schedule read(Long scheduleId) {
     ScheduleEntity entity =

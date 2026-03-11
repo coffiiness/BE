@@ -8,6 +8,7 @@ import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,14 @@ public class ScheduleService {
             request.isBusy() != null ? request.isBusy() : true,
             null);
 
+    validateBusyScheduleConflicts(
+        userId,
+        request.attendeeIds(),
+        newSchedule.startTime(),
+        newSchedule.endTime(),
+        newSchedule.isBusy(),
+        null);
+
     Schedule saved = scheduleStore.store(newSchedule, request.attendeeIds());
 
     domainEventPublisher.publish(
@@ -69,6 +78,9 @@ public class ScheduleService {
             reservationId,
             true,
             null);
+
+    validateBusyScheduleConflicts(
+        userId, attendeeIds, schedule.startTime(), schedule.endTime(), schedule.isBusy(), null);
 
     Schedule saved = scheduleStore.store(schedule, attendeeIds);
 
@@ -129,6 +141,14 @@ public class ScheduleService {
         request.attendeeIds() != null
             ? request.attendeeIds()
             : scheduleReader.readAttendeeIds(scheduleId);
+
+    validateBusyScheduleConflicts(
+        schedule.userId(),
+        updatedAttendeeIds,
+        updatedSchedule.startTime(),
+        updatedSchedule.endTime(),
+        updatedSchedule.isBusy(),
+        scheduleId);
 
     scheduleStore.update(updatedSchedule, updatedAttendeeIds);
 
@@ -236,6 +256,45 @@ public class ScheduleService {
     scheduleStore.update(updatedSchedule, attendeeIds);
 
     return updatedSchedule.id();
+  }
+
+  // 생성자와 참석자의 바쁜 일정 충돌 여부를 검사
+  private void validateBusyScheduleConflicts(
+      Long ownerUserId,
+      List<Long> attendeeIds,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      boolean isBusy,
+      Long excludedScheduleId) {
+    if (!isBusy || startTime == null || endTime == null) {
+      return;
+    }
+
+    LinkedHashSet<Long> targetUserIds = new LinkedHashSet<>();
+    if (ownerUserId != null && ownerUserId > 0) {
+      targetUserIds.add(ownerUserId);
+    }
+    if (attendeeIds != null) {
+      attendeeIds.stream()
+          .filter(attendeeId -> attendeeId != null && attendeeId > 0)
+          .forEach(targetUserIds::add);
+    }
+
+    if (targetUserIds.isEmpty()) {
+      return;
+    }
+
+    List<Long> normalizedUserIds = List.copyOf(targetUserIds);
+    boolean hasConflict =
+        excludedScheduleId == null
+            ? scheduleReader.existsBusyOverlappingScheduleConflict(
+                normalizedUserIds, startTime, endTime)
+            : scheduleReader.existsBusyOverlappingScheduleConflictExcludingSchedule(
+                excludedScheduleId, normalizedUserIds, startTime, endTime);
+
+    if (hasConflict) {
+      throw new IllegalArgumentException("참석자 또는 생성자에게 같은 시간대의 바쁜 일정이 있습니다. 시간을 변경해 주세요.");
+    }
   }
 
   private String currentTenantId() {
