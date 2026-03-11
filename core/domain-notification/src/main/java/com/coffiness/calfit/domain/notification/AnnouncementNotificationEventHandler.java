@@ -17,6 +17,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class AnnouncementNotificationEventHandler {
 
   private final NotificationService notificationService;
+  private final NotificationSseService notificationSseService;
   private final NotificationTemplateFactory notificationTemplateFactory;
   private final MemberReader memberReader;
 
@@ -44,7 +45,14 @@ public class AnnouncementNotificationEventHandler {
                           message.actionUrl()))
               .toList();
 
-      notificationService.createAll(commands);
+      List<Notification> notifications = notificationService.createAll(commands);
+      notifications.forEach(
+          notification ->
+              notificationSseService.sendNotificationCreated(
+                  event.tenantId(),
+                  notification.recipientUserId(),
+                  notification.id(),
+                  notification.type()));
     } catch (RuntimeException e) {
       log.error(
           "Failed to create announcement notifications. announcementId={}",
