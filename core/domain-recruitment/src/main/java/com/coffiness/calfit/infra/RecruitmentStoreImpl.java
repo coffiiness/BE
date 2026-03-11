@@ -169,7 +169,7 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
 
     String sql =
         "INSERT INTO recruitment_interviewers "
-            + "(recruitment_id, member_id, tenant_id, status, created_at, updated_at) "
+            + "(recruitment_id, user_id, tenant_id, status, created_at, updated_at) "
             + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
     jdbcTemplate.batchUpdate(
