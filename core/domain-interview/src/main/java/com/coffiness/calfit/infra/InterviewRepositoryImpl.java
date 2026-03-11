@@ -516,37 +516,26 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       return Map.of();
     }
 
+    String tenantId = requireTenantId();
     Map<Long, String> resolved = new HashMap<>();
 
-    Map<Long, Member> memberMap =
-        memberReader.getMembersByIds(interviewerIds).stream()
-            .collect(Collectors.toMap(Member::id, member -> member, (left, right) -> left));
     List<Long> memberUserIds =
-        memberMap.values().stream()
+        memberReader.getMembersByUserIds(tenantId, interviewerIds).stream()
             .map(Member::userId)
             .filter(id -> id != null)
             .distinct()
             .toList();
 
-    Map<Long, String> userNameMap = new HashMap<>();
     if (!memberUserIds.isEmpty()) {
       userRepository
           .findAllById(memberUserIds)
           .forEach(
               user -> {
                 if (user.getId() != null && hasText(user.getName())) {
-                  userNameMap.put(user.getId(), user.getName());
+                  resolved.put(user.getId(), user.getName());
                 }
               });
     }
-
-    memberMap.forEach(
-        (memberId, member) -> {
-          String userName = userNameMap.get(member.userId());
-          if (hasText(userName)) {
-            resolved.put(memberId, userName);
-          }
-        });
 
     List<Long> unresolvedIds =
         interviewerIds.stream()
@@ -577,8 +566,13 @@ public class InterviewRepositoryImpl implements InterviewRepository {
 
     Map<Long, Long> resolved = new HashMap<>();
     memberReader
-        .getMembersByIds(interviewerIds)
-        .forEach(member -> resolved.put(member.id(), member.id()));
+        .getMembersByUserIds(tenantId, interviewerIds)
+        .forEach(
+            member -> {
+              if (member.userId() != null && member.id() != null) {
+                resolved.put(member.userId(), member.id());
+              }
+            });
 
     for (Long interviewerId : interviewerIds) {
       if (interviewerId == null || resolved.containsKey(interviewerId)) {

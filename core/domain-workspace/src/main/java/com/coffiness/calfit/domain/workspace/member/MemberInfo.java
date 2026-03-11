@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 public record MemberInfo(
     Long id,
+    Long userId,
     String name,
     LocalDateTime createdAt,
     LocalDateTime recentAt,

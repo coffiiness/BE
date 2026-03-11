@@ -85,6 +85,7 @@ public class MemberGroupFacade {
     String groupName = member.groupId() != null ? groupNameMap.get(member.groupId()) : null;
     return new MemberInfo(
         member.id(),
+        member.userId(),
         user.name(),
         user.createdAt(),
         user.recentAt(),
