@@ -25,4 +25,8 @@ public interface ScheduleReader {
   List<Long> readAttendeeIds(Long scheduleId);
 
   ScheduleDetailInfo readDetail(Long scheduleId);
+
+  // 선택한 참석자들의 일정 현황을 조회
+  ScheduleAvailability readAttendeeAvailability(
+      List<Long> attendeeIds, LocalDateTime startDate, LocalDateTime endDate);
 }

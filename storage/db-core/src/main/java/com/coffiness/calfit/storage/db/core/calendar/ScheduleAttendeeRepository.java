@@ -10,6 +10,9 @@ public interface ScheduleAttendeeRepository extends JpaRepository<ScheduleAttend
   // 특정 일정에 참석된 참석자 데이터 가져오기
   List<ScheduleAttendeeEntity> findByScheduleId(Long scheduleId);
 
+  // 여러 일정에 연결된 참석자 목록을 한 번에 조회
+  List<ScheduleAttendeeEntity> findAllByScheduleIdIn(List<Long> scheduleIds);
+
   // 일정이 삭제될 때 참석자 데이터도 삭제
   // 벌크 연산 처리
   @Modifying

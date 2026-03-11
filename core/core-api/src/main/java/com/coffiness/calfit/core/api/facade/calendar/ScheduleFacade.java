@@ -1,5 +1,6 @@
 package com.coffiness.calfit.core.api.facade.calendar;
 
+import com.coffiness.calfit.domain.ScheduleAvailability;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.domain.ScheduleService;
@@ -90,6 +91,20 @@ public class ScheduleFacade {
     validateAndGetMember(userId);
 
     return scheduleService.getDetailSchedule(userId, scheduleId);
+  }
+
+  // 선택한 참석자들의 일정 현황을 조회
+  @Transactional(readOnly = true)
+  public ScheduleAvailability getAttendeeAvailability(
+      long userId, LocalDateTime startDate, LocalDateTime endDate, List<Long> attendeeIds) {
+    validateAndGetMember(userId);
+
+    if (attendeeIds == null || attendeeIds.isEmpty()) {
+      return ScheduleAvailability.empty();
+    }
+
+    List<Long> normalizedAttendeeIds = validateAndNormalizeAttendeeIds(userId, attendeeIds);
+    return scheduleService.getAttendeeAvailability(startDate, endDate, normalizedAttendeeIds);
   }
 
   @Transactional

@@ -100,6 +100,17 @@ public class ScheduleService {
     return schedules.stream().map(ScheduleInfo::from).toList();
   }
 
+  // 선택한 참석자들의 일정 현황을 조회
+  @Transactional(readOnly = true)
+  public ScheduleAvailability getAttendeeAvailability(
+      LocalDateTime startDate, LocalDateTime endDate, List<Long> attendeeIds) {
+    if (attendeeIds == null || attendeeIds.isEmpty()) {
+      return ScheduleAvailability.empty();
+    }
+
+    return scheduleReader.readAttendeeAvailability(attendeeIds, startDate, endDate);
+  }
+
   @Transactional(readOnly = true)
   public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
 
