@@ -5,6 +5,7 @@ import com.coffiness.calfit.api.v1.request.ApplicationStageUpdateRequest;
 import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationFileResponse;
 import com.coffiness.calfit.api.v1.response.ApplicationSummaryResponse;
+import com.coffiness.calfit.domain.application.event.ApplicationProcessChangedEvent;
 import com.coffiness.calfit.core.enums.AutomationEventStatus;
 import com.coffiness.calfit.core.enums.AutomationTriggerType;
 import com.coffiness.calfit.core.enums.EntityStatus;
@@ -32,6 +33,7 @@ import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.email.EmailService;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.support.event.DomainEventPublisher;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -58,6 +60,7 @@ public class ApplicationService {
   private final AutomationRuleRepository automationRuleRepository;
   private final AutomationEventRepository automationEventRepository;
   private final AutomationEventExecutor automationEventExecutor;
+  private final DomainEventPublisher domainEventPublisher;
 
   @Transactional
   public Long create(ApplicationCreateRequest request, Long requesterUserId) {
@@ -333,8 +336,8 @@ public class ApplicationService {
             .findByIdAndStatus(applicationId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    if (!recruitmentStageRepository.existsByIdAndRecruitmentId(
-        recruitmentProcessId, entity.getRecruitmentId())) {
+    RecruitmentStageEntity destinationStage = getRecruitmentStage(recruitmentProcessId);
+    if (!entity.getRecruitmentId().equals(destinationStage.getRecruitmentId())) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
@@ -343,6 +346,7 @@ public class ApplicationService {
     }
 
     Long beforeProcessId = entity.getRecruitmentProcessId();
+    RecruitmentStageEntity currentStage = getRecruitmentStage(beforeProcessId);
     entity.updateRecruitmentProcessId(recruitmentProcessId);
 
     applicationProcessHistoryRepository.save(
@@ -367,13 +371,34 @@ public class ApplicationService {
     }
 
     automationEventExecutor.executePendingForApplication(applicationId);
+
+    domainEventPublisher.publish(
+        ApplicationProcessChangedEvent.of(
+            currentTenantId(),
+            applicationId,
+            entity.getRecruitmentId(),
+            actorId,
+            currentStage.getId(),
+            currentStage.getStageName(),
+            currentStage.getStageType(),
+            destinationStage.getId(),
+            destinationStage.getStageName(),
+            destinationStage.getStageType()));
   }
 
   private void requireTenant() {
-    String tenantId = TenantContext.getTenantId();
-    if (tenantId == null || tenantId.isBlank() || DEFAULT_TENANT.equals(tenantId)) {
+    String tenantId = currentTenantId();
+    if (DEFAULT_TENANT.equals(tenantId)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+  }
+
+  private String currentTenantId() {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    return tenantId;
   }
 
   private void ensureTenantFromRecruitment(Long recruitmentId) {
