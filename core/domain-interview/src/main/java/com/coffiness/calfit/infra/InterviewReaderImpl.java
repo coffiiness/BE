@@ -68,7 +68,7 @@ public class InterviewReaderImpl implements InterviewReader {
                     row.interviewScheduleId(),
                     row.startAt(),
                     row.endAt(),
-                    row.interviewerMemberId(),
+                    row.interviewerUserId(),
                     row.interviewerName(),
                     "면접 일정",
                     row.applicantName(),

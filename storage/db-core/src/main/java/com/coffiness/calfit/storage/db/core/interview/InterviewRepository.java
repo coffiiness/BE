@@ -18,7 +18,7 @@ public interface InterviewRepository {
       Long interviewScheduleId,
       LocalDateTime startAt,
       LocalDateTime endAt,
-      Long interviewerMemberId,
+      Long interviewerUserId,
       String interviewerName,
       String applicantName,
       String description) {}

@@ -87,6 +87,20 @@ public record MemberFixture(
     return memberResponse.id();
   }
 
+  public Long addSecondMemberUserId(WorkspaceContext context) {
+    String inviteeEmail = userFixture.randomEmail();
+    String inviteePassword = userFixture.randomPassword();
+    Long userId =
+        userFixture.signUp(inviteeEmail, inviteePassword, userFixture.randomName()).getData().id();
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        createInvitation(
+            context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.INTERVIEWER);
+    acceptInvitation(invitationResponse.getData().token());
+
+    return userId;
+  }
+
   // ==================== Private Helpers ====================
 
   @SuppressWarnings("unchecked")

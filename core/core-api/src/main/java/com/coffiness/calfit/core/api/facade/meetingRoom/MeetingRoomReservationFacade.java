@@ -28,7 +28,7 @@ public class MeetingRoomReservationFacade {
             meetingRoomId,
             request.startDatetime(),
             request.endDatetime(),
-            request.participantMemberIds());
+            request.participantUserIds());
 
     scheduleService.createMeetingRoomReservationSchedule(
         userId,
@@ -38,7 +38,7 @@ public class MeetingRoomReservationFacade {
         request.description(),
         request.startDatetime(),
         request.endDatetime(),
-        request.participantMemberIds());
+        request.participantUserIds());
 
     return reservation;
   }

@@ -9,4 +9,4 @@ public record MeetingRoomReservationCreateRequest(
     String description,
     @NotNull LocalDateTime startDatetime,
     @NotNull LocalDateTime endDatetime,
-    List<Long> participantMemberIds) {}
+    List<Long> participantUserIds) {}

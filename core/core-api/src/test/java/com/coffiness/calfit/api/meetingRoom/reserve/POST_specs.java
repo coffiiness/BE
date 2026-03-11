@@ -14,7 +14,6 @@ import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
-import com.coffiness.calfit.api.v1.response.MemberResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.core.enums.MemberType;
@@ -154,10 +153,7 @@ class POST_specs {
 
     String interviewerToken =
         userFixture.login(interviewerEmail, interviewerPassword).getData().accessToken();
-    MemberResponse interviewerMember =
-        memberFixture.getMyMember(interviewerToken, tenantId).getData();
-
-    Long interviewerMemberId = interviewerMember.id();
+    Long interviewerUserId = userFixture.me(interviewerToken).getData().id();
 
     Long firstRoomId = meetingRoomFixture.create(hrToken, tenantId, "회의실 A", 1, 6).getData().id();
     Long secondRoomId = meetingRoomFixture.create(hrToken, tenantId, "회의실 B", 1, 6).getData().id();
@@ -176,7 +172,7 @@ class POST_specs {
             null,
             1L,
             List.of(1L, 2L),
-            List.of(interviewerMemberId),
+            List.of(interviewerUserId),
             List.of(new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 1)));
 
     recruitmentFixture.createRecruitment(hrToken, tenantId, recruitmentRequest);
@@ -190,7 +186,7 @@ class POST_specs {
             recruitmentId,
             null,
             InterviewRound.FIRST,
-            List.of(interviewerMemberId),
+            List.of(interviewerUserId),
             List.of(101L),
             firstRoomId,
             scheduledAt,
