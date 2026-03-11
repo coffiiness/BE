@@ -60,6 +60,10 @@ public record MemberFixture(
     return base.post("/api/v1/invitations/" + invitationToken + "/accept", null, Void.class);
   }
 
+  public ApiResponse<Void> acceptInvitation(String invitationToken, String token) {
+    return base.post("/api/v1/invitations/" + invitationToken + "/accept", null, token, Void.class);
+  }
+
   // ==================== Convenience Setup ====================
 
   /** 유저 생성 + 워크스페이스 생성 → WorkspaceContext 반환 */
