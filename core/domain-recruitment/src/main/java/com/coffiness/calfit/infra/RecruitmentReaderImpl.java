@@ -7,6 +7,8 @@ import com.coffiness.calfit.domain.recruitment.*;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
+import com.coffiness.calfit.domain.workspace.member.Member;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +31,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
   private final UserReader userReader;
   private final GroupReader groupReader;
+  private final MemberReader memberReader;
 
   @Override
   public List<RecruitmentListInfo> readList(
@@ -60,15 +63,13 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
             .collect(Collectors.groupingBy(RecruitmentInterviewerEntity::getRecruitmentId));
 
     // 외부 유저 도메인 정보 가져오기
-    List<Long> userIds =
+    List<Long> memberIds =
         allInterviewers.stream()
             .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
-    Map<Long, String> userNameMap =
-        userReader.getUsers(userIds).stream()
-            .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
+    Map<Long, String> userNameMap = getInterviewerNameMap(memberIds);
 
     // 그룹 도메인 정보 외부에서 가져오기
     List<Long> leadGroupIds =
@@ -105,9 +106,9 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   interviewerMap.getOrDefault(recruitmentId, List.of()).stream()
                       .map(
                           i -> {
-                            Long userId = i.getUserId();
-                            String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
-                            return new RecruitmentListInfo.AssigneeSummaryInfo(userId, name);
+                            Long memberId = i.getUserId();
+                            String name = userNameMap.getOrDefault(memberId, "알 수 없는 사용자");
+                            return new RecruitmentListInfo.AssigneeSummaryInfo(memberId, name);
                           })
                       .filter(assignee -> assignee.userId() != null)
                       .toList();
@@ -147,26 +148,24 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // 면접관 정보 매핑
     List<RecruitmentInterviewerEntity> interviewers =
         recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId);
-    List<Long> userIds =
+    List<Long> memberIds =
         interviewers.stream()
             .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
 
-    Map<Long, String> userNameMap =
-        userReader.getUsers(userIds).stream()
-            .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
+    Map<Long, String> userNameMap = getInterviewerNameMap(memberIds);
 
     List<InterviewerInfo> interviewerInfos =
         interviewers.stream()
             .filter(i -> i.getUserId() != null)
             .map(
                 i -> {
-                  Long userId = i.getUserId();
-                  String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
+                  Long memberId = i.getUserId();
+                  String name = userNameMap.getOrDefault(memberId, "알 수 없는 사용자");
                   // 체크박스는 우선 true
-                  return new InterviewerInfo(userId, name, true);
+                  return new InterviewerInfo(memberId, name, true);
                 })
             .filter(info -> info.userId() != null)
             .toList();
@@ -213,8 +212,6 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     List<Long> interviewerIds =
         recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId).stream()
             .map(RecruitmentInterviewerEntity::getUserId)
-            .filter(Objects::nonNull)
-            .map(id -> resolveStoredInterviewerIdToUserIdMap(List.of(id)).get(id))
             .filter(Objects::nonNull)
             .toList();
 
@@ -286,24 +283,6 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         .toList();
   }
 
-  private Map<Long, Long> resolveStoredInterviewerIdToUserIdMap(List<Long> storedIds) {
-    if (storedIds == null || storedIds.isEmpty()) {
-      return Map.of();
-    }
-
-    Map<Long, Long> resolved =
-        memberReader.getMembersByIds(storedIds).stream()
-            .filter(member -> member.userId() != null)
-            .collect(Collectors.toMap(Member::id, Member::userId, (left, right) -> left));
-
-    for (Long storedId : storedIds) {
-      if (storedId != null && !resolved.containsKey(storedId)) {
-        resolved.put(storedId, storedId);
-      }
-    }
-    return resolved;
-  }
-
   private Map<Long, String> getUserNameMap(List<Long> userIds) {
     if (userIds == null || userIds.isEmpty()) {
       return Map.of();
@@ -311,5 +290,31 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
     return userReader.getUsers(userIds).stream()
         .collect(Collectors.toMap(UserInfo::id, UserInfo::name, (left, right) -> left));
+  }
+
+  private Map<Long, String> getInterviewerNameMap(List<Long> memberIds) {
+    if (memberIds == null || memberIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, Member> memberMap =
+        memberReader.getMembersByIds(memberIds).stream()
+            .collect(Collectors.toMap(Member::id, member -> member, (left, right) -> left));
+
+    List<Long> userIds =
+        memberMap.values().stream()
+            .map(Member::userId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+    Map<Long, String> userNameMap = getUserNameMap(userIds);
+
+    return memberMap.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> userNameMap.getOrDefault(entry.getValue().userId(), "알 수 없는 사용자"),
+                (left, right) -> left));
   }
 }

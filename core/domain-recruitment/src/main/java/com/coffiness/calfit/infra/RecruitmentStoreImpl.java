@@ -24,7 +24,6 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
   private final RecruitmentStageRepository recruitmentStageRepository;
   private final RecruitmentReferenceGroupRepository recruitmentReferenceGroupRepository;
   private final RecruitmentInterviewerRepository recruitmentInterviewerRepository;
-  private final MemberReader memberReader;
 
   private final JdbcTemplate jdbcTemplate;
 
