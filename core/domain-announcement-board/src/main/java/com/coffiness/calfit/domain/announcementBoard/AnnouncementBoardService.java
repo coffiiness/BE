@@ -36,6 +36,13 @@ public class AnnouncementBoardService {
     return announcementBoardReader.getAnnouncementBoards();
   }
 
+  @Transactional(readOnly = true)
+  public AnnouncementBoard get(Long id) {
+    return announcementBoardReader
+        .findActiveBoard(id)
+        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+  }
+
   /* 공지사항 수정 */
   @Transactional
   public AnnouncementBoard update(

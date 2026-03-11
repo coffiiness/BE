@@ -45,6 +45,12 @@ public class AnnouncementBoardController {
     return ApiResponse.success(responses);
   }
 
+  @GetMapping("/{id}")
+  public ApiResponse<AnnouncementBoardResponse> detail(@PathVariable Long id) {
+    AnnouncementBoard board = announcementBoardFacade.getAnnouncement(id);
+    return ApiResponse.success(AnnouncementBoardResponse.from(board));
+  }
+
   /* 공지사항  수정 */
   @PutMapping("/{id}")
   public ApiResponse<AnnouncementBoardResponse> update(
