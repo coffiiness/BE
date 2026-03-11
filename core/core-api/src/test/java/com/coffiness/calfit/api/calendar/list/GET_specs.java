@@ -49,7 +49,7 @@ public class GET_specs {
             false,
             null,
             false,
-            List.of(1L, 2L));
+            null);
 
     ApiResponse<Void> createResponse =
         calendarFixture.createSchedule(token, tenantId, createRequest);

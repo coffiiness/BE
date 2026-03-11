@@ -2,9 +2,7 @@ package com.coffiness.calfit.api.calendar.create;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,6 +12,7 @@ import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.UserResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -28,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,7 +117,73 @@ public class POST_specs {
   }
 
   @Test
-  void 캘핏_일정_생성_후_구글_이벤트_ID로_재동기화하면_한건만_유지된다(
+  void 워크스페이스에_속하지_않은_참석자가_포함되면_일정_생성에_실패한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+
+    LocalDateTime now = LocalDateTime.now();
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "참석자 검증 실패 테스트",
+            "워크스페이스 외부 참석자 검증",
+            ScheduleType.MEETING,
+            now.plusDays(1),
+            now.plusDays(1).plusHours(1),
+            false,
+            null,
+            false,
+            List.of(999999L));
+
+    ApiResponse<Void> response = calendarFixture.createSchedule(token, tenantId, createRequest);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 중복된_참석자_ID가_전달되면_한_번만_저장한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+    UserResponse me = userFixture.me(token).getData();
+
+    LocalDateTime now = LocalDateTime.now();
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "중복 참석자 제거 테스트",
+            "같은 참석자를 여러 번 보내도 한 번만 저장되어야 한다.",
+            ScheduleType.MEETING,
+            now.plusDays(1),
+            now.plusDays(1).plusHours(1),
+            false,
+            null,
+            false,
+            List.of(me.id(), me.id(), me.id()));
+
+    ApiResponse<Void> response = calendarFixture.createSchedule(token, tenantId, createRequest);
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    var detailInfo = calendarFixture.getDetailSchedule(token, tenantId, scheduleId).getData();
+
+    assertThat(detailInfo).isNotNull();
+    assertThat(detailInfo.attendeeIds()).containsExactly(me.id());
+  }
+
+  @Test
+  void 일정_생성_후_구글_이벤트_ID로_재동기화하면_한_건만_유지된다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired CalendarFixture calendarFixture) {

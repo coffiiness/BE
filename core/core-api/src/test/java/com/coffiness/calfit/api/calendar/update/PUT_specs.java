@@ -2,10 +2,7 @@ package com.coffiness.calfit.api.calendar.update;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -158,6 +156,53 @@ public class PUT_specs {
 
     assertThat(detailResponse.getData().title()).isEqualTo("변경될 회의");
     assertThat(detailResponse.getData().roomId()).isEqualTo(newRoomId);
+  }
+
+  @Test
+  void 워크스페이스에_속하지_않은_참석자가_포함되면_일정_수정에_실패한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+    LocalDateTime now = LocalDateTime.now();
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "수정 검증용 일정",
+            "참석자 검증 테스트",
+            ScheduleType.MEETING,
+            now.plusDays(2),
+            now.plusDays(2).plusHours(2),
+            false,
+            null,
+            false,
+            null);
+    calendarFixture.createSchedule(token, tenantId, createRequest);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(5).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "수정 검증용 일정",
+            "참석자 검증 테스트",
+            ScheduleType.MEETING,
+            now.plusDays(2),
+            now.plusDays(2).plusHours(2),
+            false,
+            null,
+            false,
+            List.of(999999L));
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.ERROR);
   }
 
   @Test

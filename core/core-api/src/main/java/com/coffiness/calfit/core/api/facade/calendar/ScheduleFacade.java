@@ -12,6 +12,8 @@ import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,7 +31,7 @@ public class ScheduleFacade {
   private final MeetingRoomReservationService meetingRoomReservationService;
 
   private Member validateAndGetMember(long userId) {
-    String currentWorkspaceId = TenantContext.getTenantId();
+    String currentWorkspaceId = currentWorkspaceId();
     Member member = memberReader.getMember(currentWorkspaceId, userId);
     if (member == null) {
       throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
@@ -40,16 +42,32 @@ public class ScheduleFacade {
   @Transactional
   public void createSchedule(long userId, ScheduleCreateRequest request) {
     validateAndGetMember(userId);
+    List<Long> attendeeIds = validateAndNormalizeAttendeeIds(request.attendeeIds());
+    ScheduleCreateRequest normalizedRequest =
+        new ScheduleCreateRequest(
+            request.title(),
+            request.description(),
+            request.type(),
+            request.startTime(),
+            request.endTime(),
+            request.isAllDay(),
+            request.roomId(),
+            request.isBusy(),
+            attendeeIds);
     Long reservationId = null;
 
-    if (request.roomId() != null) {
+    if (normalizedRequest.roomId() != null) {
       MeetingRoomReservation reservation =
           meetingRoomReservationService.reserve(
-              userId, request.roomId(), request.startTime(), request.endTime(), List.of());
+              userId,
+              normalizedRequest.roomId(),
+              normalizedRequest.startTime(),
+              normalizedRequest.endTime(),
+              List.of());
       reservationId = reservation.id();
     }
 
-    scheduleService.createSchedule(userId, reservationId, request);
+    scheduleService.createSchedule(userId, reservationId, normalizedRequest);
   }
 
   @Transactional
@@ -78,17 +96,37 @@ public class ScheduleFacade {
   public ScheduleDetailInfo updateSchedule(
       long userId, Long scheduleId, ScheduleUpdateRequest request) {
     validateAndGetMember(userId);
+    List<Long> attendeeIds =
+        request.attendeeIds() != null
+            ? validateAndNormalizeAttendeeIds(request.attendeeIds())
+            : null;
+    ScheduleUpdateRequest normalizedRequest =
+        new ScheduleUpdateRequest(
+            request.title(),
+            request.description(),
+            request.type(),
+            request.startTime(),
+            request.endTime(),
+            request.isAllDay(),
+            request.roomId(),
+            request.isBusy(),
+            attendeeIds);
     ScheduleDetailInfo scheduleDetailInfo = scheduleService.getDetailSchedule(userId, scheduleId);
 
-    Long targetRoomId = request.roomId() != null ? request.roomId() : scheduleDetailInfo.roomId();
+    Long targetRoomId =
+        normalizedRequest.roomId() != null
+            ? normalizedRequest.roomId()
+            : scheduleDetailInfo.roomId();
     Long newReservationId = scheduleDetailInfo.reservationId();
 
     boolean roomIdChanged =
-        request.roomId() != null && !request.roomId().equals(scheduleDetailInfo.roomId());
+        normalizedRequest.roomId() != null
+            && !normalizedRequest.roomId().equals(scheduleDetailInfo.roomId());
     boolean timeChanged =
-        (request.startTime() != null && !request.startTime().equals(scheduleDetailInfo.startTime()))
-            || (request.endTime() != null
-                && !request.endTime().equals(scheduleDetailInfo.endTime()));
+        (normalizedRequest.startTime() != null
+                && !normalizedRequest.startTime().equals(scheduleDetailInfo.startTime()))
+            || (normalizedRequest.endTime() != null
+                && !normalizedRequest.endTime().equals(scheduleDetailInfo.endTime()));
 
     if (scheduleDetailInfo.roomId() != null && scheduleDetailInfo.reservationId() != null) {
       if (roomIdChanged || timeChanged) {
@@ -101,9 +139,13 @@ public class ScheduleFacade {
     // 회의실 또는 시간 정보가 변경되면 새 예약을 생성한다.
     if (targetRoomId != null && (roomIdChanged || timeChanged)) {
       LocalDateTime startTime =
-          request.startTime() != null ? request.startTime() : scheduleDetailInfo.startTime();
+          normalizedRequest.startTime() != null
+              ? normalizedRequest.startTime()
+              : scheduleDetailInfo.startTime();
       LocalDateTime endTime =
-          request.endTime() != null ? request.endTime() : scheduleDetailInfo.endTime();
+          normalizedRequest.endTime() != null
+              ? normalizedRequest.endTime()
+              : scheduleDetailInfo.endTime();
 
       MeetingRoomReservation reservation =
           meetingRoomReservationService.reserve(
@@ -111,7 +153,7 @@ public class ScheduleFacade {
       newReservationId = reservation.id();
     }
 
-    return scheduleService.updateSchedule(userId, scheduleId, newReservationId, request);
+    return scheduleService.updateSchedule(userId, scheduleId, newReservationId, normalizedRequest);
   }
 
   @Transactional
@@ -126,5 +168,41 @@ public class ScheduleFacade {
     }
 
     scheduleService.deleteSchedule(userId, scheduleId);
+  }
+
+  private List<Long> validateAndNormalizeAttendeeIds(List<Long> attendeeIds) {
+    if (attendeeIds == null) {
+      return null;
+    }
+
+    LinkedHashSet<Long> uniqueAttendeeIds = new LinkedHashSet<>();
+    for (Long attendeeId : attendeeIds) {
+      if (attendeeId == null || attendeeId <= 0) {
+        throw new IllegalArgumentException("유효하지 않은 참석자 ID가 포함되어 있습니다.");
+      }
+      uniqueAttendeeIds.add(attendeeId);
+    }
+
+    if (uniqueAttendeeIds.isEmpty()) {
+      return List.of();
+    }
+
+    List<Long> normalizedAttendeeIds = new ArrayList<>(uniqueAttendeeIds);
+    List<Member> members =
+        memberReader.getMembersByUserIds(currentWorkspaceId(), normalizedAttendeeIds);
+
+    if (members.size() != normalizedAttendeeIds.size()) {
+      throw new IllegalArgumentException("워크스페이스에 속하지 않은 참석자가 포함되어 있습니다.");
+    }
+
+    return normalizedAttendeeIds;
+  }
+
+  private String currentWorkspaceId() {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank()) {
+      throw new IllegalArgumentException("워크스페이스 ID가 필요합니다.");
+    }
+    return tenantId;
   }
 }
