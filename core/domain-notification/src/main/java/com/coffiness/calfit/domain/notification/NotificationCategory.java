@@ -10,6 +10,7 @@ public enum NotificationCategory {
           NotificationType.INTERVIEW_REQUESTED,
           NotificationType.INTERVIEW_UPDATED,
           NotificationType.INTERVIEW_CANCELLED)),
+  MEETING_ROOM(EnumSet.of(NotificationType.MEETING_ROOM_RESERVED)),
   SYSTEM(EnumSet.noneOf(NotificationType.class));
 
   private final EnumSet<NotificationType> types;

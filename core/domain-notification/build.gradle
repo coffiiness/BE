@@ -8,6 +8,8 @@ dependencies {
     implementation project(':support:event')
     implementation project(':core:domain-workspace')
     implementation project(':core:domain-announcement-board')
+    implementation project(':core:domain-interview')
+    implementation project(':core:domain-meeting-room')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
 }

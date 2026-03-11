@@ -79,7 +79,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       Long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime,
-      List<Long> participantMemberIds) {
+      List<Long> participantUserIds) {
     String tenantId = requireTenantId();
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
@@ -104,33 +104,34 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     validateParticipantScheduleConflicts(
-        tenantId, ownerMember.id(), participantMemberIds, startDatetime, endDatetime);
+        tenantId, ownerMember.userId(), participantUserIds, startDatetime, endDatetime);
   }
 
   private void validateParticipantScheduleConflicts(
       String tenantId,
-      Long ownerMemberId,
-      List<Long> participantMemberIds,
+      Long ownerUserId,
+      List<Long> participantUserIds,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime) {
-    LinkedHashSet<Long> uniqueParticipantIds = new LinkedHashSet<>();
-    if (ownerMemberId != null && ownerMemberId > 0) {
-      uniqueParticipantIds.add(ownerMemberId);
+    LinkedHashSet<Long> uniqueParticipantUserIds = new LinkedHashSet<>();
+    if (ownerUserId != null && ownerUserId > 0) {
+      uniqueParticipantUserIds.add(ownerUserId);
     }
-    if (participantMemberIds != null) {
-      participantMemberIds.stream()
+    if (participantUserIds != null) {
+      participantUserIds.stream()
           .filter(id -> id != null && id > 0)
-          .forEach(uniqueParticipantIds::add);
+          .forEach(uniqueParticipantUserIds::add);
     }
 
-    List<Long> normalizedParticipantIds = List.copyOf(uniqueParticipantIds);
+    List<Long> normalizedParticipantUserIds = List.copyOf(uniqueParticipantUserIds);
 
-    if (normalizedParticipantIds.isEmpty()) {
+    if (normalizedParticipantUserIds.isEmpty()) {
       return;
     }
 
-    List<Member> participants = memberReader.getMembersByIds(normalizedParticipantIds);
-    if (participants.size() != normalizedParticipantIds.size()) {
+    List<Member> participants =
+        memberReader.getMembersByUserIds(tenantId, normalizedParticipantUserIds);
+    if (participants.size() != normalizedParticipantUserIds.size()) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
@@ -142,14 +143,14 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
 
     if (!scheduleRepository
         .findBusyOverlappingSchedulesByUserIds(
-            normalizedParticipantIds, startDatetime, endDatetime, EntityStatus.ACTIVE)
+            normalizedParticipantUserIds, startDatetime, endDatetime, EntityStatus.ACTIVE)
         .isEmpty()) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
     List<Long> interviewScheduleIds =
         interviewScheduleInterviewerRepository
-            .findAllByTenantIdAndUserIdIn(tenantId, normalizedParticipantIds)
+            .findAllByTenantIdAndUserIdIn(tenantId, normalizedParticipantUserIds)
             .stream()
             .map(mapping -> mapping.getInterviewScheduleId())
             .distinct()
