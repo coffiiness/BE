@@ -6,4 +6,5 @@ public enum NotificationTargetType {
   INTERVIEW_REQUEST,
   INTERVIEW_SCHEDULE,
   MEETING_ROOM_RESERVATION
+  SCHEDULE
 }

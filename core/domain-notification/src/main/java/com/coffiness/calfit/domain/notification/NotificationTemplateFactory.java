@@ -10,6 +10,9 @@ import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationCreatedEven
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
+import com.coffiness.calfit.domain.event.ScheduleAttendeeNotificationEvent;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,6 +21,11 @@ public class NotificationTemplateFactory {
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
   private final MeetingRoomRepository meetingRoomRepository;
+
+  private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+  private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
   public NotificationMessage buildAnnouncementCreated(AnnouncementCreatedEvent event) {
     return new NotificationMessage(
@@ -79,5 +87,65 @@ public class NotificationTemplateFactory {
         .map(meetingRoom -> meetingRoom.getName())
         .filter(name -> name != null && !name.isBlank())
         .orElse("회의실 #" + meetingRoomId);
+  // 일정 참석자 알림 생성
+  public NotificationMessage buildScheduleAttendeeNotification(
+      ScheduleAttendeeNotificationEvent event) {
+    return switch (event.actionType()) {
+      case CREATE ->
+          new NotificationMessage(
+              NotificationType.SCHEDULE_INVITED,
+              "[일정] 새 일정이 등록되었습니다.",
+              String.format("'%s' 일정이 %s에 등록되었습니다.", event.title(), formatSchedulePeriod(event)),
+              NotificationTargetType.SCHEDULE,
+              event.scheduleId(),
+              buildScheduleActionUrl(event, true));
+      case UPDATE ->
+          new NotificationMessage(
+              NotificationType.SCHEDULE_UPDATED,
+              "[일정] 일정이 변경되었습니다.",
+              String.format("'%s' 일정이 %s로 변경되었습니다.", event.title(), formatSchedulePeriod(event)),
+              NotificationTargetType.SCHEDULE,
+              event.scheduleId(),
+              buildScheduleActionUrl(event, true));
+      case DELETE ->
+          new NotificationMessage(
+              NotificationType.SCHEDULE_CANCELLED,
+              "[일정] 일정이 취소되었습니다.",
+              String.format("'%s' 일정이 취소되었습니다.", event.title()),
+              NotificationTargetType.SCHEDULE,
+              event.scheduleId(),
+              buildScheduleActionUrl(event, false));
+    };
+  }
+
+  // 일정 이동 경로 생성
+  private String buildScheduleActionUrl(
+      ScheduleAttendeeNotificationEvent event, boolean includeScheduleId) {
+    String date = event.startTime().toLocalDate().format(DATE_FORMATTER);
+    if (!includeScheduleId) {
+      return "/schedule?date=" + date;
+    }
+    return String.format("/schedule?date=%s&scheduleId=%d", date, event.scheduleId());
+  }
+
+  // 일정 기간 문구 생성
+  private String formatSchedulePeriod(ScheduleAttendeeNotificationEvent event) {
+    LocalDateTime startTime = event.startTime();
+    LocalDateTime endTime = event.endTime();
+
+    if (event.isAllDay()) {
+      return startTime.toLocalDate().format(DATE_FORMATTER) + " 종일";
+    }
+
+    if (startTime.toLocalDate().equals(endTime.toLocalDate())) {
+      return String.format(
+          "%s %s ~ %s",
+          startTime.toLocalDate().format(DATE_FORMATTER),
+          startTime.toLocalTime().format(TIME_FORMATTER),
+          endTime.toLocalTime().format(TIME_FORMATTER));
+    }
+
+    return String.format(
+        "%s ~ %s", startTime.format(DATE_TIME_FORMATTER), endTime.format(DATE_TIME_FORMATTER));
   }
 }

@@ -1,6 +1,7 @@
 package com.coffiness.calfit.v1.request;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -12,7 +13,7 @@ public record ScheduleUpdateRequest(
     @NotNull(message = "일정 타입은 필수입니다.") ScheduleType type,
     @NotNull(message = "시작 시간은 필수입니다.") LocalDateTime startTime,
     @NotNull(message = "종료 시간은 필수입니다.") LocalDateTime endTime,
-    Boolean isAllDay,
+    @JsonProperty("isAllDay") Boolean isAllDay,
     Long roomId,
-    Boolean isBusy,
+    @JsonProperty("isBusy") Boolean isBusy,
     List<Long> attendeeIds) {}

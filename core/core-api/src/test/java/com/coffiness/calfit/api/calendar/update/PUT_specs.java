@@ -2,10 +2,7 @@ package com.coffiness.calfit.api.calendar.update;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -13,9 +10,15 @@ import static org.mockito.Mockito.verify;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.fixture.NotificationFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
+import com.coffiness.calfit.api.v1.response.NotificationResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
+import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.enums.NotificationType;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -30,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -158,6 +162,396 @@ public class PUT_specs {
 
     assertThat(detailResponse.getData().title()).isEqualTo("변경될 회의");
     assertThat(detailResponse.getData().roomId()).isEqualTo(newRoomId);
+  }
+
+  @Test
+  void 워크스페이스에_속하지_않은_참석자가_포함되면_일정_수정에_실패한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+    LocalDateTime now = LocalDateTime.now();
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "수정 검증용 일정",
+            "참석자 검증 테스트",
+            ScheduleType.MEETING,
+            now.plusDays(2),
+            now.plusDays(2).plusHours(2),
+            false,
+            null,
+            false,
+            null);
+    calendarFixture.createSchedule(token, tenantId, createRequest);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(5).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "수정 검증용 일정",
+            "참석자 검증 테스트",
+            ScheduleType.MEETING,
+            now.plusDays(2),
+            now.plusDays(2).plusHours(2),
+            false,
+            null,
+            false,
+            List.of(999999L));
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 동일한_일정을_같은_시간으로_수정할_때_자기_자신은_충돌로_보지_않는다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(3).withHour(10).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "자기 자신 제외 테스트",
+            "기존 시간 유지",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            null);
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(token, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(5).toString();
+    Long scheduleId =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData().get(0).id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "제목만 변경", "시간 유지", ScheduleType.MEETING, startTime, endTime, false, null, true, null);
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+  }
+
+  @Test
+  void 참석자에게_같은_시간대의_바쁜_일정이_있으면_일정_수정에_실패한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime conflictStart =
+        now.plusDays(2).withHour(14).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime conflictEnd = conflictStart.plusHours(1);
+
+    ScheduleCreateRequest attendeeSchedule =
+        new ScheduleCreateRequest(
+            "참석자 바쁜 일정",
+            "수정 충돌 테스트",
+            ScheduleType.MEETING,
+            conflictStart,
+            conflictEnd,
+            false,
+            null,
+            true,
+            null);
+    ApiResponse<Void> attendeeCreateResponse =
+        calendarFixture.createSchedule(attendeeToken, tenantId, attendeeSchedule);
+    assertThat(attendeeCreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ScheduleCreateRequest ownerSchedule =
+        new ScheduleCreateRequest(
+            "기존 일정",
+            "초기 시간은 겹치지 않음",
+            ScheduleType.MEETING,
+            now.plusDays(2).withHour(9).withMinute(0).withSecond(0).withNano(0),
+            now.plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0),
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+    ApiResponse<Void> ownerCreateResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, ownerSchedule);
+    assertThat(ownerCreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(5).toString();
+    Long scheduleId =
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "수정된 일정",
+            "이제 참석자와 겹침",
+            ScheduleType.MEETING,
+            conflictStart,
+            conflictEnd,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(ownerToken, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 참석자가_포함된_일정을_수정하면_참석자_화면에도_같은_일정이_갱신되고_수정_알림이_발송된다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture,
+      @Autowired NotificationFixture notificationFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "수정 전 일정",
+            "수정 전 일정 설명",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
+                    .extracting(NotificationResponse::type)
+                    .contains(NotificationType.SCHEDULE_INVITED));
+    notificationFixture.readAll(attendeeToken, tenantId);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
+                    .isZero());
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "수정 후 일정",
+            "수정 후 일정 설명",
+            ScheduleType.BUSINESS,
+            startTime.plusHours(2),
+            endTime.plusHours(2),
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(ownerToken, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(
+            calendarFixture
+                .getDetailSchedule(attendeeToken, tenantId, scheduleId)
+                .getData()
+                .title())
+        .isEqualTo("수정 후 일정");
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
+                    .extracting(NotificationResponse::type)
+                    .contains(NotificationType.SCHEDULE_UPDATED));
+  }
+
+  @Test
+  void 일정_수정_시_참석자에서_제외하면_참석자의_내_일정에서_사라지고_취소_알림이_발송된다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture,
+      @Autowired NotificationFixture notificationFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "참석자 제외 일정",
+            "참석자 제외 일정 설명",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
+                    .extracting(NotificationResponse::type)
+                    .contains(NotificationType.SCHEDULE_INVITED));
+    notificationFixture.readAll(attendeeToken, tenantId);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
+                    .isZero());
+
+    ScheduleUpdateRequest updateRequest =
+        new ScheduleUpdateRequest(
+            "참석자 제외 일정",
+            "참석자 제외 일정 설명",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of());
+
+    ApiResponse<Void> updateResponse =
+        calendarFixture.updateSchedule(ownerToken, tenantId, scheduleId, updateRequest);
+
+    assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(calendarFixture.getSchedules(attendeeToken, tenantId, startDate, endDate).getData())
+        .noneSatisfy(schedule -> assertThat(schedule.id()).isEqualTo(scheduleId));
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
+                    .extracting(NotificationResponse::type)
+                    .contains(NotificationType.SCHEDULE_CANCELLED));
   }
 
   @Test
