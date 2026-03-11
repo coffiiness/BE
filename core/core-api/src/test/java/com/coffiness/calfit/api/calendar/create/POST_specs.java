@@ -353,8 +353,7 @@ public class POST_specs {
     String endDate = now.toLocalDate().plusDays(3).toString();
 
     assertThat(calendarFixture.getSchedules(attendeeToken, tenantId, startDate, endDate).getData())
-        .anySatisfy(
-            schedule -> assertThat(schedule.title()).isEqualTo("참석자 초대 일정"));
+        .anySatisfy(schedule -> assertThat(schedule.title()).isEqualTo("참석자 초대 일정"));
 
     await()
         .atMost(Duration.ofSeconds(5))

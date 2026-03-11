@@ -246,15 +246,7 @@ public class PUT_specs {
 
     ScheduleUpdateRequest updateRequest =
         new ScheduleUpdateRequest(
-            "제목만 변경",
-            "시간 유지",
-            ScheduleType.MEETING,
-            startTime,
-            endTime,
-            false,
-            null,
-            true,
-            null);
+            "제목만 변경", "시간 유지", ScheduleType.MEETING, startTime, endTime, false, null, true, null);
 
     ApiResponse<Void> updateResponse =
         calendarFixture.updateSchedule(token, tenantId, scheduleId, updateRequest);
@@ -391,13 +383,21 @@ public class PUT_specs {
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(3).toString();
     Long scheduleId =
-        calendarFixture.getSchedules(ownerToken, tenantId, startDate, endDate).getData().get(0).id();
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
 
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unread(attendeeToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .extracting(NotificationResponse::type)
                     .contains(NotificationType.SCHEDULE_INVITED));
     notificationFixture.readAll(attendeeToken, tenantId);
@@ -405,7 +405,11 @@ public class PUT_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unreadCount(attendeeToken, tenantId).getData().unreadCount())
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
                     .isZero());
 
     ScheduleUpdateRequest updateRequest =
@@ -424,14 +428,22 @@ public class PUT_specs {
         calendarFixture.updateSchedule(ownerToken, tenantId, scheduleId, updateRequest);
 
     assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(calendarFixture.getDetailSchedule(attendeeToken, tenantId, scheduleId).getData().title())
+    assertThat(
+            calendarFixture
+                .getDetailSchedule(attendeeToken, tenantId, scheduleId)
+                .getData()
+                .title())
         .isEqualTo("수정 후 일정");
 
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unread(attendeeToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .extracting(NotificationResponse::type)
                     .contains(NotificationType.SCHEDULE_UPDATED));
   }
@@ -481,13 +493,21 @@ public class PUT_specs {
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(3).toString();
     Long scheduleId =
-        calendarFixture.getSchedules(ownerToken, tenantId, startDate, endDate).getData().get(0).id();
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
 
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unread(attendeeToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .extracting(NotificationResponse::type)
                     .contains(NotificationType.SCHEDULE_INVITED));
     notificationFixture.readAll(attendeeToken, tenantId);
@@ -495,7 +515,11 @@ public class PUT_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unreadCount(attendeeToken, tenantId).getData().unreadCount())
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
                     .isZero());
 
     ScheduleUpdateRequest updateRequest =
@@ -521,7 +545,11 @@ public class PUT_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unread(attendeeToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .extracting(NotificationResponse::type)
                     .contains(NotificationType.SCHEDULE_CANCELLED));
   }

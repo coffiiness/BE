@@ -17,12 +17,12 @@ import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.NotificationFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
-import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.NotificationResponse;
-import com.coffiness.calfit.core.enums.ScheduleType;
+import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.NotificationType;
+import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
@@ -33,8 +33,8 @@ import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,13 +180,21 @@ public class DELETE_specs {
     String startDate = now.toLocalDate().toString();
     String endDate = now.toLocalDate().plusDays(3).toString();
     Long scheduleId =
-        calendarFixture.getSchedules(ownerToken, tenantId, startDate, endDate).getData().get(0).id();
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
 
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unread(attendeeToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .extracting(NotificationResponse::type)
                     .contains(NotificationType.SCHEDULE_INVITED));
     notificationFixture.readAll(attendeeToken, tenantId);
@@ -194,7 +202,11 @@ public class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unreadCount(attendeeToken, tenantId).getData().unreadCount())
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
                     .isZero());
 
     ApiResponse<Void> deleteResponse =
@@ -208,7 +220,11 @@ public class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unread(attendeeToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .extracting(NotificationResponse::type)
                     .contains(NotificationType.SCHEDULE_CANCELLED));
   }

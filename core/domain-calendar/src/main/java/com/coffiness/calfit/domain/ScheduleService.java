@@ -1,5 +1,6 @@
 package com.coffiness.calfit.domain;
 
+import com.coffiness.calfit.domain.event.ScheduleAttendeeNotificationEvent;
 import com.coffiness.calfit.domain.event.ScheduleGoogleSyncRequestedEvent;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.event.DomainEventPublisher;
@@ -50,6 +51,7 @@ public class ScheduleService {
         null);
 
     Schedule saved = scheduleStore.store(newSchedule, request.attendeeIds());
+    publishScheduleAttendeeNotification(saved, request.attendeeIds(), true);
 
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), userId, saved.id()));
@@ -83,6 +85,7 @@ public class ScheduleService {
         userId, attendeeIds, schedule.startTime(), schedule.endTime(), schedule.isBusy(), null);
 
     Schedule saved = scheduleStore.store(schedule, attendeeIds);
+    publishScheduleAttendeeNotification(saved, attendeeIds, true);
 
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), userId, saved.id()));
@@ -122,6 +125,8 @@ public class ScheduleService {
       throw new IllegalArgumentException("해당 일정을 수정할 권한이 없습니다.");
     }
 
+    List<Long> previousAttendeeIds = scheduleReader.readAttendeeIds(scheduleId);
+
     Schedule updatedSchedule =
         new Schedule(
             schedule.id(),
@@ -138,9 +143,7 @@ public class ScheduleService {
             schedule.googleEventId());
 
     List<Long> updatedAttendeeIds =
-        request.attendeeIds() != null
-            ? request.attendeeIds()
-            : scheduleReader.readAttendeeIds(scheduleId);
+        request.attendeeIds() != null ? request.attendeeIds() : previousAttendeeIds;
 
     validateBusyScheduleConflicts(
         schedule.userId(),
@@ -151,6 +154,7 @@ public class ScheduleService {
         scheduleId);
 
     scheduleStore.update(updatedSchedule, updatedAttendeeIds);
+    publishScheduleUpdateNotifications(updatedSchedule, previousAttendeeIds, updatedAttendeeIds);
 
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.updated(currentTenantId(), userId, scheduleId));
@@ -166,11 +170,13 @@ public class ScheduleService {
       throw new IllegalArgumentException("해당 일정을 삭제할 권한이 없습니다.");
     }
 
+    List<Long> attendeeIds = scheduleReader.readAttendeeIds(scheduleId);
     String googleEventId = schedule.googleEventId();
 
     // 참석자도 삭제
     // TODO : 일정 밑에 있는 참석자는 Hard vs Soft? Soft면 Repository에 'DELETED' 검증이 필요할까?
     scheduleStore.delete(schedule);
+    publishScheduleAttendeeNotification(schedule, attendeeIds, false);
 
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.deleted(
@@ -180,8 +186,10 @@ public class ScheduleService {
   public void deleteSchedulesByReservationId(Long reservationId) {
     List<Schedule> schedules = scheduleReader.findByReservationId(reservationId);
     for (Schedule schedule : schedules) {
+      List<Long> attendeeIds = scheduleReader.readAttendeeIds(schedule.id());
       String googleEventId = schedule.googleEventId();
       scheduleStore.delete(schedule);
+      publishScheduleAttendeeNotification(schedule, attendeeIds, false);
       domainEventPublisher.publish(
           ScheduleGoogleSyncRequestedEvent.deleted(
               currentTenantId(), schedule.userId(), schedule.id(), googleEventId));
@@ -297,6 +305,113 @@ public class ScheduleService {
     }
   }
 
+  // 참석자 수정 알림 발행
+  private void publishScheduleUpdateNotifications(
+      Schedule schedule, List<Long> previousAttendeeIds, List<Long> updatedAttendeeIds) {
+    List<Long> normalizedPreviousAttendeeIds =
+        normalizeAttendeeIds(schedule.userId(), previousAttendeeIds);
+    List<Long> normalizedUpdatedAttendeeIds =
+        normalizeAttendeeIds(schedule.userId(), updatedAttendeeIds);
+
+    List<Long> retainedAttendeeIds =
+        normalizedUpdatedAttendeeIds.stream()
+            .filter(normalizedPreviousAttendeeIds::contains)
+            .toList();
+    List<Long> addedAttendeeIds =
+        normalizedUpdatedAttendeeIds.stream()
+            .filter(attendeeId -> !normalizedPreviousAttendeeIds.contains(attendeeId))
+            .toList();
+    List<Long> removedAttendeeIds =
+        normalizedPreviousAttendeeIds.stream()
+            .filter(attendeeId -> !normalizedUpdatedAttendeeIds.contains(attendeeId))
+            .toList();
+
+    if (!retainedAttendeeIds.isEmpty()) {
+      domainEventPublisher.publish(
+          ScheduleAttendeeNotificationEvent.updated(
+              currentTenantId(),
+              schedule.id(),
+              schedule.userId(),
+              schedule.title(),
+              schedule.startTime(),
+              schedule.endTime(),
+              schedule.isAllDay(),
+              retainedAttendeeIds));
+    }
+
+    if (!addedAttendeeIds.isEmpty()) {
+      domainEventPublisher.publish(
+          ScheduleAttendeeNotificationEvent.created(
+              currentTenantId(),
+              schedule.id(),
+              schedule.userId(),
+              schedule.title(),
+              schedule.startTime(),
+              schedule.endTime(),
+              schedule.isAllDay(),
+              addedAttendeeIds));
+    }
+
+    if (!removedAttendeeIds.isEmpty()) {
+      domainEventPublisher.publish(
+          ScheduleAttendeeNotificationEvent.deleted(
+              currentTenantId(),
+              schedule.id(),
+              schedule.userId(),
+              schedule.title(),
+              schedule.startTime(),
+              schedule.endTime(),
+              schedule.isAllDay(),
+              removedAttendeeIds));
+    }
+  }
+
+  // 참석자 생성/삭제 알림 발행
+  private void publishScheduleAttendeeNotification(
+      Schedule schedule, List<Long> attendeeIds, boolean created) {
+    List<Long> normalizedAttendeeIds = normalizeAttendeeIds(schedule.userId(), attendeeIds);
+    if (normalizedAttendeeIds.isEmpty()) {
+      return;
+    }
+
+    domainEventPublisher.publish(
+        created
+            ? ScheduleAttendeeNotificationEvent.created(
+                currentTenantId(),
+                schedule.id(),
+                schedule.userId(),
+                schedule.title(),
+                schedule.startTime(),
+                schedule.endTime(),
+                schedule.isAllDay(),
+                normalizedAttendeeIds)
+            : ScheduleAttendeeNotificationEvent.deleted(
+                currentTenantId(),
+                schedule.id(),
+                schedule.userId(),
+                schedule.title(),
+                schedule.startTime(),
+                schedule.endTime(),
+                schedule.isAllDay(),
+                normalizedAttendeeIds));
+  }
+
+  // 참석자 목록 정규화
+  private List<Long> normalizeAttendeeIds(Long ownerUserId, List<Long> attendeeIds) {
+    if (attendeeIds == null || attendeeIds.isEmpty()) {
+      return List.of();
+    }
+
+    LinkedHashSet<Long> normalizedAttendeeIds = new LinkedHashSet<>();
+    attendeeIds.stream()
+        .filter(attendeeId -> attendeeId != null && attendeeId > 0)
+        .filter(attendeeId -> !attendeeId.equals(ownerUserId))
+        .forEach(normalizedAttendeeIds::add);
+
+    return List.copyOf(normalizedAttendeeIds);
+  }
+
+  // 현재 테넌트 ID 조회
   private String currentTenantId() {
     String tenantId = TenantContext.getTenantId();
     if (tenantId == null || tenantId.isBlank()) {
