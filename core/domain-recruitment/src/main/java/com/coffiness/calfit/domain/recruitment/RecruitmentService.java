@@ -25,6 +25,8 @@ public class RecruitmentService {
 
     // TODO : 에러처리 등 각종 검증 로직
 
+    validateCreatableSchedule(request.startDate(), request.endDate(), LocalDateTime.now());
+
     List<RecruitmentStage> stages = toStagesWithRequiredFail(request.stages());
 
     /*
@@ -175,6 +177,13 @@ public class RecruitmentService {
       return RecruitmentStatus.OPEN;
     }
     return RecruitmentStatus.DRAFT;
+  }
+
+  private void validateCreatableSchedule(
+      LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
+    if (endDate != null && !endDate.isAfter(currentTime)) {
+      throw new IllegalArgumentException("이미 종료된 기간으로는 채용 공고를 생성할 수 없습니다.");
+    }
   }
 
   private List<RecruitmentStage> toStagesWithRequiredFail(
