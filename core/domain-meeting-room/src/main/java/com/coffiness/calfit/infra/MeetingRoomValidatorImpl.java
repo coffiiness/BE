@@ -79,7 +79,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       Long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime,
-      List<Long> participantMemberIds) {
+      List<Long> participantUserIds) {
     String tenantId = requireTenantId();
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
@@ -104,21 +104,21 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     validateParticipantScheduleConflicts(
-        tenantId, ownerMember.id(), participantMemberIds, startDatetime, endDatetime);
+        tenantId, userId, participantUserIds, startDatetime, endDatetime);
   }
 
   private void validateParticipantScheduleConflicts(
       String tenantId,
-      Long ownerMemberId,
-      List<Long> participantMemberIds,
+      Long ownerUserId,
+      List<Long> participantUserIds,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime) {
     LinkedHashSet<Long> uniqueParticipantIds = new LinkedHashSet<>();
-    if (ownerMemberId != null && ownerMemberId > 0) {
-      uniqueParticipantIds.add(ownerMemberId);
+    if (ownerUserId != null && ownerUserId > 0) {
+      uniqueParticipantIds.add(ownerUserId);
     }
-    if (participantMemberIds != null) {
-      participantMemberIds.stream()
+    if (participantUserIds != null) {
+      participantUserIds.stream()
           .filter(id -> id != null && id > 0)
           .forEach(uniqueParticipantIds::add);
     }
@@ -129,7 +129,8 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       return;
     }
 
-    List<Member> participants = memberReader.getMembersByIds(normalizedParticipantIds);
+    List<Member> participants =
+        memberReader.getMembersByUserIds(tenantId, normalizedParticipantIds);
     if (participants.size() != normalizedParticipantIds.size()) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }

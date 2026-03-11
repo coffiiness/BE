@@ -6,7 +6,7 @@ public record InterviewScheduleCalendarItem(
     Long id,
     LocalDateTime startAt,
     LocalDateTime endAt,
-    Long interviewerMemberId,
+    Long interviewerUserId,
     String interviewerName,
     String title,
     String applicantName,

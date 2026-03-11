@@ -16,7 +16,7 @@ public interface MeetingRoomValidator {
       Long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime,
-      List<Long> participantMemberIds);
+      List<Long> participantUserIds);
 
   void validateCancelReservationRequest(Long userId, Long meetingRoomId, Long reservationId);
 }
