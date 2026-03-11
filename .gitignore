@@ -1,3 +1,4 @@
+
 .gradle
 .gradle-user-home/
 build/
@@ -26,3 +27,4 @@ CLAUDE.md
 *client_secret*.json
 *service-account*.json
 application-local.yml
+/k8s/secret.yaml
