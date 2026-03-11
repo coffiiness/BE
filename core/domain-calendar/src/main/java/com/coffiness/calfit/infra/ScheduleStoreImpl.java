@@ -23,7 +23,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   public Schedule store(Schedule schedule, List<Long> attendeeIds) {
     ScheduleEntity entity =
         ScheduleEntity.builder()
-            .memberId(schedule.memberId())
+            .userId(schedule.userId())
             .title(schedule.title())
             .description(schedule.description())
             .startTime(schedule.startTime())
@@ -116,12 +116,12 @@ public class ScheduleStoreImpl implements ScheduleStore {
 
   @Override
   @Transactional
-  public void clearGoogleEventIdsByMemberId(Long memberId) {
-    if (memberId == null) {
-      throw new IllegalArgumentException("MEMBER_ID_REQUIRED");
+  public void clearGoogleEventIdsByUserId(Long userId) {
+    if (userId == null) {
+      throw new IllegalArgumentException("USER_ID_REQUIRED");
     }
 
-    scheduleRepository.clearGoogleEventIdsByMemberIdAndStatus(memberId, EntityStatus.ACTIVE);
+    scheduleRepository.clearGoogleEventIdsByUserIdAndStatus(userId, EntityStatus.ACTIVE);
   }
 
   @Override
@@ -158,7 +158,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
   private Schedule toDomain(ScheduleEntity entity) {
     return new Schedule(
         entity.getId(),
-        entity.getMemberId(),
+        entity.getUserId(),
         entity.getTitle(),
         entity.getDescription(),
         entity.getType(),

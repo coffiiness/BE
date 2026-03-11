@@ -60,4 +60,6 @@ public interface MemberReader {
    * @return 활성 멤버 수
    */
   long countActiveMembers(String workspaceId);
+
+  List<Member> getMembersByUserIds(String workspaceId, List<Long> userIds);
 }

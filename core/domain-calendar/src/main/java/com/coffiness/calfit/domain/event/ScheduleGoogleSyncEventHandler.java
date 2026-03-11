@@ -2,8 +2,6 @@ package com.coffiness.calfit.domain.event;
 
 import com.coffiness.calfit.core.enums.ScheduleSyncActionType;
 import com.coffiness.calfit.domain.*;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -27,7 +25,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class ScheduleGoogleSyncEventHandler {
 
-  private final MemberReader memberReader;
   private final ExternalCalendarReader externalCalendarReader;
   private final GoogleCalendarTokenService googleCalendarTokenService;
   private final GoogleCalendarPort googleCalendarPort;
@@ -57,7 +54,7 @@ public class ScheduleGoogleSyncEventHandler {
 
   // 액션 타입에 따라 생성/수정/삭제 동기화 분기를 수행
   private void syncSchedule(ScheduleGoogleSyncRequestedEvent event) {
-    ExternalCalendar externalCalendar = readSyncEnabledCalendar(event.memberId());
+    ExternalCalendar externalCalendar = readSyncEnabledCalendar(event.userId());
     if (externalCalendar == null) {
       return;
     }
@@ -88,10 +85,9 @@ public class ScheduleGoogleSyncEventHandler {
     }
   }
 
-  // 멤버 기준으로 동기화 활성화된 외부 캘린더를 조회
-  private ExternalCalendar readSyncEnabledCalendar(Long memberId) {
-    Member member = memberReader.getMemberById(memberId);
-    return externalCalendarReader.readSyncEnabledByUserId(member.userId());
+  // 사용자 기준으로 동기화 활성화된 외부 캘린더를 조회
+  private ExternalCalendar readSyncEnabledCalendar(Long userId) {
+    return externalCalendarReader.readSyncEnabledByUserId(userId);
   }
 
   // 일정 생성 이벤트를 구글 일정 생성으로 반영

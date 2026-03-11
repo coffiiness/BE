@@ -35,7 +35,7 @@ public class CalendarConnectFacade {
     String workspaceName = resolveWorkspaceName(member.workspaceId());
 
     return calendarConnectService.connectGoogleCalendar(
-        authCode, redirectUri, userId, member.id(), member.workspaceId(), workspaceName);
+        authCode, redirectUri, userId, member.workspaceId(), workspaceName);
   }
 
   @Transactional
@@ -43,7 +43,7 @@ public class CalendarConnectFacade {
     Member member = validateAndGetMember(userId);
 
     calendarConnectService.ensureWatchChannel(userId, member.workspaceId());
-    calendarConnectService.syncGoogleCalendar(userId, member.id());
+    calendarConnectService.syncGoogleCalendar(userId);
   }
 
   // 구글 웹훅 헤더를 검증하고 해당 테넌트와 멤버 기준으로 즉시 동기화를 수행
@@ -91,7 +91,7 @@ public class CalendarConnectFacade {
       }
 
       calendarConnectService.syncGoogleCalendarByExternalCalendarId(
-          externalCalendar.id(), member.id());
+          externalCalendar.id(), member.userId());
     } catch (IllegalArgumentException e) {
       log.warn(
           "웹훅 동기화를 건너뜁니다. tenantId={}, externalCalendarId={}",

@@ -33,8 +33,8 @@ import org.hibernate.annotations.SQLRestriction;
     indexes = {@Index(name = "idx_schedule_google_event_id", columnList = "google_event_id")})
 public class ScheduleEntity extends TenantBaseEntity {
 
-  @Column(name = "member_id", nullable = false)
-  private Long memberId;
+  @Column(name = "user_id", nullable = false)
+  private Long userId;
 
   @Column(name = "title", nullable = false)
   private String title;
@@ -70,7 +70,7 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Builder
   public ScheduleEntity(
       String tenantId,
-      Long memberId,
+      Long userId,
       String title,
       String description,
       ScheduleType type,
@@ -82,7 +82,7 @@ public class ScheduleEntity extends TenantBaseEntity {
       String googleEventId,
       boolean isBusy) {
     super(tenantId);
-    this.memberId = memberId;
+    this.userId = userId;
     this.title = title;
     this.description = description;
     this.type = type;

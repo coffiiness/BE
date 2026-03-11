@@ -8,7 +8,7 @@ import com.coffiness.calfit.support.event.DomainEvent;
  * */
 public record ScheduleGoogleSyncRequestedEvent(
     String tenantId,
-    Long memberId,
+    Long userId,
     Long scheduleId,
     ScheduleSyncActionType actionType,
     String googleEventId,
@@ -16,10 +16,10 @@ public record ScheduleGoogleSyncRequestedEvent(
     implements DomainEvent {
 
   public static ScheduleGoogleSyncRequestedEvent created(
-      String tenantId, Long memberId, Long scheduleId) {
+      String tenantId, Long userId, Long scheduleId) {
     return new ScheduleGoogleSyncRequestedEvent(
         tenantId,
-        memberId,
+        userId,
         scheduleId,
         ScheduleSyncActionType.CREATE,
         null,
@@ -27,10 +27,10 @@ public record ScheduleGoogleSyncRequestedEvent(
   }
 
   public static ScheduleGoogleSyncRequestedEvent updated(
-      String tenantId, Long memberId, Long scheduleId) {
+      String tenantId, Long userId, Long scheduleId) {
     return new ScheduleGoogleSyncRequestedEvent(
         tenantId,
-        memberId,
+        userId,
         scheduleId,
         ScheduleSyncActionType.UPDATE,
         null,
@@ -38,10 +38,10 @@ public record ScheduleGoogleSyncRequestedEvent(
   }
 
   public static ScheduleGoogleSyncRequestedEvent deleted(
-      String tenantId, Long memberId, Long scheduleId, String googleEventId) {
+      String tenantId, Long userId, Long scheduleId, String googleEventId) {
     return new ScheduleGoogleSyncRequestedEvent(
         tenantId,
-        memberId,
+        userId,
         scheduleId,
         ScheduleSyncActionType.DELETE,
         googleEventId,

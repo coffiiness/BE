@@ -24,11 +24,11 @@ public class ScheduleService {
   private final ScheduleStore scheduleStore;
   private final DomainEventPublisher domainEventPublisher;
 
-  public void createSchedule(Long memberId, Long reservationId, ScheduleCreateRequest request) {
+  public void createSchedule(Long userId, Long reservationId, ScheduleCreateRequest request) {
     Schedule newSchedule =
         new Schedule(
             null,
-            memberId,
+            userId,
             request.title(),
             request.description(),
             request.type(),
@@ -43,11 +43,11 @@ public class ScheduleService {
     Schedule saved = scheduleStore.store(newSchedule, request.attendeeIds());
 
     domainEventPublisher.publish(
-        ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), memberId, saved.id()));
+        ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), userId, saved.id()));
   }
 
   public void createMeetingRoomReservationSchedule(
-      Long memberId,
+      Long userId,
       Long reservationId,
       Long roomId,
       String title,
@@ -58,7 +58,7 @@ public class ScheduleService {
     Schedule schedule =
         new Schedule(
             null,
-            memberId,
+            userId,
             title == null || title.isBlank() ? "회의실 예약" : title,
             description,
             com.coffiness.calfit.core.enums.ScheduleType.MEETING,
@@ -73,27 +73,26 @@ public class ScheduleService {
     Schedule saved = scheduleStore.store(schedule, attendeeIds);
 
     domainEventPublisher.publish(
-        ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), memberId, saved.id()));
+        ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), userId, saved.id()));
   }
 
   @Transactional(readOnly = true)
   public List<ScheduleInfo> getSchedules(
-      long memberId, LocalDateTime startDate, LocalDateTime endDate) {
+      long userId, LocalDateTime startDate, LocalDateTime endDate) {
 
-    List<Schedule> schedules =
-        scheduleReader.findOverlappingSchedules(memberId, startDate, endDate);
+    List<Schedule> schedules = scheduleReader.findOverlappingSchedules(userId, startDate, endDate);
 
     return schedules.stream().map(ScheduleInfo::from).toList();
   }
 
   @Transactional(readOnly = true)
-  public ScheduleDetailInfo getDetailSchedule(long memberId, Long scheduleId) {
+  public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
 
     Schedule schedule = scheduleReader.read(scheduleId);
     List<Long> attendeeIds = scheduleReader.readAttendeeIds(scheduleId);
 
-    boolean isOwner = schedule.memberId().equals(memberId);
-    boolean isAttendee = attendeeIds.contains(memberId);
+    boolean isOwner = schedule.userId().equals(userId);
+    boolean isAttendee = attendeeIds.contains(userId);
 
     if (!isOwner && !isAttendee) {
       throw new IllegalArgumentException("해당 일정을 조회할 권한이 없습니다.");
@@ -103,18 +102,18 @@ public class ScheduleService {
   }
 
   public ScheduleDetailInfo updateSchedule(
-      long memberId, Long scheduleId, Long reservationId, @Valid ScheduleUpdateRequest request) {
+      long userId, Long scheduleId, Long reservationId, @Valid ScheduleUpdateRequest request) {
 
     Schedule schedule = scheduleReader.read(scheduleId);
 
-    if (!schedule.memberId().equals(memberId)) {
+    if (!schedule.userId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 수정할 권한이 없습니다.");
     }
 
     Schedule updatedSchedule =
         new Schedule(
             schedule.id(),
-            schedule.memberId(),
+            schedule.userId(),
             request.title() != null ? request.title() : schedule.title(),
             request.description() != null ? request.description() : schedule.description(),
             request.type() != null ? request.type() : schedule.type(),
@@ -134,16 +133,16 @@ public class ScheduleService {
     scheduleStore.update(updatedSchedule, updatedAttendeeIds);
 
     domainEventPublisher.publish(
-        ScheduleGoogleSyncRequestedEvent.updated(currentTenantId(), memberId, scheduleId));
+        ScheduleGoogleSyncRequestedEvent.updated(currentTenantId(), userId, scheduleId));
 
-    return getDetailSchedule(memberId, scheduleId);
+    return getDetailSchedule(userId, scheduleId);
   }
 
-  public void deleteSchedule(long memberId, Long scheduleId) {
+  public void deleteSchedule(long userId, Long scheduleId) {
 
     Schedule schedule = scheduleReader.read(scheduleId);
 
-    if (!schedule.memberId().equals(memberId)) {
+    if (!schedule.userId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 삭제할 권한이 없습니다.");
     }
 
@@ -155,7 +154,7 @@ public class ScheduleService {
 
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.deleted(
-            currentTenantId(), memberId, scheduleId, googleEventId));
+            currentTenantId(), userId, scheduleId, googleEventId));
   }
 
   public void deleteSchedulesByReservationId(Long reservationId) {
@@ -165,11 +164,11 @@ public class ScheduleService {
       scheduleStore.delete(schedule);
       domainEventPublisher.publish(
           ScheduleGoogleSyncRequestedEvent.deleted(
-              currentTenantId(), schedule.memberId(), schedule.id(), googleEventId));
+              currentTenantId(), schedule.userId(), schedule.id(), googleEventId));
     }
   }
 
-  public void deleteScheduleByGoogleEventId(long memberId, String googleEventId) {
+  public void deleteScheduleByGoogleEventId(long userId, String googleEventId) {
     if (googleEventId == null || googleEventId.isBlank()) {
       throw new IllegalArgumentException("구글 이벤트 ID는 필수입니다.");
     }
@@ -180,14 +179,14 @@ public class ScheduleService {
       return;
     }
 
-    if (!existingSchedule.memberId().equals(memberId)) {
+    if (!existingSchedule.userId().equals(userId)) {
       throw new IllegalArgumentException("해당 구글 일정을 삭제할 권한이 없습니다.");
     }
 
     scheduleStore.delete(existingSchedule);
   }
 
-  public Long upsertScheduleByGoogleEventId(long memberId, ScheduleSyncRequest request) {
+  public Long upsertScheduleByGoogleEventId(long userId, ScheduleSyncRequest request) {
     if (request.googleEventId() == null || request.googleEventId().isBlank()) {
       throw new IllegalArgumentException("구글 이벤트 ID는 필수입니다.");
     }
@@ -198,7 +197,7 @@ public class ScheduleService {
       Schedule newSchedule =
           new Schedule(
               null,
-              memberId,
+              userId,
               request.title(),
               request.description(),
               request.type(),
@@ -214,14 +213,14 @@ public class ScheduleService {
       return saved.id();
     }
 
-    if (!existingSchedule.memberId().equals(memberId)) {
+    if (!existingSchedule.userId().equals(userId)) {
       throw new IllegalArgumentException("해당 구글 일정을 수정할 권한이 없습니다.");
     }
 
     Schedule updatedSchedule =
         new Schedule(
             existingSchedule.id(),
-            existingSchedule.memberId(),
+            existingSchedule.userId(),
             request.title(),
             request.description(),
             request.type(),
