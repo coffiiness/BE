@@ -11,6 +11,7 @@ import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -77,6 +78,19 @@ public class NotificationController {
   @PatchMapping("/read-all")
   public ApiResponse<?> readAll(@AuthenticationPrincipal SecurityUser user) {
     notificationFacade.readAllNotifications(user.userId());
+    return ApiResponse.success();
+  }
+
+  @DeleteMapping("/{notificationId}")
+  public ApiResponse<?> delete(
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long notificationId) {
+    notificationFacade.deleteNotification(user.userId(), notificationId);
+    return ApiResponse.success();
+  }
+
+  @DeleteMapping
+  public ApiResponse<?> deleteAll(@AuthenticationPrincipal SecurityUser user) {
+    notificationFacade.deleteAllNotifications(user.userId());
     return ApiResponse.success();
   }
 

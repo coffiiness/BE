@@ -52,4 +52,14 @@ public class NotificationFacade {
   public void readAllNotifications(Long userId) {
     notificationService.markAllAsRead(userId);
   }
+
+  @Transactional
+  public void deleteNotification(Long userId, Long notificationId) {
+    notificationService.delete(userId, notificationId);
+  }
+
+  @Transactional
+  public void deleteAllNotifications(Long userId) {
+    notificationService.deleteAll(userId);
+  }
 }

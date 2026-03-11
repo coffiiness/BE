@@ -55,6 +55,22 @@ public class NotificationStoreImpl implements NotificationStore {
         .forEach(entity -> entity.markAsRead(LocalDateTime.now()));
   }
 
+  @Override
+  public void delete(String tenantId, Long recipientUserId, Long notificationId) {
+    NotificationEntity entity =
+        notificationRepository
+            .findByTenantIdAndRecipientUserIdAndIdAndStatus(
+                tenantId, recipientUserId, notificationId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+    entity.deleted();
+  }
+
+  @Override
+  public void deleteAll(String tenantId, Long recipientUserId) {
+    notificationRepository.updateStatusByTenantIdAndRecipientUserIdAndStatus(
+        tenantId, recipientUserId, EntityStatus.ACTIVE, EntityStatus.DELETED);
+  }
+
   private NotificationEntity toEntity(String tenantId, NotificationCreateCommand command) {
     return NotificationEntity.builder()
         .tenantId(tenantId)

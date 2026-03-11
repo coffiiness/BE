@@ -7,6 +7,9 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface NotificationRepository extends JpaRepository<NotificationEntity, Long> {
 
@@ -40,4 +43,17 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
 
   long countByTenantIdAndRecipientUserIdAndStatusAndIsReadFalse(
       String tenantId, Long recipientUserId, EntityStatus status);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      "update NotificationEntity n "
+          + "set n.status = :deletedStatus "
+          + "where n.tenantId = :tenantId "
+          + "and n.recipientUserId = :recipientUserId "
+          + "and n.status = :activeStatus")
+  int updateStatusByTenantIdAndRecipientUserIdAndStatus(
+      @Param("tenantId") String tenantId,
+      @Param("recipientUserId") Long recipientUserId,
+      @Param("activeStatus") EntityStatus activeStatus,
+      @Param("deletedStatus") EntityStatus deletedStatus);
 }

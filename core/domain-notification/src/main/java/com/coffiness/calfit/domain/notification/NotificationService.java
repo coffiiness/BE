@@ -78,6 +78,16 @@ public class NotificationService {
     notificationStore.markAllAsRead(currentTenantId(), recipientUserId);
   }
 
+  @Transactional
+  public void delete(Long recipientUserId, Long notificationId) {
+    notificationStore.delete(currentTenantId(), recipientUserId, notificationId);
+  }
+
+  @Transactional
+  public void deleteAll(Long recipientUserId) {
+    notificationStore.deleteAll(currentTenantId(), recipientUserId);
+  }
+
   private String currentTenantId() {
     String tenantId = TenantContext.getTenantId();
     if (tenantId == null || tenantId.isBlank()) {

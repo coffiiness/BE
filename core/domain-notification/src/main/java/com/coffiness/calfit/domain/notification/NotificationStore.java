@@ -11,4 +11,8 @@ public interface NotificationStore {
   Notification markAsRead(String tenantId, Long recipientUserId, Long notificationId);
 
   void markAllAsRead(String tenantId, Long recipientUserId);
+
+  void delete(String tenantId, Long recipientUserId, Long notificationId);
+
+  void deleteAll(String tenantId, Long recipientUserId);
 }
