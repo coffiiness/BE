@@ -5,6 +5,7 @@ import java.util.EnumSet;
 
 public enum NotificationCategory {
   ANNOUNCEMENT(EnumSet.of(NotificationType.ANNOUNCEMENT_CREATED)),
+  APPLICATION(EnumSet.of(NotificationType.APPLICATION_PROCESS_CHANGED)),
   INTERVIEW(
       EnumSet.of(
           NotificationType.INTERVIEW_REQUESTED,
