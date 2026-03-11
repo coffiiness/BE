@@ -86,7 +86,8 @@ public class AutomationEventExecutor {
 
     AutomationTemplateCode templateCode = extractTemplateCode(rule);
     ApplicantEmailMessage message =
-        applicantAutomationEmailFactory.create(templateCode, application, recruitment, destinationStage);
+        applicantAutomationEmailFactory.create(
+            templateCode, application, recruitment, destinationStage);
 
     emailService.sendApplicantResultEmail(emailProperties.getSender(), message);
     event.markSuccess();

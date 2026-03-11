@@ -1,6 +1,7 @@
 package com.coffiness.calfit.api.applications.stage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
@@ -130,8 +131,7 @@ public class PATCH_specs {
           .hasSize(1)
           .first()
           .extracting(
-              history -> history.getApplicationId(),
-              history -> history.getToRecruitmentProcessId())
+              history -> history.getApplicationId(), history -> history.getToRecruitmentProcessId())
           .containsExactly(applicationId, nextStageId);
     } finally {
       TenantContext.clear();

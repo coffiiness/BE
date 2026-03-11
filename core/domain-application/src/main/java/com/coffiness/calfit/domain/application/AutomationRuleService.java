@@ -188,7 +188,9 @@ public class AutomationRuleService {
 
   private JsonNode parsePayload(String payload) {
     try {
-      return payload == null ? objectMapper.nullNode() : normalizePayload(objectMapper.readTree(payload));
+      return payload == null
+          ? objectMapper.nullNode()
+          : normalizePayload(objectMapper.readTree(payload));
     } catch (JsonProcessingException e) {
       throw new CoreException(ErrorType.DEFAULT_ERROR);
     }
