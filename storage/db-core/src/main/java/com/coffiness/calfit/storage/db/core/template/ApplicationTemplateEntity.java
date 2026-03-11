@@ -14,33 +14,33 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "applicationTemplates") // ?쒗뵆由?
+@Table(name = "applicationTemplates")
 @NoArgsConstructor
 @Getter
 public class ApplicationTemplateEntity extends TenantBaseEntity {
 
-  // 吏?먯옄 ?대쫫
+  // Applicant name
   @Column(nullable = false, length = 50)
   private String name;
 
-  // 吏?먯옄 ?깅퀎
+  // Applicant gender
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Gender gender;
 
-  // 吏?먯옄 ?앸뀈?붿씪
+  // Applicant birth date
   @Column(nullable = false)
   private LocalDateTime birthDate;
 
-  // 吏?먯옄 ?꾪솕踰덊샇
+  // Applicant phone number
   @Column(nullable = false, length = 20)
   private String phone;
 
-  // 吏?먯옄 ?대찓??
+  // Applicant email
   @Column(nullable = false, unique = true, length = 50)
   private String email;
 
-  // 吏?먯옄 ?곸꽭?댁슜
+  // Template schema payload
   @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
   private String schema;
 
