@@ -94,4 +94,10 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
               + " AND r.status = 'ACTIVE'",
       nativeQuery = true)
   Optional<String> findTenantIdById(@Param("recruitmentId") Long recruitmentId);
+
+  long countByRecruitmentStatusAndStatus(RecruitmentStatus recruitmentStatus, EntityStatus status);
+
+  long countByStatus(EntityStatus status);
+
+  List<RecruitmentEntity> findByStatusOrderByCreatedAtDesc(EntityStatus status);
 }
