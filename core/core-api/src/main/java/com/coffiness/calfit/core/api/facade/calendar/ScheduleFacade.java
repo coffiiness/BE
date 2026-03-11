@@ -39,7 +39,7 @@ public class ScheduleFacade {
 
   @Transactional
   public void createSchedule(long userId, ScheduleCreateRequest request) {
-    Member member = validateAndGetMember(userId);
+    validateAndGetMember(userId);
     Long reservationId = null;
 
     if (request.roomId() != null) {
@@ -54,35 +54,33 @@ public class ScheduleFacade {
 
   @Transactional
   public void syncSchedule(long userId, ScheduleSyncRequest request) {
-    Member member = validateAndGetMember(userId);
+    validateAndGetMember(userId);
 
-    scheduleService.upsertScheduleByGoogleEventId(member.id(), request);
+    scheduleService.upsertScheduleByGoogleEventId(userId, request);
   }
 
   @Transactional(readOnly = true)
   public List<ScheduleInfo> getSchedules(
       long userId, LocalDateTime startDate, LocalDateTime endDate) {
-    Member member = validateAndGetMember(userId);
+    validateAndGetMember(userId);
 
-    return scheduleService.getSchedules(member.id(), startDate, endDate);
+    return scheduleService.getSchedules(userId, startDate, endDate);
   }
 
   @Transactional(readOnly = true)
   public ScheduleDetailInfo getDetailSchedule(long userId, Long scheduleId) {
-    Member member = validateAndGetMember(userId);
+    validateAndGetMember(userId);
 
-    return scheduleService.getDetailSchedule(member.id(), scheduleId);
+    return scheduleService.getDetailSchedule(userId, scheduleId);
   }
 
   @Transactional
   public ScheduleDetailInfo updateSchedule(
       long userId, Long scheduleId, ScheduleUpdateRequest request) {
-    Member member = validateAndGetMember(userId);
-    ScheduleDetailInfo scheduleDetailInfo =
-        scheduleService.getDetailSchedule(member.id(), scheduleId);
+    validateAndGetMember(userId);
+    ScheduleDetailInfo scheduleDetailInfo = scheduleService.getDetailSchedule(userId, scheduleId);
 
     Long targetRoomId = request.roomId() != null ? request.roomId() : scheduleDetailInfo.roomId();
-
     Long newReservationId = scheduleDetailInfo.reservationId();
 
     boolean roomIdChanged =
@@ -118,9 +116,9 @@ public class ScheduleFacade {
 
   @Transactional
   public void deleteSchedule(long userId, Long scheduleId) {
-    Member member = validateAndGetMember(userId);
+    validateAndGetMember(userId);
 
-    ScheduleDetailInfo scheduleInfo = scheduleService.getDetailSchedule(member.id(), scheduleId);
+    ScheduleDetailInfo scheduleInfo = scheduleService.getDetailSchedule(userId, scheduleId);
 
     if (scheduleInfo.roomId() != null && scheduleInfo.reservationId() != null) {
       meetingRoomReservationService.cancelReservation(

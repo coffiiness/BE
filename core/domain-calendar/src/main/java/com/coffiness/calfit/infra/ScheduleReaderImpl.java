@@ -12,6 +12,7 @@ import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import java.time.LocalDateTime;
@@ -81,7 +82,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
     Schedule schedule = read(scheduleId);
     List<Long> attendeeIds = readAttendeeIds(scheduleId);
 
-    List<Member> members = memberReader.getMembersByIds(attendeeIds);
+    List<Member> members = memberReader.getMembersByUserIds(currentTenantId(), attendeeIds);
 
     String location = "지정된 장소 없음";
     if (schedule.roomId() != null) {
@@ -98,15 +99,17 @@ public class ScheduleReaderImpl implements ScheduleReader {
             .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
 
     Map<Long, Member> memberMap =
-        members.stream().collect(Collectors.toMap(Member::id, m -> m, (m1, m2) -> m1));
+        members.stream()
+            .filter(member -> member.userId() != null)
+            .collect(Collectors.toMap(Member::userId, m -> m, (m1, m2) -> m1));
 
     List<String> attendees =
         attendeeIds.stream()
             .map(
-                memberId -> {
-                  Member member = memberMap.get(memberId);
+                userId -> {
+                  Member member = memberMap.get(userId);
                   if (member == null) {
-                    return "알 수 없는 멤버 (" + memberId + ")";
+                    return "알 수 없는 멤버 (" + userId + ")";
                   }
                   UserInfo user = userMap.get(member.userId());
                   if (user == null || user.name() == null) {
@@ -135,5 +138,13 @@ public class ScheduleReaderImpl implements ScheduleReader {
         entity.getReservationId(),
         entity.isBusy(),
         entity.getGoogleEventId());
+  }
+
+  private String currentTenantId() {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank()) {
+      throw new IllegalStateException("워크스페이스 ID가 필요합니다.");
+    }
+    return tenantId;
   }
 }

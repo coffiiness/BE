@@ -69,6 +69,17 @@ public class MemberReaderImpl implements MemberReader {
   }
 
   @Override
+  public List<Member> getMembersByUserIds(String workspaceId, List<Long> userIds) {
+    if (workspaceId == null || workspaceId.isBlank() || userIds == null || userIds.isEmpty()) {
+      return List.of();
+    }
+
+    return memberRepository.findAllByTenantIdAndUserIdIn(workspaceId, userIds).stream()
+        .map(this::toWorkspaceMember)
+        .toList();
+  }
+
+  @Override
   public long countActiveMembers(String workspaceId) {
     return memberRepository.countByTenantIdAndStatus(workspaceId, EntityStatus.ACTIVE);
   }
