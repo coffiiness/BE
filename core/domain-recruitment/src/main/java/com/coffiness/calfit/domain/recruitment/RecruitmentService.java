@@ -125,7 +125,7 @@ public class RecruitmentService {
 
     boolean isInterviewer =
         recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.memberId().equals(memberId));
+            .anyMatch(interviewer -> interviewer.userId().equals(memberId));
 
     if (isInterviewer) {
       return;

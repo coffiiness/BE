@@ -3,8 +3,13 @@ package com.coffiness.calfit.infra;
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.recruitment.Recruitment;
 import com.coffiness.calfit.domain.recruitment.RecruitmentStore;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +21,7 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
   private final RecruitmentStageRepository recruitmentStageRepository;
   private final RecruitmentReferenceGroupRepository recruitmentReferenceGroupRepository;
   private final RecruitmentInterviewerRepository recruitmentInterviewerRepository;
+  private final MemberReader memberReader;
 
   @Override
   public Recruitment store(Recruitment recruitment) {
@@ -119,8 +125,22 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
     }
 
     if (recruitment.interviewerIds() != null && !recruitment.interviewerIds().isEmpty()) {
-      List<RecruitmentInterviewerEntity> interviewerEntities =
+      String tenantId = TenantContext.getTenantId();
+      List<Long> interviewerMemberIds =
           recruitment.interviewerIds().stream()
+              .filter(Objects::nonNull)
+              .distinct()
+              .map(
+                  userId -> {
+                    if (tenantId == null || tenantId.isBlank()) {
+                      throw new CoreException(ErrorType.UNAUTHORIZED);
+                    }
+                    return memberReader.getMember(tenantId, userId).id();
+                  })
+              .filter(Objects::nonNull)
+              .toList();
+      List<RecruitmentInterviewerEntity> interviewerEntities =
+          interviewerMemberIds.stream()
               .map(
                   i ->
                       RecruitmentInterviewerEntity.builder()
