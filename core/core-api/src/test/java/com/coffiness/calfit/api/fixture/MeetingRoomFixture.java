@@ -86,7 +86,8 @@ public record MeetingRoomFixture(BaseFixture base) {
     return exchangeWithTenant(
         "/api/v1/meeting-rooms/" + meetingRoomId + "/reservations",
         HttpMethod.POST,
-        new MeetingRoomReservationCreateRequest(startDatetime, endDatetime),
+        new MeetingRoomReservationCreateRequest(
+            "테스트 예약", null, startDatetime, endDatetime, List.of()),
         token,
         tenantId,
         MeetingRoomReservationResponse.class);

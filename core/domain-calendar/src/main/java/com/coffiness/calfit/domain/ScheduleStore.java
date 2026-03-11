@@ -13,4 +13,6 @@ public interface ScheduleStore {
   void clearGoogleEventIdsByMemberId(Long memberId);
 
   void delete(Schedule schedule);
+
+  void deleteByReservationId(Long reservationId);
 }

@@ -12,8 +12,9 @@ import org.springframework.data.repository.query.Param;
 public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> {
 
   @Query(
-      "SELECT s FROM ScheduleEntity s "
-          + "WHERE s.memberId = :memberId "
+      "SELECT DISTINCT s FROM ScheduleEntity s "
+          + "LEFT JOIN ScheduleAttendeeEntity a ON a.scheduleId = s.id "
+          + "WHERE (s.memberId = :memberId OR a.attendeeId = :memberId) "
           + "AND s.startTime <= :endDate "
           + "AND s.endTime >= :startDate "
           + "AND s.status = 'ACTIVE'")
@@ -23,8 +24,9 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
       @Param("endDate") LocalDateTime endDate);
 
   @Query(
-      "SELECT s FROM ScheduleEntity s "
-          + "WHERE s.memberId IN :memberIds "
+      "SELECT DISTINCT s FROM ScheduleEntity s "
+          + "LEFT JOIN ScheduleAttendeeEntity a ON a.scheduleId = s.id "
+          + "WHERE (s.memberId IN :memberIds OR a.attendeeId IN :memberIds) "
           + "AND s.startTime < :to "
           + "AND s.endTime > :from "
           + "AND s.status = :status "
@@ -53,6 +55,8 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
   Optional<ScheduleEntity> findByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);
 
   boolean existsByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);
+
+  List<ScheduleEntity> findAllByReservationIdAndStatus(Long reservationId, EntityStatus status);
 
   List<ScheduleEntity> findAllByGoogleEventIdInAndStatus(
       List<String> googleEventIds, EntityStatus status);

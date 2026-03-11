@@ -17,6 +17,7 @@ import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepositor
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -74,7 +75,11 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
 
   @Override
   public void validateReserveRequest(
-      Long userId, Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
+      Long userId,
+      Long meetingRoomId,
+      LocalDateTime startDatetime,
+      LocalDateTime endDatetime,
+      List<Long> participantMemberIds) {
     String tenantId = requireTenantId();
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
@@ -94,34 +99,56 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (conflicts > 0) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+    validateParticipantScheduleConflicts(
+        tenantId, participantMemberIds, startDatetime, endDatetime);
   }
 
-  private boolean hasUserScheduleConflict(
-      String tenantId, Long userId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
-    if (meetingRoomReader.countOverlappingReservationsByUser(userId, startDatetime, endDatetime)
-        > 0) {
-      return true;
+  private void validateParticipantScheduleConflicts(
+      String tenantId,
+      List<Long> participantMemberIds,
+      LocalDateTime startDatetime,
+      LocalDateTime endDatetime) {
+    List<Long> normalizedParticipantIds =
+        participantMemberIds == null
+            ? List.of()
+            : participantMemberIds.stream()
+                .filter(id -> id != null && id > 0)
+                .collect(
+                    java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf));
+
+    if (normalizedParticipantIds.isEmpty()) {
+      return;
     }
 
-    Member member = memberReader.getMember(tenantId, userId);
-    Long memberId = member.id();
+    List<Member> participants = memberReader.getMembersByIds(normalizedParticipantIds);
+    if (participants.size() != normalizedParticipantIds.size()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    boolean invalidTenantMember =
+        participants.stream().anyMatch(member -> !tenantId.equals(member.workspaceId()));
+    if (invalidTenantMember) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
 
     if (!scheduleRepository
         .findBusyOverlappingSchedulesByUserIds(
-            List.of(memberId), startDatetime, endDatetime, EntityStatus.ACTIVE)
+            normalizedParticipantIds, startDatetime, endDatetime, EntityStatus.ACTIVE)
         .isEmpty()) {
-      return true;
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
     List<Long> interviewScheduleIds =
         interviewScheduleInterviewerRepository
-            .findAllByTenantIdAndUserIdIn(tenantId, List.of(memberId))
+            .findAllByTenantIdAndUserIdIn(tenantId, normalizedParticipantIds)
             .stream()
             .map(mapping -> mapping.getInterviewScheduleId())
             .distinct()
             .toList();
     if (interviewScheduleIds.isEmpty()) {
-      return false;
+      return;
     }
 
     List<InterviewScheduleEntity> schedules =
@@ -132,10 +159,9 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       LocalDateTime interviewStart = schedule.getScheduledAt();
       LocalDateTime interviewEnd = interviewStart.plusMinutes(schedule.getDurationMinutes());
       if (interviewStart.isBefore(endDatetime) && startDatetime.isBefore(interviewEnd)) {
-        return true;
+        throw new CoreException(ErrorType.VALIDATION_ERROR);
       }
     }
-    return false;
   }
 
   @Override

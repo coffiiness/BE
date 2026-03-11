@@ -46,6 +46,33 @@ public class ScheduleService {
         ScheduleGoogleSyncRequestedEvent.created(currentTenantId(), memberId, saved.id()));
   }
 
+  public void createMeetingRoomReservationSchedule(
+      Long memberId,
+      Long reservationId,
+      Long roomId,
+      String title,
+      String description,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      List<Long> attendeeIds) {
+    Schedule schedule =
+        new Schedule(
+            null,
+            memberId,
+            title == null || title.isBlank() ? "회의실 예약" : title,
+            description,
+            com.coffiness.calfit.core.enums.ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            roomId,
+            reservationId,
+            true,
+            null);
+
+    scheduleStore.store(schedule, attendeeIds);
+  }
+
   @Transactional(readOnly = true)
   public List<ScheduleInfo> getSchedules(
       long memberId, LocalDateTime startDate, LocalDateTime endDate) {
@@ -126,6 +153,10 @@ public class ScheduleService {
     domainEventPublisher.publish(
         ScheduleGoogleSyncRequestedEvent.deleted(
             currentTenantId(), memberId, scheduleId, googleEventId));
+  }
+
+  public void deleteSchedulesByReservationId(Long reservationId) {
+    scheduleStore.deleteByReservationId(reservationId);
   }
 
   public void deleteScheduleByGoogleEventId(long memberId, String googleEventId) {

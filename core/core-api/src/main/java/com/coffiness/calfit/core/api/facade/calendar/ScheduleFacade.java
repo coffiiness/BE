@@ -45,7 +45,7 @@ public class ScheduleFacade {
     if (request.roomId() != null) {
       MeetingRoomReservation reservation =
           meetingRoomReservationService.reserve(
-              member.userId(), request.roomId(), request.startTime(), request.endTime());
+              member.userId(), request.roomId(), request.startTime(), request.endTime(), List.of());
       reservationId = reservation.id();
     }
 
@@ -108,7 +108,8 @@ public class ScheduleFacade {
           request.endTime() != null ? request.endTime() : scheduleDetailInfo.endTime();
 
       MeetingRoomReservation reservation =
-          meetingRoomReservationService.reserve(member.userId(), targetRoomId, startTime, endTime);
+          meetingRoomReservationService.reserve(
+              member.userId(), targetRoomId, startTime, endTime, List.of());
       newReservationId = reservation.id();
     }
 

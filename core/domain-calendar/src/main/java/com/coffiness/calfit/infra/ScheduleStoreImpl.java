@@ -136,6 +136,21 @@ public class ScheduleStoreImpl implements ScheduleStore {
     entity.deleted();
   }
 
+  @Override
+  public void deleteByReservationId(Long reservationId) {
+    if (reservationId == null) {
+      return;
+    }
+
+    List<ScheduleEntity> schedules =
+        scheduleRepository.findAllByReservationIdAndStatus(reservationId, EntityStatus.ACTIVE);
+    for (ScheduleEntity schedule : schedules) {
+      scheduleAttendeeRepository.deleteByScheduleId(schedule.getId());
+      schedule.updateGoogleEventId(null);
+      schedule.deleted();
+    }
+  }
+
   private boolean hasText(String value) {
     return value != null && !value.isBlank();
   }
