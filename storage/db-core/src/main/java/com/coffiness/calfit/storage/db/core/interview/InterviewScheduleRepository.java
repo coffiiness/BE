@@ -40,4 +40,19 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
 
   Optional<InterviewScheduleEntity> findByTenantIdAndIdAndInterviewStatusNot(
       String tenantId, Long id, InterviewStatus status);
+
+  @Query(
+      "SELECT e.interviewStatus, COUNT(e) FROM InterviewScheduleEntity e"
+          + " GROUP BY e.interviewStatus")
+  List<Object[]> countGroupByInterviewStatus();
+
+  @Query(
+      "SELECT AVG(e.durationMinutes) FROM InterviewScheduleEntity e"
+          + " WHERE e.interviewStatus IN (:statuses)")
+  Double averageDurationMinutes(@Param("statuses") List<InterviewStatus> statuses);
+
+  @Query(
+      "SELECT e.meetingRoomId, COUNT(e) FROM InterviewScheduleEntity e"
+          + " GROUP BY e.meetingRoomId")
+  List<Object[]> countGroupByMeetingRoomId();
 }

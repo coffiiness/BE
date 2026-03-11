@@ -5,6 +5,8 @@ import com.coffiness.calfit.core.enums.EntityStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface AutomationRuleRepository extends JpaRepository<AutomationRuleEntity, Long> {
   List<AutomationRuleEntity> findByRecruitmentIdAndRecruitmentProcessIdAndTriggerType(
@@ -21,4 +23,11 @@ public interface AutomationRuleRepository extends JpaRepository<AutomationRuleEn
       AutomationTriggerType triggerType,
       com.coffiness.calfit.core.enums.AutomationActionType actionType,
       EntityStatus status);
+
+  long countByStatus(EntityStatus status);
+
+  @Query(
+      "SELECT COUNT(DISTINCT e.recruitmentId) FROM AutomationRuleEntity e"
+          + " WHERE e.status = :status")
+  long countDistinctRecruitmentIdByStatus(@Param("status") EntityStatus status);
 }
