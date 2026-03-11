@@ -55,4 +55,7 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
       "SELECT e.meetingRoomId, COUNT(e) FROM InterviewScheduleEntity e"
           + " GROUP BY e.meetingRoomId")
   List<Object[]> countGroupByMeetingRoomId();
+
+  long countByTenantIdAndMeetingRoomIdAndInterviewStatusNotAndScheduledAtAfter(
+      String tenantId, Long meetingRoomId, InterviewStatus status, LocalDateTime now);
 }

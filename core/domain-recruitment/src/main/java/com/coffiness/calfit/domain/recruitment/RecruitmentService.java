@@ -25,18 +25,10 @@ public class RecruitmentService {
 
   public Long createRecruitment(long userId, RecruitmentCreateRequest request) {
 
-    // TODO : 에러처리 등 각종 검증 로직
-
     validateCreatableSchedule(request.startDate(), request.endDate(), LocalDateTime.now());
 
     List<RecruitmentStage> stages = toStagesWithRequiredFail(request.stages());
 
-    /*
-     * TODO : 도메인에 정적 생성 메소드를 둘까 vs 지금처럼? vs DTO에?
-     * 지금처럼 : 서비스 계층 코드가 어떻게 동작하는지 알기 쉽지만, 서비스 코드가 뚱뚱해보임
-     * 도메인 내 정적 메소드 : 반대로 서비스 코드가 간결해지지만, 개발자가 내부를 타고 들어가봐야 알 수 있음
-     * DTO : API 계층은 도메인을 쓰기 위해 존재하므로 도메인을 import 해서 쓰는 것이 맞지만 도메인이 API에 의존해서는 되는가?
-     */
     RecruitmentStatus initialStatus =
         resolveStatusAtCreation(request.startDate(), request.endDate(), LocalDateTime.now());
 
@@ -71,7 +63,6 @@ public class RecruitmentService {
     return saveRecruitment.id();
   }
 
-  // TODO : userId는 facade에서 검증으로 추후 제거 예정
   @Transactional(readOnly = true)
   public List<RecruitmentListInfo> getRecruitmentList(
       long userId, RecruitmentStatus recruitmentStatus, Pageable pageable) {
@@ -81,20 +72,17 @@ public class RecruitmentService {
 
   @Transactional(readOnly = true)
   public RecruitmentDetailInfo getRecruitmentDetail(long userId, Long recruitmentId) {
-
-    // TODO : 이 멤버가 이 채용 공고를 볼 권한이 있는지 + 멤버를 매개변수로 받고 user로 변환하는 로직
     return recruitmentReader.readDetail(recruitmentId);
   }
 
   public Recruitment updateRecruitment(
-      long userId, Long recruitmentId, RecruitmentUpdateRequest request) {
+      long memberId, Long recruitmentId, RecruitmentUpdateRequest request) {
 
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
       throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
     }
 
-    // 채용 게시일이 현재 날짜보다 지났다면 채용 공고 수정 불가
     recruitment.validateUpdatable(LocalDateTime.now());
 
     List<RecruitmentStage> newStages = toStagesWithRequiredFail(request.stages());
@@ -119,7 +107,7 @@ public class RecruitmentService {
 
     recruitmentHistoryAppender.append(
         updatedRecruitment.id(),
-        userId,
+        memberId,
         RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
         "채용 공고 수정",
         updatedRecruitment);
@@ -127,12 +115,12 @@ public class RecruitmentService {
     return savedRecruitment;
   }
 
-  public void assertCanAccess(long userId, Long recruitmentId) {
+  public void assertCanAccess(long memberId, Long recruitmentId) {
     RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
 
     boolean isInterviewer =
         recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.userId().equals(userId));
+            .anyMatch(interviewer -> interviewer.userId().equals(memberId));
 
     if (isInterviewer) {
       return;
@@ -141,7 +129,7 @@ public class RecruitmentService {
     throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
-  public void deleteRecruitment(Long userId, Long recruitmentId) {
+  public void deleteRecruitment(Long memberId, Long recruitmentId) {
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
       throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
@@ -154,10 +142,9 @@ public class RecruitmentService {
     recruitmentStore.delete(recruitmentId);
 
     recruitmentHistoryAppender.append(
-        recruitmentId, userId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+        recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
   }
 
-  // 전달받은 타임스탬프를 기준으로 채용 공고 상태를 일괄 전환
   public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule(
       LocalDateTime currentTime) {
     int closedCount = recruitmentStore.closeEndedRecruitments(currentTime);
@@ -165,7 +152,6 @@ public class RecruitmentService {
     return new RecruitmentStatusTransitionResult(openedCount, closedCount);
   }
 
-  // 현재 서버 시간을 기준으로 채용 공고 상태를 일괄 전환
   public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule() {
     return updateRecruitmentStatusBySchedule(LocalDateTime.now());
   }

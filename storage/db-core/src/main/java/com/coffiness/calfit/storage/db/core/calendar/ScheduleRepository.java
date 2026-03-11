@@ -70,4 +70,6 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
           + "AND s.googleEventId IS NOT NULL")
   int clearGoogleEventIdsByUserIdAndStatus(
       @Param("userId") Long userId, @Param("status") EntityStatus status);
+
+  long countByRoomIdAndStatusAndEndTimeAfter(Long roomId, EntityStatus status, LocalDateTime now);
 }

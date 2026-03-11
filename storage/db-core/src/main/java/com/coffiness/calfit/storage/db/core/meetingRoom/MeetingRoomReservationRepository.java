@@ -63,4 +63,10 @@ public interface MeetingRoomReservationRepository
       @Param("currentStatus") MeetingRoomStatus currentStatus,
       @Param("nextStatus") MeetingRoomStatus nextStatus,
       @Param("now") LocalDateTime now);
+
+  long countByTenantIdAndMeetingRoomIdAndReservationStatusInAndEndDatetimeAfter(
+      String tenantId,
+      Long meetingRoomId,
+      List<MeetingRoomStatus> reservationStatuses,
+      LocalDateTime now);
 }
