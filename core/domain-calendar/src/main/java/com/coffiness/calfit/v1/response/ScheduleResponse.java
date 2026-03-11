@@ -2,6 +2,7 @@ package com.coffiness.calfit.v1.response;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.domain.ScheduleInfo;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.format.DateTimeFormatter;
 
 public record ScheduleResponse(
@@ -13,8 +14,8 @@ public record ScheduleResponse(
     ScheduleType type,
     String description,
     Long roomId,
-    boolean isAllDay,
-    boolean isBusy) {
+    @JsonProperty("isAllDay") boolean isAllDay,
+    @JsonProperty("isBusy") boolean isBusy) {
 
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
