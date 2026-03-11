@@ -16,6 +16,7 @@ dependencies {
     implementation project(':core:domain-recruitment')
     implementation project(':core:domain-career')
     implementation project(':core:domain-application')
+    implementation project(':core:domain-notification')
 
     // 지원 모듈
     implementation project(':support:monitoring')
