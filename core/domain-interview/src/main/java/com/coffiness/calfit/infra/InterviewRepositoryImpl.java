@@ -1,12 +1,12 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.InterviewEventType;
 import com.coffiness.calfit.core.enums.InterviewStatus;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
-import com.coffiness.calfit.storage.db.core.applicant.ApplicantEntity;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
@@ -15,18 +15,20 @@ import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
-import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   private final MeetingRoomRepository meetingRoomRepository;
   private final MeetingRoomReservationRepository meetingRoomReservationRepository;
   private final InterviewScheduleRepository interviewScheduleRepository;
+  private final InterviewScheduleHistoryRepository interviewScheduleHistoryRepository;
   private final InterviewScheduleInterviewerRepository interviewerRepository;
   private final InterviewScheduleApplicantRepository applicantMappingRepository;
   private final ScheduleRepository scheduleRepository;
@@ -63,7 +66,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   public int getMeetingRoomCapacity(Long meetingRoomId) {
     String tenantId = requireTenantId();
     return meetingRoomRepository
-        .findByTenantIdAndId(tenantId, meetingRoomId)
+        .findByTenantIdAndIdAndStatus(tenantId, meetingRoomId, EntityStatus.ACTIVE)
         .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND))
         .getCapacity();
   }
@@ -78,8 +81,12 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     String tenantId = requireTenantId();
     List<MeetingRoomBusySlotRow> result =
         meetingRoomReservationRepository
-            .findAllByTenantIdAndMeetingRoomIdInAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
-                tenantId, meetingRoomIds, MeetingRoomStatus.RESERVED, to, from)
+            .findAllByTenantIdAndMeetingRoomIdInAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+                tenantId,
+                meetingRoomIds,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+                to,
+                from)
             .stream()
             .map(
                 reservation ->
@@ -158,10 +165,55 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     for (ScheduleEntity schedule : calendarBusySchedules) {
       result.add(
           new InterviewerBusySlotRow(
-              schedule.getUserId(),
+              schedule.getMemberId(),
               schedule.getId(),
               schedule.getStartTime(),
               schedule.getEndTime()));
+    }
+    return result;
+  }
+
+  @Override
+  public List<ApplicantBusySlotRow> findApplicantBusySlots(
+      List<Long> applicantIds, LocalDateTime from, LocalDateTime to) {
+    if (applicantIds == null || applicantIds.isEmpty()) {
+      return List.of();
+    }
+
+    String tenantId = requireTenantId();
+    List<InterviewScheduleApplicantEntity> mappings =
+        applicantMappingRepository.findAllByTenantIdAndApplicantIdIn(tenantId, applicantIds);
+
+    Set<Long> scheduleIds =
+        mappings.stream()
+            .map(InterviewScheduleApplicantEntity::getInterviewScheduleId)
+            .collect(Collectors.toSet());
+    if (scheduleIds.isEmpty()) {
+      return List.of();
+    }
+
+    List<InterviewScheduleEntity> schedules =
+        interviewScheduleRepository.findAllByTenantIdAndIdInAndStatusNotAndScheduledAtBefore(
+            tenantId, new ArrayList<>(scheduleIds), InterviewStatus.CANCELLED, to);
+
+    Map<Long, InterviewScheduleEntity> scheduleMap = new HashMap<>();
+    for (InterviewScheduleEntity schedule : schedules) {
+      LocalDateTime start = schedule.getScheduledAt();
+      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+      if (start.isBefore(to) && from.isBefore(end)) {
+        scheduleMap.put(schedule.getId(), schedule);
+      }
+    }
+
+    List<ApplicantBusySlotRow> result = new ArrayList<>();
+    for (InterviewScheduleApplicantEntity mapping : mappings) {
+      InterviewScheduleEntity schedule = scheduleMap.get(mapping.getInterviewScheduleId());
+      if (schedule == null) {
+        continue;
+      }
+      LocalDateTime start = schedule.getScheduledAt();
+      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+      result.add(new ApplicantBusySlotRow(mapping.getApplicantId(), schedule.getId(), start, end));
     }
     return result;
   }
@@ -205,11 +257,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .map(InterviewScheduleInterviewerEntity::getUserId)
             .distinct()
             .toList();
-    Map<Long, String> interviewerNameMap =
-        interviewerIds.isEmpty()
-            ? Map.of()
-            : userRepository.findAllById(interviewerIds).stream()
-                .collect(Collectors.toMap(UserEntity::getId, UserEntity::getName));
+    Map<Long, String> interviewerNameMap = resolveInterviewerNameMap(interviewerIds);
+    Map<Long, Long> interviewerMemberIdMap =
+        resolveInterviewerMemberIdMap(tenantId, interviewerIds);
 
     List<Long> applicantIds =
         applicantsByScheduleId.values().stream()
@@ -217,11 +267,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .map(InterviewScheduleApplicantEntity::getApplicantId)
             .distinct()
             .toList();
-    Map<Long, String> applicantNameMap =
-        applicantIds.isEmpty()
-            ? Map.of()
-            : applicantRepository.findAllByTenantIdAndIdIn(tenantId, applicantIds).stream()
-                .collect(Collectors.toMap(ApplicantEntity::getId, ApplicantEntity::getName));
+    Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
 
     List<InterviewScheduleCalendarRow> result = new ArrayList<>();
     for (InterviewScheduleEntity schedule : schedules) {
@@ -231,19 +277,22 @@ public class InterviewRepositoryImpl implements InterviewRepository {
           applicantsByScheduleId.getOrDefault(schedule.getId(), List.of());
 
       Long interviewerMemberId =
-          interviewerMappings.isEmpty() ? null : interviewerMappings.get(0).getUserId();
+          interviewerMappings.isEmpty()
+              ? null
+              : interviewerMemberIdMap.getOrDefault(
+                  interviewerMappings.get(0).getUserId(), interviewerMappings.get(0).getUserId());
 
       String interviewerName =
           interviewerMappings.stream()
               .map(InterviewScheduleInterviewerEntity::getUserId)
-              .map(id -> interviewerNameMap.getOrDefault(id, "알 수 없는 사용자"))
+              .map(id -> fallbackName(interviewerNameMap.get(id), "면접관#" + id))
               .distinct()
               .collect(Collectors.joining(", "));
 
       String applicantName =
           applicantMappings.stream()
               .map(InterviewScheduleApplicantEntity::getApplicantId)
-              .map(id -> applicantNameMap.getOrDefault(id, "알 수 없는 지원자"))
+              .map(id -> fallbackName(applicantNameMap.get(id), "지원자#" + id))
               .distinct()
               .collect(Collectors.joining(", "));
 
@@ -255,7 +304,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               interviewerMemberId,
               interviewerName,
               applicantName,
-              schedule.getMemo()));
+              fallbackName(schedule.getMemo(), "")));
     }
     return result;
   }
@@ -271,6 +320,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       String memo,
       List<Long> interviewerIds,
       List<Long> applicantIds) {
+    lockResourcesForScheduleCreation(meetingRoomId, interviewerIds, applicantIds);
+
     LocalDateTime end = scheduledAt.plusMinutes(durationMinutes);
     if (hasMeetingRoomConflict(meetingRoomId, scheduledAt, end)
         || hasParticipantConflict(interviewerIds, applicantIds, scheduledAt, end)) {
@@ -309,11 +360,90 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .interviewScheduleId(saved.getId())
             .startDatetime(scheduledAt)
             .endDatetime(end)
-            .status(MeetingRoomStatus.RESERVED)
+            .reservationStatus(MeetingRoomStatus.RESERVED)
             .build();
     meetingRoomReservationRepository.save(reservation);
 
+    Map<String, Object> eventData = new HashMap<>();
+    eventData.put("recruitmentId", recruitmentId);
+    eventData.put("recruitmentStageId", recruitmentStageId);
+    eventData.put("meetingRoomId", meetingRoomId);
+    eventData.put("scheduledAt", scheduledAt.toString());
+    eventData.put("durationMinutes", durationMinutes);
+    eventData.put("memo", memo == null ? "" : memo);
+    eventData.put("interviewerIds", interviewerIds);
+    eventData.put("applicantIds", applicantIds);
+
+    interviewScheduleHistoryRepository.save(
+        InterviewScheduleHistoryEntity.builder()
+            .interviewScheduleId(saved.getId())
+            .eventType(InterviewEventType.CREATED)
+            .eventData(eventData)
+            .createdBy(reservationUserId)
+            .build());
+
     return saved.getId();
+  }
+
+  @Override
+  public void cancelConfirmedSchedule(Long userId, Long interviewScheduleId) {
+    if (interviewScheduleId == null) {
+      return;
+    }
+
+    String tenantId = requireTenantId();
+    InterviewScheduleEntity schedule =
+        interviewScheduleRepository
+            .findByTenantIdAndIdAndInterviewStatusNot(
+                tenantId, interviewScheduleId, InterviewStatus.CANCELLED)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    schedule.cancel();
+
+    Map<String, Object> eventData = new HashMap<>();
+    eventData.put("status", InterviewStatus.CANCELLED.name());
+    eventData.put("reason", "MEETING_ROOM_RESERVATION_CANCELLED");
+
+    interviewScheduleHistoryRepository.save(
+        InterviewScheduleHistoryEntity.builder()
+            .interviewScheduleId(schedule.getId())
+            .eventType(InterviewEventType.STATUS_CHANGED)
+            .eventData(eventData)
+            .createdBy(userId != null ? userId : 0L)
+            .build());
+  }
+
+  private void lockResourcesForScheduleCreation(
+      Long meetingRoomId, List<Long> interviewerIds, List<Long> applicantIds) {
+    String tenantId = requireTenantId();
+
+    meetingRoomRepository
+        .findByTenantIdAndId(tenantId, meetingRoomId)
+        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    List<Long> orderedInterviewerIds =
+        interviewerIds == null
+            ? List.of()
+            : interviewerIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    if (!orderedInterviewerIds.isEmpty()) {
+      userRepository.findAllByIdInOrderByIdAsc(orderedInterviewerIds);
+    }
+
+    List<Long> orderedApplicantIds =
+        applicantIds == null
+            ? List.of()
+            : applicantIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    if (!orderedApplicantIds.isEmpty()) {
+      applicantRepository.findAllByTenantIdAndIdInOrderByIdAsc(tenantId, orderedApplicantIds);
+    }
   }
 
   private boolean hasParticipantConflict(
@@ -353,8 +483,12 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     String tenantId = requireTenantId();
     long roomConflict =
         meetingRoomReservationRepository
-            .countByTenantIdAndMeetingRoomIdAndStatusAndStartDatetimeBeforeAndEndDatetimeAfter(
-                tenantId, meetingRoomId, MeetingRoomStatus.RESERVED, end, start);
+            .countByTenantIdAndMeetingRoomIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
+                tenantId,
+                meetingRoomId,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+                end,
+                start);
     return roomConflict > 0;
   }
 
@@ -375,6 +509,130 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       }
     }
     return false;
+  }
+
+  private Map<Long, String> resolveInterviewerNameMap(List<Long> interviewerIds) {
+    if (interviewerIds == null || interviewerIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved = new HashMap<>();
+
+    Map<Long, Member> memberMap =
+        memberReader.getMembersByIds(interviewerIds).stream()
+            .collect(Collectors.toMap(Member::id, member -> member, (left, right) -> left));
+    List<Long> memberUserIds =
+        memberMap.values().stream()
+            .map(Member::userId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+
+    Map<Long, String> userNameMap = new HashMap<>();
+    if (!memberUserIds.isEmpty()) {
+      userRepository
+          .findAllById(memberUserIds)
+          .forEach(
+              user -> {
+                if (user.getId() != null && hasText(user.getName())) {
+                  userNameMap.put(user.getId(), user.getName());
+                }
+              });
+    }
+
+    memberMap.forEach(
+        (memberId, member) -> {
+          String userName = userNameMap.get(member.userId());
+          if (hasText(userName)) {
+            resolved.put(memberId, userName);
+          }
+        });
+
+    List<Long> unresolvedIds =
+        interviewerIds.stream()
+            .filter(id -> id != null && !resolved.containsKey(id))
+            .distinct()
+            .toList();
+    if (unresolvedIds.isEmpty()) {
+      return resolved;
+    }
+
+    userRepository
+        .findAllById(unresolvedIds)
+        .forEach(
+            user -> {
+              if (user.getId() != null && hasText(user.getName())) {
+                resolved.put(user.getId(), user.getName());
+              }
+            });
+
+    return resolved;
+  }
+
+  private Map<Long, Long> resolveInterviewerMemberIdMap(
+      String tenantId, List<Long> interviewerIds) {
+    if (interviewerIds == null || interviewerIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, Long> resolved = new HashMap<>();
+    memberReader
+        .getMembersByIds(interviewerIds)
+        .forEach(member -> resolved.put(member.id(), member.id()));
+
+    for (Long interviewerId : interviewerIds) {
+      if (interviewerId == null || resolved.containsKey(interviewerId)) {
+        continue;
+      }
+      Member member = memberReader.getMember(tenantId, interviewerId);
+      if (member != null && member.id() != null) {
+        resolved.put(interviewerId, member.id());
+      }
+    }
+    return resolved;
+  }
+
+  private Map<Long, String> resolveApplicantNameMap(String tenantId, List<Long> applicantIds) {
+    if (applicantIds == null || applicantIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved = new HashMap<>();
+    applicantRepository
+        .findByTenantIdAndIdIn(tenantId, applicantIds)
+        .forEach(
+            applicant -> {
+              if (applicant.getId() != null && applicant.getName() != null) {
+                resolved.put(applicant.getId(), applicant.getName());
+              }
+            });
+
+    List<Long> unresolvedIds =
+        applicantIds.stream()
+            .filter(id -> id != null && !resolved.containsKey(id))
+            .distinct()
+            .toList();
+    if (unresolvedIds.isEmpty()) {
+      return resolved;
+    }
+
+    applicantRepository
+        .findAllByIdIn(unresolvedIds)
+        .forEach(
+            applicant -> {
+              if (applicant.getId() != null && hasText(applicant.getName())) {
+                resolved.putIfAbsent(applicant.getId(), applicant.getName());
+              }
+            });
+    return resolved;
+  }
+
+  private String fallbackName(String value, String fallback) {
+    return hasText(value) ? value : fallback;
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   private String requireTenantId() {

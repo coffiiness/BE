@@ -20,7 +20,11 @@ public class MemberReaderImpl implements MemberReader {
 
   @Override
   public Member getMember(String workspaceId, Long userId) {
-    MemberEntity entity = memberRepository.findByTenantIdAndUserId(workspaceId, userId);
+    MemberEntity entity =
+        memberRepository.findByTenantIdAndUserIdAndStatus(workspaceId, userId, EntityStatus.ACTIVE);
+    if (entity == null) {
+      throw new CoreException(ErrorType.NOT_FOUND);
+    }
     return toWorkspaceMember(entity);
   }
 
@@ -62,5 +66,10 @@ public class MemberReaderImpl implements MemberReader {
   @Override
   public List<Member> getMembersByIds(List<Long> memberIds) {
     return memberRepository.findAllById(memberIds).stream().map(this::toWorkspaceMember).toList();
+  }
+
+  @Override
+  public long countActiveMembers(String workspaceId) {
+    return memberRepository.countByTenantIdAndStatus(workspaceId, EntityStatus.ACTIVE);
   }
 }

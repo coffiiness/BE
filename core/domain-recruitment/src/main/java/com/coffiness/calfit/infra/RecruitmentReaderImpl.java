@@ -1,10 +1,9 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.interview.InterviewerInfo;
-import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
-import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
-import com.coffiness.calfit.domain.recruitment.RecruitmentReader;
+import com.coffiness.calfit.domain.recruitment.*;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
@@ -28,6 +27,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
   private final RecruitmentRepository recruitmentRepository;
   private final RecruitmentStageRepository recruitmentStageRepository;
   private final RecruitmentInterviewerRepository recruitmentInterviewerRepository;
+  private final RecruitmentReferenceGroupRepository recruitmentReferenceGroupRepository;
 
   private final UserReader userReader;
   private final GroupReader groupReader;
@@ -39,9 +39,11 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     Page<RecruitmentEntity> recruitments;
 
     if (recruitmentStatus == null) {
-      recruitments = recruitmentRepository.findAll(pageable);
+      recruitments = recruitmentRepository.findByStatus(EntityStatus.ACTIVE, pageable);
     } else {
-      recruitments = recruitmentRepository.findByRecruitmentStatus(recruitmentStatus, pageable);
+      recruitments =
+          recruitmentRepository.findByRecruitmentStatusAndStatus(
+              recruitmentStatus, EntityStatus.ACTIVE, pageable);
     }
 
     if (recruitments.isEmpty()) {}
@@ -146,7 +148,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // TODO: 에러 처리 (CoreException) 추후 삽입
     RecruitmentEntity entity =
         recruitmentRepository
-            .findById(recruitmentId)
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
 
     // Group Name 가져오기
@@ -216,5 +218,94 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         shareUrl,
         entity.getRecruitmentStatus(),
         interviewerInfos);
+  }
+
+  @Override
+  public Recruitment readById(Long recruitmentId) {
+    RecruitmentEntity entity =
+        recruitmentRepository
+            .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
+
+    List<RecruitmentStage> stages =
+        recruitmentStageRepository.findByRecruitmentId(recruitmentId).stream()
+            .map(
+                s ->
+                    new RecruitmentStage(
+                        s.getId(), s.getStageName(), s.getStageStep(), s.getStageType()))
+            .toList();
+
+    List<Long> interviewerIds =
+        recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId).stream()
+            .map(RecruitmentInterviewerEntity::getMemberId)
+            .filter(Objects::nonNull)
+            .toList();
+
+    List<Long> referenceGroupIds =
+        recruitmentReferenceGroupRepository.findByRecruitmentId(recruitmentId).stream()
+            .map(RecruitmentReferenceGroupEntity::getGroupId)
+            .filter(Objects::nonNull)
+            .toList();
+
+    return new Recruitment(
+        entity.getId(),
+        entity.getCreatorId(),
+        entity.getTitle(),
+        entity.getContents(),
+        entity.getRecruitmentStatus(),
+        entity.getTargetCount(),
+        entity.getStartDate(),
+        entity.getEndDate(),
+        entity.getApplicationTemplateId(),
+        entity.getCareerType(),
+        entity.getMinExperienceYears(),
+        entity.getMaxExperienceYears(),
+        entity.getLeadGroupId(),
+        referenceGroupIds,
+        interviewerIds,
+        stages);
+  }
+
+  @Override
+  public Map<String, Long> countOpenRecruitmentsByTenant() {
+    List<Object[]> counts = recruitmentRepository.countOpenRecruitmentsByTenant();
+    return counts.stream()
+        .collect(Collectors.toMap(row -> (String) row[0], row -> ((Number) row[1]).longValue()));
+  }
+
+  @Override
+  public List<OpenRecruitmentInfo> readOpenByTenantId(String tenantId) {
+    return recruitmentRepository.findOpenRecruitmentsByTenantId(tenantId).stream()
+        .map(
+            e ->
+                new OpenRecruitmentInfo(
+                    e.getId(),
+                    e.getTitle(),
+                    e.getContents(),
+                    e.getCareerType(),
+                    e.getTargetCount(),
+                    e.getMinExperienceYears(),
+                    e.getMaxExperienceYears(),
+                    e.getStartDate(),
+                    e.getEndDate()))
+        .toList();
+  }
+
+  @Override
+  public List<OpenRecruitmentInfo> readOpenByTenantIdAndSearch(String tenantId, String search) {
+    return recruitmentRepository.findOpenRecruitmentsByTenantIdAndSearch(tenantId, search).stream()
+        .map(
+            e ->
+                new OpenRecruitmentInfo(
+                    e.getId(),
+                    e.getTitle(),
+                    e.getContents(),
+                    e.getCareerType(),
+                    e.getTargetCount(),
+                    e.getMinExperienceYears(),
+                    e.getMaxExperienceYears(),
+                    e.getStartDate(),
+                    e.getEndDate()))
+        .toList();
   }
 }

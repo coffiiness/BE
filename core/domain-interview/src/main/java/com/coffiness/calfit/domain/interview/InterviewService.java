@@ -1,15 +1,23 @@
 package com.coffiness.calfit.domain.interview;
 
 import com.coffiness.calfit.core.enums.InterviewRound;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
+import jakarta.persistence.LockTimeoutException;
+import jakarta.persistence.PessimisticLockException;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class InterviewService {
+  private static final int MAX_LOCK_RETRY_ATTEMPTS = 3;
+  private static final long LOCK_RETRY_BACKOFF_MILLIS = 120L;
 
   private final InterviewReader interviewReader;
   private final InterviewStore interviewStore;
@@ -42,17 +50,32 @@ public class InterviewService {
     int totalParticipants = interviewerIds.size() + applicantIds.size();
     interviewValidator.validateCapacity(meetingRoomId, totalParticipants);
 
-    Long scheduleId =
-        interviewStore.createConfirmedSchedule(
-            userId,
-            recruitmentId,
-            recruitmentStageId,
-            meetingRoomId,
-            scheduledAt,
-            durationMinutes,
-            memo,
-            interviewerIds,
-            applicantIds);
+    Long scheduleId = null;
+    for (int attempt = 1; attempt <= MAX_LOCK_RETRY_ATTEMPTS; attempt++) {
+      try {
+        scheduleId =
+            interviewStore.createConfirmedSchedule(
+                userId,
+                recruitmentId,
+                recruitmentStageId,
+                meetingRoomId,
+                scheduledAt,
+                durationMinutes,
+                memo,
+                interviewerIds,
+                applicantIds);
+        break;
+      } catch (RuntimeException exception) {
+        if (!isLockException(exception) || attempt == MAX_LOCK_RETRY_ATTEMPTS) {
+          throw exception;
+        }
+        sleepBackoff(attempt);
+      }
+    }
+
+    if (scheduleId == null) {
+      throw new CoreException(ErrorType.DEFAULT_ERROR);
+    }
 
     return Interview.confirmed(
         scheduleId,
@@ -69,7 +92,11 @@ public class InterviewService {
 
   @Transactional(readOnly = true)
   public InterviewAvailability getAvailability(
-      Long userId, LocalDateTime from, List<Long> meetingRoomIds, List<Long> interviewerIds) {
+      Long userId,
+      LocalDateTime from,
+      List<Long> meetingRoomIds,
+      List<Long> interviewerIds,
+      List<Long> applicantIds) {
 
     interviewValidator.validateHrMember(userId);
     interviewValidator.validateFromDate(from);
@@ -78,6 +105,7 @@ public class InterviewService {
 
     meetingRoomIds = meetingRoomIds == null ? List.of() : meetingRoomIds;
     interviewerIds = interviewerIds == null ? List.of() : interviewerIds;
+    applicantIds = applicantIds == null ? List.of() : applicantIds;
 
     List<InterviewAvailability.MeetingRoomBusySlot> meetingRoomBusySlots =
         interviewReader.findMeetingRoomBusySlots(meetingRoomIds, from, to);
@@ -85,6 +113,38 @@ public class InterviewService {
     List<InterviewAvailability.InterviewerBusySlot> interviewerBusySlots =
         interviewReader.findInterviewerBusySlots(interviewerIds, from, to);
 
-    return new InterviewAvailability(meetingRoomBusySlots, interviewerBusySlots);
+    List<InterviewAvailability.ApplicantBusySlot> applicantBusySlots =
+        interviewReader.findApplicantBusySlots(applicantIds, from, to);
+
+    return new InterviewAvailability(
+        meetingRoomBusySlots, interviewerBusySlots, applicantBusySlots);
+  }
+
+  @Transactional
+  public void cancelConfirmedSchedule(Long userId, Long interviewScheduleId) {
+    interviewStore.cancelConfirmedSchedule(userId, interviewScheduleId);
+  }
+
+  private boolean isLockException(Throwable throwable) {
+    Throwable current = throwable;
+    while (current != null) {
+      if (current instanceof CannotAcquireLockException
+          || current instanceof PessimisticLockingFailureException
+          || current instanceof LockTimeoutException
+          || current instanceof PessimisticLockException) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
+  }
+
+  private void sleepBackoff(int attempt) {
+    try {
+      Thread.sleep(LOCK_RETRY_BACKOFF_MILLIS * attempt);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new CoreException(ErrorType.DEFAULT_ERROR);
+    }
   }
 }

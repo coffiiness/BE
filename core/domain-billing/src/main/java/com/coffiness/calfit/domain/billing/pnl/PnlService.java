@@ -68,7 +68,7 @@ public class PnlService {
     List<MonthlyRevenue> revenues = invoiceReader.getMonthlyRevenue();
     List<MonthlyCostTotal> allCosts = costReader.getMonthlyTrend();
 
-    // Build columns (last N months)
+    // 최근 N개월 컬럼 생성
     List<String> columns = new ArrayList<>();
     LocalDate now = LocalDate.now();
     for (int i = months - 1; i >= 0; i--) {
@@ -82,7 +82,7 @@ public class PnlService {
                 Collectors.toMap(
                     r -> r.year() + "-" + r.month(), MonthlyRevenue::amount, Long::sum));
 
-    // Revenue rows
+    // 매출 행
     long[] revenueTotal =
         buildAmountArray(
             columns,
@@ -93,7 +93,7 @@ public class PnlService {
               return revenueMap.getOrDefault(y + "-" + m, 0L);
             });
 
-    // Cost by category
+    // 카테고리별 비용
     Map<String, Map<CostCategory, Long>> costByMonthCategory =
         costReader.getMonthlyTrend().stream()
             .collect(
@@ -101,7 +101,7 @@ public class PnlService {
                     c -> c.year() + "-" + c.month(),
                     Collectors.toMap(c -> CostCategory.LABOR, c -> 0L)));
 
-    // Build cost arrays per category
+    // 카테고리별 비용 배열 생성
     Map<CostCategory, long[]> costArrays =
         Arrays.stream(CostCategory.values())
             .collect(Collectors.toMap(cat -> cat, cat -> new long[months]));

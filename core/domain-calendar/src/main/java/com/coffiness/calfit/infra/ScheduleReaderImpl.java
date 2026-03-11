@@ -1,5 +1,6 @@
 package com.coffiness.calfit.infra;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.Schedule;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleReader;
@@ -32,8 +33,8 @@ public class ScheduleReaderImpl implements ScheduleReader {
 
   @Override
   public List<Schedule> findOverlappingSchedules(
-      Long userId, LocalDateTime startDate, LocalDateTime endDate) {
-    return scheduleRepository.findOverlappingSchedules(userId, startDate, endDate).stream()
+      Long memberId, LocalDateTime startDate, LocalDateTime endDate) {
+    return scheduleRepository.findOverlappingSchedules(memberId, startDate, endDate).stream()
         .map(this::toDomain)
         .toList();
   }
@@ -45,6 +46,27 @@ public class ScheduleReaderImpl implements ScheduleReader {
             .findById(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다."));
     return toDomain(entity);
+  }
+
+  @Override
+  public Schedule readByGoogleEventId(String googleEventId) {
+    return scheduleRepository
+        .findByGoogleEventIdAndStatus(googleEventId, EntityStatus.ACTIVE)
+        .map(this::toDomain)
+        .orElse(null);
+  }
+
+  @Override
+  public List<Schedule> findByReservationId(Long reservationId) {
+    if (reservationId == null) {
+      return List.of();
+    }
+
+    return scheduleRepository
+        .findAllByReservationIdAndStatus(reservationId, EntityStatus.ACTIVE)
+        .stream()
+        .map(this::toDomain)
+        .toList();
   }
 
   @Override
@@ -102,7 +124,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
   private Schedule toDomain(ScheduleEntity entity) {
     return new Schedule(
         entity.getId(),
-        entity.getUserId(),
+        entity.getMemberId(),
         entity.getTitle(),
         entity.getDescription(),
         entity.getType(),
@@ -110,6 +132,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
         entity.getEndTime(),
         entity.isAllDay(),
         entity.getRoomId(),
+        entity.getReservationId(),
         entity.isBusy(),
         entity.getGoogleEventId());
   }

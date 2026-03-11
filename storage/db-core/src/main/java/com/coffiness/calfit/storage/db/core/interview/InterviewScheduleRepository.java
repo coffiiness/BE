@@ -3,6 +3,7 @@ package com.coffiness.calfit.storage.db.core.interview;
 import com.coffiness.calfit.core.enums.InterviewStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -36,4 +37,22 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
           @Param("from") LocalDateTime from,
           @Param("to") LocalDateTime to,
           @Param("status") InterviewStatus status);
+
+  Optional<InterviewScheduleEntity> findByTenantIdAndIdAndInterviewStatusNot(
+      String tenantId, Long id, InterviewStatus status);
+
+  @Query(
+      "SELECT e.interviewStatus, COUNT(e) FROM InterviewScheduleEntity e"
+          + " GROUP BY e.interviewStatus")
+  List<Object[]> countGroupByInterviewStatus();
+
+  @Query(
+      "SELECT AVG(e.durationMinutes) FROM InterviewScheduleEntity e"
+          + " WHERE e.interviewStatus IN (:statuses)")
+  Double averageDurationMinutes(@Param("statuses") List<InterviewStatus> statuses);
+
+  @Query(
+      "SELECT e.meetingRoomId, COUNT(e) FROM InterviewScheduleEntity e"
+          + " GROUP BY e.meetingRoomId")
+  List<Object[]> countGroupByMeetingRoomId();
 }

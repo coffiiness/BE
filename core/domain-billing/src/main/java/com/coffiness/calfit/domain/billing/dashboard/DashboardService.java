@@ -7,6 +7,7 @@ import com.coffiness.calfit.domain.billing.invoice.InvoiceReader;
 import com.coffiness.calfit.domain.billing.invoice.MonthlyRevenue;
 import com.coffiness.calfit.domain.billing.subscription.SubscriptionReader;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,10 +24,15 @@ public class DashboardService {
   private final CostReader costReader;
 
   public DashboardSummary getSummary(int year, int month) {
-    long mrr = subscriptionReader.getMrr();
-    long activeCount = subscriptionReader.countByStatus(SubscriptionStatus.ACTIVE);
-    long trialCount = subscriptionReader.countByStatus(SubscriptionStatus.TRIAL);
-    long cancelledCount = subscriptionReader.countByStatus(SubscriptionStatus.CANCELLED);
+    YearMonth ym = YearMonth.of(year, month);
+    LocalDate monthStart = ym.atDay(1);
+    LocalDate monthEnd = ym.atEndOfMonth();
+
+    long mrr = subscriptionReader.getMrrInMonth(monthStart, monthEnd);
+    long activeCount =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.ACTIVE, monthStart, monthEnd);
+    long trialCount =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.TRIAL, monthStart, monthEnd);
 
     List<MonthlyRevenue> revenueHistory = invoiceReader.getMonthlyRevenue();
     double mrrGrowth = computeGrowth(revenueHistory, year, month);
@@ -39,10 +45,34 @@ public class DashboardService {
     double costGrowth = computeCostGrowth(costHistory, year, month);
 
     long subscribers = activeCount + trialCount;
-    long newThisMonth = 0;
+    long newThisMonth = subscriptionReader.countNewInMonth(monthStart, monthEnd);
+
+    long cancelledThisMonth = subscriptionReader.countCancelledInMonth(year, month);
+    YearMonth prevYm = ym.minusMonths(1);
+    LocalDate prevStart = prevYm.atDay(1);
+    LocalDate prevEnd = prevYm.atEndOfMonth();
+    long prevActive =
+        subscriptionReader.countByStatusInMonth(SubscriptionStatus.ACTIVE, prevStart, prevEnd)
+            + subscriptionReader.countByStatusInMonth(SubscriptionStatus.TRIAL, prevStart, prevEnd);
+    double churnRate =
+        prevActive > 0 ? Math.round((double) cancelledThisMonth / prevActive * 1000.0) / 10.0 : 0.0;
+
+    YearMonth prev2Ym = ym.minusMonths(2);
+    long cancelledPrevMonth =
+        subscriptionReader.countCancelledInMonth(prevYm.getYear(), prevYm.getMonthValue());
+    long prev2Active =
+        subscriptionReader.countByStatusInMonth(
+                SubscriptionStatus.ACTIVE, prev2Ym.atDay(1), prev2Ym.atEndOfMonth())
+            + subscriptionReader.countByStatusInMonth(
+                SubscriptionStatus.TRIAL, prev2Ym.atDay(1), prev2Ym.atEndOfMonth());
+    double prevChurnRate =
+        prev2Active > 0
+            ? Math.round((double) cancelledPrevMonth / prev2Active * 1000.0) / 10.0
+            : 0.0;
+    double churnImprove = Math.round((prevChurnRate - churnRate) * 10.0) / 10.0;
 
     return new DashboardSummary(
-        mrr, mrrGrowth, subscribers, newThisMonth, 0.0, 0.0, totalCost, costGrowth);
+        mrr, mrrGrowth, subscribers, newThisMonth, churnRate, churnImprove, totalCost, costGrowth);
   }
 
   public List<RevenueCostTrend> getRevenueCostTrend() {
@@ -56,7 +86,7 @@ public class DashboardService {
         costs.stream()
             .collect(Collectors.toMap(c -> c.year() + "-" + c.month(), MonthlyCostTotal::amount));
 
-    // Build trend for last 8 months
+    // 최근 8개월 추이 생성
     List<RevenueCostTrend> trend = new ArrayList<>();
     LocalDate now = LocalDate.now();
     for (int i = 7; i >= 0; i--) {

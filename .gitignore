@@ -1,9 +1,12 @@
 .gradle
+.gradle-user-home/
 build/
 .env
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**
 !**/src/test/**
+.gradle-user/
+.gradle-user-codex/
 
 ### IDEA ###
 .idea
@@ -23,4 +26,3 @@ CLAUDE.md
 *client_secret*.json
 *service-account*.json
 application-local.yml
-google-calendar.yml

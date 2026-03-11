@@ -20,13 +20,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final CorsProperties corsProperties;
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+  public SecurityConfig(
+      JwtAuthenticationFilter jwtAuthenticationFilter, CorsProperties corsProperties) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    this.corsProperties = corsProperties;
   }
 
   @Bean
@@ -38,11 +41,29 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/v1/users/signup", "/api/v1/users/login")
+                auth.requestMatchers(
+                        "/api/v1/users/signup",
+                        "/api/v1/users/signup/resend-verification",
+                        "/api/v1/users/login",
+                        "/api/v1/users/signup/verify")
                     .permitAll()
-                    .requestMatchers("/api/v1/invitations/*/accept", "/api/v1/invitations/*")
+                    .requestMatchers("/api/v1/calendars/google/notifications")
+                    .permitAll()
+                    .requestMatchers(
+                        "/api/v1/workspaces/*/applicants/signup",
+                        "/api/v1/workspaces/*/applicants/login")
+                    .permitAll()
+                    .requestMatchers("/api/v1/careers/**")
+                    .permitAll()
+                    .requestMatchers("/api/v1/invitations/*/view", "/api/v1/invitations/*")
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
+                    .permitAll()
+                    .requestMatchers(
+                        "/api/v1/application-files/health",
+                        "/api/v1/application-files/presign-upload",
+                        "/api/v1/application-files/complete",
+                        "/api/v1/application-files/*/presign-download")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
@@ -75,7 +96,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+    configuration.setAllowedOrigins(corsProperties.allowedOrigins());
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);

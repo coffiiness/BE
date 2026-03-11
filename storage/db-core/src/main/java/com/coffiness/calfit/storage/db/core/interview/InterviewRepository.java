@@ -11,6 +11,9 @@ public interface InterviewRepository {
   record InterviewerBusySlotRow(
       Long interviewerId, Long interviewScheduleId, LocalDateTime start, LocalDateTime end) {}
 
+  record ApplicantBusySlotRow(
+      Long applicantId, Long interviewScheduleId, LocalDateTime start, LocalDateTime end) {}
+
   record InterviewScheduleCalendarRow(
       Long interviewScheduleId,
       LocalDateTime startAt,
@@ -30,6 +33,9 @@ public interface InterviewRepository {
   List<InterviewerBusySlotRow> findInterviewerBusySlots(
       List<Long> interviewerIds, LocalDateTime from, LocalDateTime to);
 
+  List<ApplicantBusySlotRow> findApplicantBusySlots(
+      List<Long> applicantIds, LocalDateTime from, LocalDateTime to);
+
   List<InterviewScheduleCalendarRow> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to);
 
@@ -43,4 +49,6 @@ public interface InterviewRepository {
       String memo,
       List<Long> interviewerIds,
       List<Long> applicantIds);
+
+  void cancelConfirmedSchedule(Long userId, Long interviewScheduleId);
 }

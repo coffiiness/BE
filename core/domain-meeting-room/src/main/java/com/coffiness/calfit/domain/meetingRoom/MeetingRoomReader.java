@@ -14,5 +14,11 @@ public interface MeetingRoomReader {
   long countOverlappingReservations(
       Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime);
 
+  long countOverlappingReservationsByUser(
+      Long userId, LocalDateTime startDatetime, LocalDateTime endDatetime);
+
   MeetingRoomReservation getActiveReservation(Long meetingRoomId, Long reservationId);
+
+  List<MeetingRoomReservation> getActiveReservations(
+      LocalDateTime fromDatetime, LocalDateTime toDatetime);
 }

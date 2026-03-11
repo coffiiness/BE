@@ -5,6 +5,7 @@ dependencies {
     // 도메인 모듈
     implementation project(':core:domain-user')
     implementation project(':core:domain-workspace')
+    implementation project(':core:domain-applicant')
     implementation project(':core:domain-meeting-room')
     implementation project(':core:domain-announcement-board')
     implementation project(':core:domain-billing')
@@ -13,6 +14,9 @@ dependencies {
     implementation project(':core:core-enum')
     implementation project(':core:domain-calendar')
     implementation project(':core:domain-recruitment')
+    implementation project(':core:domain-career')
+    implementation project(':core:domain-application')
+    implementation project(':core:domain-notification')
     implementation project(':core:domain-template')
 
     // 지원 모듈
@@ -21,11 +25,12 @@ dependencies {
     implementation project(':support:security')
     implementation project(':support:event')
     implementation project(':support:error')
+    implementation project(':support:email')
 
     // 스토리지
     implementation project(':storage:db-core')
 
-    // clients
+    // 클라이언트
     implementation project(':clients')
 
     // 외부 클라이언트 (MSA)
@@ -42,6 +47,26 @@ dependencies {
 
     // OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // ShedLock
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+
+    // AWS
+    implementation platform("software.amazon.awssdk:bom:2.42.3")
+    implementation "software.amazon.awssdk:s3"
+    implementation "software.amazon.awssdk:auth"
+}
+
+def snippetsDir = file("$buildDir/generated-snippets")
+
+tasks.named('restDocsTest') {
+    outputs.dir snippetsDir
+}
+
+tasks.named('asciidoctor') {
+    inputs.dir snippetsDir
+    attributes 'snippets': snippetsDir
 }
 
 def jacocoTargetProjects = rootProject.subprojects.findAll { subproject ->

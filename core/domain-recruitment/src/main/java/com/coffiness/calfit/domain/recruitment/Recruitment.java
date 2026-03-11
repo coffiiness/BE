@@ -10,7 +10,7 @@ public record Recruitment(
     Long creatorId,
     String title,
     String contents,
-    RecruitmentStatus status,
+    RecruitmentStatus recruitmentStatus,
     int targetCount,
     LocalDateTime startDate,
     LocalDateTime endDate,
@@ -72,6 +72,7 @@ public record Recruitment(
       int newTargetCount,
       LocalDateTime newStartDate,
       LocalDateTime newEndDate,
+      Long newApplicationTemplateId,
       CareerType newCareerType,
       Integer newMinExperienceYears,
       Integer newMaxExperienceYears,
@@ -84,11 +85,11 @@ public record Recruitment(
         this.creatorId,
         newTitle,
         newContents,
-        this.status,
+        this.recruitmentStatus,
         newTargetCount,
         newStartDate,
         newEndDate,
-        this.applicationTemplateId,
+        newApplicationTemplateId,
         newCareerType,
         newMinExperienceYears,
         newMaxExperienceYears,
@@ -117,5 +118,19 @@ public record Recruitment(
         this.referenceGroupIds,
         this.interviewerIds,
         this.stages);
+  }
+
+  // 채용 공고 수정 정책 로직
+  public void validateUpdatable(LocalDateTime currentTime) {
+    if (currentTime == null) {
+      throw new IllegalArgumentException("현재 시간이 필요합니다.");
+    }
+    if (this.startDate != null && !currentTime.isBefore(this.startDate)) {
+      throw new IllegalArgumentException("이미 게시가 시작된 채용 공고는 수정할 수 없습니다.");
+    }
+
+    if (this.recruitmentStatus() == RecruitmentStatus.CLOSED) {
+      throw new IllegalArgumentException("마감된 공고는 수정할 수 없습니다.");
+    }
   }
 }

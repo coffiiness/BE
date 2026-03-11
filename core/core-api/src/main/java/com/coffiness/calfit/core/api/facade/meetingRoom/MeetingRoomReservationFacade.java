@@ -1,0 +1,77 @@
+package com.coffiness.calfit.core.api.facade.meetingRoom;
+
+import com.coffiness.calfit.api.v1.request.MeetingRoomReservationCreateRequest;
+import com.coffiness.calfit.domain.ScheduleService;
+import com.coffiness.calfit.domain.interview.InterviewService;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationService;
+import com.coffiness.calfit.domain.workspace.member.Member;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+@RequiredArgsConstructor
+public class MeetingRoomReservationFacade {
+
+  private final MeetingRoomReservationService meetingRoomReservationService;
+  private final InterviewService interviewService;
+  private final ScheduleService scheduleService;
+  private final MemberReader memberReader;
+
+  @Transactional
+  public MeetingRoomReservation reserveMeetingRoom(
+      Long userId, Long meetingRoomId, MeetingRoomReservationCreateRequest request) {
+    MeetingRoomReservation reservation =
+        meetingRoomReservationService.reserve(
+            userId,
+            meetingRoomId,
+            request.startDatetime(),
+            request.endDatetime(),
+            request.participantMemberIds());
+
+    Member ownerMember = memberReader.getMember(TenantContext.getTenantId(), userId);
+    if (ownerMember == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    scheduleService.createMeetingRoomReservationSchedule(
+        ownerMember.id(),
+        reservation.id(),
+        meetingRoomId,
+        request.title(),
+        request.description(),
+        request.startDatetime(),
+        request.endDatetime(),
+        request.participantMemberIds());
+
+    return reservation;
+  }
+
+  @Transactional(readOnly = true)
+  public List<MeetingRoomReservation> getActiveReservations(
+      LocalDateTime fromDatetime, LocalDateTime toDatetime) {
+    return meetingRoomReservationService.listActiveReservations(fromDatetime, toDatetime);
+  }
+
+  @Transactional
+  public MeetingRoomReservation cancelReservation(
+      Long userId, Long meetingRoomId, Long reservationId) {
+    MeetingRoomReservation canceled =
+        meetingRoomReservationService.cancelReservation(userId, meetingRoomId, reservationId);
+
+    if (canceled.interviewScheduleId() != null) {
+      interviewService.cancelConfirmedSchedule(userId, canceled.interviewScheduleId());
+    }
+
+    scheduleService.deleteSchedulesByReservationId(canceled.id());
+
+    return canceled;
+  }
+}

@@ -43,7 +43,7 @@ public class UserService {
     }
 
     String encodedPassword = passwordEncoder.encode(password);
-    UserEntity userEntity = UserEntity.create(email, encodedPassword, name);
+    UserEntity userEntity = UserEntity.createMember(email, encodedPassword, name);
     UserEntity savedEntity = userRepository.save(userEntity);
 
     return toUser(savedEntity);
@@ -78,6 +78,11 @@ public class UserService {
     String workspaceId = memberRepository.findTenantIdByUserId(userEntity.getId()).orElse(null);
 
     return new LoginResult(accessToken, refreshToken, toUser(userEntity), workspaceId);
+  }
+
+  @Transactional(readOnly = true)
+  public String getWorkspaceId(Long userId) {
+    return memberRepository.findTenantIdByUserId(userId).orElse(null);
   }
 
   @Transactional(readOnly = true)

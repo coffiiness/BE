@@ -13,14 +13,14 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   List<MemberEntity> findByStatus(EntityStatus status);
 
-  @Query("SELECT m.tenantId FROM MemberEntity m WHERE m.userId = :userId")
-  List<String> findTenantIdsByUserId(@Param("userId") Long userId);
-
-  default Optional<String> findTenantIdByUserId(Long userId) {
-    return findTenantIdsByUserId(userId).stream().findFirst();
-  }
+  @Query(
+      value = "SELECT tenant_id FROM workspace_members WHERE user_id = :userId LIMIT 1",
+      nativeQuery = true)
+  Optional<String> findTenantIdByUserId(@Param("userId") Long userId);
 
   MemberEntity findByTenantIdAndUserId(String tenantId, Long userId);
+
+  MemberEntity findByTenantIdAndUserIdAndStatus(String tenantId, Long userId, EntityStatus status);
 
   boolean existsByTenantIdAndUserId(String workspaceId, Long userId);
 
@@ -34,4 +34,6 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
           + " WHERE m.groupId IN :groupIds AND m.status = :status GROUP BY m.groupId")
   List<Object[]> countByGroupIdsAndStatus(
       @Param("groupIds") List<Long> groupIds, @Param("status") EntityStatus status);
+
+  long countByTenantIdAndStatus(String tenantId, EntityStatus status);
 }

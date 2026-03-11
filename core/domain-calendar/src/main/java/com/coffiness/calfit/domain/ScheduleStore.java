@@ -8,5 +8,11 @@ public interface ScheduleStore {
 
   void update(Schedule schedule, List<Long> attendeeIds);
 
+  void updateGoogleEventId(Long scheduleId, String googleEventId);
+
+  void clearGoogleEventIdsByMemberId(Long memberId);
+
   void delete(Schedule schedule);
+
+  void deleteByReservationId(Long reservationId);
 }

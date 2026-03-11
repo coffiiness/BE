@@ -11,6 +11,7 @@ public record ScheduleInfo(
     ScheduleType type,
     String description,
     Long roomId,
+    Long reservationId,
     boolean isBusy) {
 
   public static ScheduleInfo from(Schedule schedule) {
@@ -22,6 +23,7 @@ public record ScheduleInfo(
         schedule.type(),
         schedule.description(),
         schedule.roomId(),
+        schedule.reservationId(),
         schedule.isBusy());
   }
 }

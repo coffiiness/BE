@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -52,6 +53,18 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   @Column(name = "is_sync_enabled", nullable = false)
   private boolean isSyncEnabled;
 
+  // 구글 watch 채널 ID
+  @Column(name = "channel_id")
+  private String channelId;
+
+  // 구글 watch 리소스 ID
+  @Column(name = "channel_resource_id")
+  private String channelResourceId;
+
+  // 구글 watch 만료 시각(UTC)
+  @Column(name = "channel_expires_at")
+  private LocalDateTime channelExpiresAt;
+
   @Builder
   public ExternalCalendarEntity(
       String tenantId,
@@ -61,7 +74,10 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
       String refreshToken,
       LocalDateTime tokenExpiresAt,
       String syncToken,
-      boolean isSyncEnabled) {
+      boolean isSyncEnabled,
+      String channelId,
+      String channelResourceId,
+      LocalDateTime channelExpiresAt) {
     super(tenantId);
     this.userId = userId;
     this.calendarId = calendarId;
@@ -70,9 +86,35 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
     this.tokenExpiresAt = tokenExpiresAt;
     this.syncToken = syncToken;
     this.isSyncEnabled = isSyncEnabled;
+    this.channelId = channelId;
+    this.channelResourceId = channelResourceId;
+    this.channelExpiresAt = channelExpiresAt;
   }
 
-  // 토큰 재발급 메소드
+  // 캘린더 연결 정보와 인증 토큰을 함께 갱신
+  public void updateConnectedCalendar(
+      String calendarId, String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
+    boolean calendarChanged = !Objects.equals(this.calendarId, calendarId);
+
+    this.isSyncEnabled = true;
+    this.calendarId = calendarId;
+    this.accessToken = accessToken;
+    this.tokenExpiresAt = tokenExpiresAt;
+
+    // null 덮어쓰기 방지
+    if (refreshToken != null) {
+      this.refreshToken = refreshToken;
+    }
+
+    if (calendarChanged) {
+      this.syncToken = null;
+      this.channelId = null;
+      this.channelResourceId = null;
+      this.channelExpiresAt = null;
+    }
+  }
+
+  // 토큰 갱신 메소드
   public void updateAuthTokens(
       String accessToken, String refreshToken, LocalDateTime tokenExpiresAt) {
     this.accessToken = accessToken;
@@ -83,8 +125,16 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
     }
   }
 
-  // 새로운 동기화 지점을 저장 메소드
+  // 새로운 동기화 지점을 저장하는 메소드
   public void updateSyncToken(String syncToken) {
     this.syncToken = syncToken;
+  }
+
+  // watch 채널 정보를 저장하는 메소드
+  public void updateWatchChannel(
+      String channelId, String channelResourceId, LocalDateTime channelExpiresAt) {
+    this.channelId = channelId;
+    this.channelResourceId = channelResourceId;
+    this.channelExpiresAt = channelExpiresAt;
   }
 }

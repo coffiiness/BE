@@ -27,7 +27,23 @@ public class ApiControllerAdvice {
   public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException e) {
     log.info("IllegalArgumentException : {}", e.getMessage());
     return new ResponseEntity<>(
-        ApiResponse.error(ErrorType.UNAUTHORIZED), ErrorType.UNAUTHORIZED.getStatus());
+        ApiResponse.error(ErrorType.BAD_REQUEST), ErrorType.BAD_REQUEST.getStatus());
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
+    String message = e.getMessage();
+
+    if (message != null && message.startsWith("GOOGLE_")) {
+      log.info("GoogleCalendarException : {}", message, e);
+      return new ResponseEntity<>(
+          ApiResponse.error(ErrorType.BAD_REQUEST, message, null),
+          ErrorType.BAD_REQUEST.getStatus());
+    }
+
+    log.error("IllegalStateException : {}", message, e);
+    return new ResponseEntity<>(
+        ApiResponse.error(ErrorType.DEFAULT_ERROR), ErrorType.DEFAULT_ERROR.getStatus());
   }
 
   @ExceptionHandler(CoreException.class)
@@ -38,7 +54,8 @@ public class ApiControllerAdvice {
       default -> log.info("CoreException : {}", e.getMessage(), e);
     }
     return new ResponseEntity<>(
-        ApiResponse.error(e.getErrorType(), e.getData()), e.getErrorType().getStatus());
+        ApiResponse.error(e.getErrorType(), e.getCustomCode(), e.getData()),
+        e.getErrorType().getStatus());
   }
 
   @ExceptionHandler(Exception.class)

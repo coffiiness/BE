@@ -5,14 +5,17 @@ import com.coffiness.calfit.api.v1.request.MeetingRoomReservationCreateRequest;
 import com.coffiness.calfit.api.v1.request.MeetingRoomUpdateRequest;
 import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
+import com.coffiness.calfit.core.api.facade.meetingRoom.MeetingRoomFacade;
+import com.coffiness.calfit.core.api.facade.meetingRoom.MeetingRoomReservationFacade;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
-import com.coffiness.calfit.domain.meetingRoom.MeetingRoomService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/meeting-rooms")
 public class MeetingRoomController {
 
-  private final MeetingRoomService meetingRoomService;
+  private final MeetingRoomFacade meetingRoomFacade;
+  private final MeetingRoomReservationFacade meetingRoomReservationFacade;
 
   /* 회의실 생성 */
   @PostMapping
@@ -29,17 +33,18 @@ public class MeetingRoomController {
       @AuthenticationPrincipal SecurityUser user,
       @Valid @RequestBody MeetingRoomCreateRequest request) {
 
-    MeetingRoom room =
-        meetingRoomService.create(request.name(), request.location(), request.capacity());
+    Long userId = (user != null) ? user.userId() : null;
+    MeetingRoom room = meetingRoomFacade.createMeetingRoom(userId, request);
 
     return ApiResponse.success(MeetingRoomResponse.from(room));
   }
 
   /* 회의실 조회 */
   @GetMapping
-  public ApiResponse<List<MeetingRoom>> list(@AuthenticationPrincipal SecurityUser user) {
+  public ApiResponse<List<MeetingRoomResponse>> list(@AuthenticationPrincipal SecurityUser user) {
 
-    List<MeetingRoom> result = meetingRoomService.list();
+    List<MeetingRoomResponse> result =
+        meetingRoomFacade.getMeetingRoomList().stream().map(MeetingRoomResponse::from).toList();
 
     return ApiResponse.success(result);
   }
@@ -51,7 +56,8 @@ public class MeetingRoomController {
       @PathVariable Long id,
       @Valid @RequestBody MeetingRoomUpdateRequest request) {
 
-    MeetingRoom room = meetingRoomService.update(id, request.name(), request.capacity());
+    Long userId = (user != null) ? user.userId() : null;
+    MeetingRoom room = meetingRoomFacade.updateMeetingRoom(userId, id, request);
 
     return ApiResponse.success(MeetingRoomResponse.from(room));
   }
@@ -61,9 +67,24 @@ public class MeetingRoomController {
   public ApiResponse<?> delete(@AuthenticationPrincipal SecurityUser user, @PathVariable Long id) {
 
     Long userId = (user != null) ? user.userId() : null;
-    meetingRoomService.delete(id, userId);
+    meetingRoomFacade.deleteMeetingRoom(userId, id);
 
     return ApiResponse.success();
+  }
+
+  /* 회의실 예약 조회*/
+  @GetMapping("/reservations")
+  public ApiResponse<List<MeetingRoomReservationResponse>> listReservations(
+      @AuthenticationPrincipal SecurityUser user,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDatetime,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDatetime) {
+
+    List<MeetingRoomReservationResponse> result =
+        meetingRoomReservationFacade.getActiveReservations(fromDatetime, toDatetime).stream()
+            .map(MeetingRoomReservationResponse::from)
+            .toList();
+
+    return ApiResponse.success(result);
   }
 
   /* 회의실 예약 */
@@ -75,8 +96,7 @@ public class MeetingRoomController {
 
     Long userId = user.userId();
     MeetingRoomReservation reservation =
-        meetingRoomService.reserve(
-            userId, meetingRoomId, request.startDatetime(), request.endDatetime());
+        meetingRoomReservationFacade.reserveMeetingRoom(userId, meetingRoomId, request);
 
     return ApiResponse.success(MeetingRoomReservationResponse.from(reservation));
   }
@@ -90,7 +110,7 @@ public class MeetingRoomController {
 
     Long userId = user.userId();
     MeetingRoomReservation canceled =
-        meetingRoomService.cancelReservation(userId, meetingRoomId, reservationId);
+        meetingRoomReservationFacade.cancelReservation(userId, meetingRoomId, reservationId);
     return ApiResponse.success(MeetingRoomReservationResponse.from(canceled));
   }
 }

@@ -7,6 +7,8 @@ import com.coffiness.calfit.domain.billing.subscription.Subscription;
 import com.coffiness.calfit.domain.billing.subscription.SubscriptionReader;
 import com.coffiness.calfit.storage.db.core.billing.SubscriptionEntity;
 import com.coffiness.calfit.storage.db.core.billing.SubscriptionRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,19 @@ public class SubscriptionReaderImpl implements SubscriptionReader {
   }
 
   @Override
+  public long countByStatusInMonth(
+      SubscriptionStatus status, LocalDate monthStart, LocalDate monthEnd) {
+    return subscriptionRepository.countByStatusInMonth(
+        EntityStatus.ACTIVE, status, monthStart, monthEnd);
+  }
+
+  @Override
+  public long getMrrInMonth(LocalDate monthStart, LocalDate monthEnd) {
+    return subscriptionRepository.sumMonthlyAmountByStatusInMonth(
+        EntityStatus.ACTIVE, SubscriptionStatus.ACTIVE, monthStart, monthEnd);
+  }
+
+  @Override
   public List<Subscription> findActiveByPlanType(PlanType planType) {
     return subscriptionRepository
         .findByPlanTypeAndSubscriptionStatusAndStatus(
@@ -66,6 +81,18 @@ public class SubscriptionReaderImpl implements SubscriptionReader {
         .stream()
         .map(this::toSubscription)
         .toList();
+  }
+
+  @Override
+  public long countNewInMonth(LocalDate monthStart, LocalDate monthEnd) {
+    return subscriptionRepository.countNewInMonth(EntityStatus.ACTIVE, monthStart, monthEnd);
+  }
+
+  @Override
+  public long countCancelledInMonth(int year, int month) {
+    LocalDateTime from = LocalDate.of(year, month, 1).atStartOfDay();
+    LocalDateTime to = from.plusMonths(1);
+    return subscriptionRepository.countCancelledInPeriod(EntityStatus.ACTIVE, from, to);
   }
 
   private Subscription toSubscription(SubscriptionEntity entity) {

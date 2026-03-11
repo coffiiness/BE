@@ -96,4 +96,29 @@ public class RecruitmentEntity extends TenantBaseEntity {
     this.maxExperienceYears = maxExperienceYears;
     this.leadGroupId = leadGroupId;
   }
+
+  public void update(
+      String title,
+      RecruitmentStatus recruitmentStatus,
+      int targetCount,
+      LocalDateTime startDate,
+      LocalDateTime endDate,
+      Long applicationTemplateId,
+      String contents,
+      CareerType careerType,
+      Integer minExperienceYears,
+      Integer maxExperienceYears,
+      Long leadGroupId) {
+    this.title = title;
+    this.recruitmentStatus = recruitmentStatus;
+    this.targetCount = targetCount;
+    this.startDate = startDate;
+    this.endDate = endDate;
+    this.applicationTemplateId = applicationTemplateId;
+    this.contents = contents;
+    this.careerType = careerType;
+    this.minExperienceYears = minExperienceYears;
+    this.maxExperienceYears = maxExperienceYears;
+    this.leadGroupId = leadGroupId;
+  }
 }
