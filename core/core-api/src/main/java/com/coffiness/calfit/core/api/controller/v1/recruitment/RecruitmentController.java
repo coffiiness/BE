@@ -12,6 +12,9 @@ import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -22,7 +25,15 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +42,7 @@ public class RecruitmentController {
 
   private final RecruitmentService recruitmentService;
   private final RecruitmentFacade recruitmentFacade;
+  private final ApplicationTemplateRepository applicationTemplateRepository;
 
   @ResponseStatus(HttpStatus.CREATED)
   @PostMapping("/api/v1/recruitments")
@@ -39,10 +51,11 @@ public class RecruitmentController {
       @Valid @RequestBody RecruitmentCreateRequest request) {
 
     long userId = user.userId();
+    validateTemplateInUse(request.applicationTemplateId());
 
-    Long RecruitmentId = recruitmentService.createRecruitment(userId, request);
+    Long recruitmentId = recruitmentService.createRecruitment(userId, request);
 
-    return ApiResponse.success(RecruitmentId);
+    return ApiResponse.success(recruitmentId);
   }
 
   @GetMapping("/api/v1/recruitments")
@@ -94,6 +107,7 @@ public class RecruitmentController {
       @PathVariable Long recruitmentId,
       @Valid @RequestBody RecruitmentUpdateRequest request) {
     long userId = user.userId();
+    validateTemplateInUse(request.applicationTemplateId());
 
     RecruitmentDetailInfo info =
         recruitmentFacade.updateRecruitment(userId, recruitmentId, request);
@@ -108,5 +122,16 @@ public class RecruitmentController {
     recruitmentFacade.deleteRecruitment(userId, recruitmentId);
 
     return ApiResponse.success(recruitmentId);
+  }
+
+  private void validateTemplateInUse(Long templateId) {
+    var template =
+        applicationTemplateRepository
+            .findActiveById(templateId)
+            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+
+    if (!template.isInUse()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
   }
 }
