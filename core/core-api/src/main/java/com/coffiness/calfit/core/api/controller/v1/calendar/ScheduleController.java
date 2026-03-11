@@ -2,12 +2,14 @@ package com.coffiness.calfit.core.api.controller.v1.calendar;
 
 import com.coffiness.calfit.core.api.facade.calendar.ScheduleFacade;
 import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.domain.ScheduleAvailability;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
+import com.coffiness.calfit.v1.response.ScheduleAvailabilityResponse;
 import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
 import com.coffiness.calfit.v1.response.ScheduleResponse;
 import jakarta.validation.Valid;
@@ -63,6 +65,23 @@ public class ScheduleController {
     List<ScheduleResponse> response = infos.stream().map(ScheduleResponse::from).toList();
 
     return ApiResponse.success(response);
+  }
+
+  // 선택한 참석자들의 당일 바쁜 일정 현황을 조회
+  @GetMapping("/api/v1/schedules/availability")
+  public ApiResponse<ScheduleAvailabilityResponse> getAttendeeAvailability(
+      @AuthenticationPrincipal SecurityUser user,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+      @RequestParam(required = false) List<Long> attendeeIds) {
+
+    LocalDateTime startDateTime = date.atStartOfDay();
+    LocalDateTime endDateTime = date.plusDays(1).atStartOfDay();
+
+    ScheduleAvailability availability =
+        scheduleFacade.getAttendeeAvailability(
+            user.userId(), startDateTime, endDateTime, attendeeIds);
+
+    return ApiResponse.success(ScheduleAvailabilityResponse.from(availability));
   }
 
   @GetMapping("/api/v1/schedules/{scheduleId}")

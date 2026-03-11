@@ -13,9 +13,15 @@ import static org.mockito.Mockito.verify;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.fixture.NotificationFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
+import com.coffiness.calfit.api.v1.response.NotificationResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
+import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.enums.NotificationType;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -28,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,6 +132,101 @@ public class DELETE_specs {
     var existingSchedule =
         calendarFixture.getSchedules(token, tenantId, startDate, endDate).getData();
     assertThat(existingSchedule).isEmpty();
+  }
+
+  @Test
+  void 참석자를_초대한_일정을_삭제하면_참석자의_내_일정에서_바로_사라지고_취소_알림이_발송된다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture,
+      @Autowired NotificationFixture notificationFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(1).withHour(16).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "삭제 전 일정",
+            "삭제 전 일정 설명",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+    Long scheduleId =
+        calendarFixture
+            .getSchedules(ownerToken, tenantId, startDate, endDate)
+            .getData()
+            .get(0)
+            .id();
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
+                    .extracting(NotificationResponse::type)
+                    .contains(NotificationType.SCHEDULE_INVITED));
+    notificationFixture.readAll(attendeeToken, tenantId);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
+                    .isZero());
+
+    ApiResponse<Void> deleteResponse =
+        calendarFixture.deleteSchedule(ownerToken, tenantId, scheduleId);
+
+    assertThat(deleteResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(calendarFixture.getSchedules(attendeeToken, tenantId, startDate, endDate).getData())
+        .noneSatisfy(schedule -> assertThat(schedule.id()).isEqualTo(scheduleId));
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(
+                        notificationFixture
+                            .unread(attendeeToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
+                    .extracting(NotificationResponse::type)
+                    .contains(NotificationType.SCHEDULE_CANCELLED));
   }
 
   @Test
