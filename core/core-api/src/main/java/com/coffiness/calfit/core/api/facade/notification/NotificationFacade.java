@@ -1,6 +1,8 @@
 package com.coffiness.calfit.core.api.facade.notification;
 
+import com.coffiness.calfit.core.support.Page;
 import com.coffiness.calfit.domain.notification.Notification;
+import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.domain.notification.NotificationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +16,18 @@ public class NotificationFacade {
   private final NotificationService notificationService;
 
   @Transactional(readOnly = true)
-  public List<Notification> getRecentNotifications(Long userId, int limit) {
-    return notificationService.getRecentNotifications(userId, limit);
+  public NotificationPage getRecentNotifications(Long userId, int page, int size) {
+    return notificationService.getRecentNotifications(userId, page, size);
+  }
+
+  @Transactional(readOnly = true)
+  public NotificationPage getUnreadNotifications(Long userId, int page, int size) {
+    return notificationService.getUnreadNotifications(userId, page, size);
+  }
+
+  @Transactional(readOnly = true)
+  public long countUnreadNotifications(Long userId) {
+    return notificationService.countUnreadNotifications(userId);
   }
 
   @Transactional

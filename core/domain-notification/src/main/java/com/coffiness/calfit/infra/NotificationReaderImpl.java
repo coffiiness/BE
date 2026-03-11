@@ -2,6 +2,7 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.notification.Notification;
+import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.domain.notification.NotificationReader;
 import com.coffiness.calfit.storage.db.core.notification.NotificationEntity;
 import com.coffiness.calfit.storage.db.core.notification.NotificationRepository;
@@ -18,13 +19,29 @@ public class NotificationReaderImpl implements NotificationReader {
   private final NotificationRepository notificationRepository;
 
   @Override
-  public List<Notification> getRecentNotifications(String tenantId, Long recipientUserId, int limit) {
-    return notificationRepository
-        .findByTenantIdAndRecipientUserIdAndStatusOrderByCreatedAtDesc(
-            tenantId, recipientUserId, EntityStatus.ACTIVE, PageRequest.of(0, limit))
-        .stream()
-        .map(this::toNotification)
-        .toList();
+  public NotificationPage getRecentNotifications(
+      String tenantId, Long recipientUserId, int page, int size) {
+    org.springframework.data.domain.Page<NotificationEntity> notificationPage =
+        notificationRepository
+            .findByTenantIdAndRecipientUserIdAndStatusOrderByCreatedAtDesc(
+            tenantId, recipientUserId, EntityStatus.ACTIVE, PageRequest.of(page, size));
+
+    return new NotificationPage(
+        notificationPage.getContent().stream().map(this::toNotification).toList(),
+        notificationPage.hasNext());
+  }
+
+  @Override
+  public NotificationPage getUnreadNotifications(
+      String tenantId, Long recipientUserId, int page, int size) {
+    org.springframework.data.domain.Page<NotificationEntity> notificationPage =
+        notificationRepository
+            .findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseOrderByCreatedAtDesc(
+                tenantId, recipientUserId, EntityStatus.ACTIVE, PageRequest.of(page, size));
+
+    return new NotificationPage(
+        notificationPage.getContent().stream().map(this::toNotification).toList(),
+        notificationPage.hasNext());
   }
 
   @Override
@@ -44,6 +61,12 @@ public class NotificationReaderImpl implements NotificationReader {
         .stream()
         .map(this::toNotification)
         .toList();
+  }
+
+  @Override
+  public long countUnreadNotifications(String tenantId, Long recipientUserId) {
+    return notificationRepository.countByTenantIdAndRecipientUserIdAndStatusAndIsReadFalse(
+        tenantId, recipientUserId, EntityStatus.ACTIVE);
   }
 
   private Notification toNotification(NotificationEntity entity) {

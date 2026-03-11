@@ -1,5 +1,4 @@
 package com.coffiness.calfit.domain.notification;
-
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
@@ -16,13 +15,25 @@ public class NotificationService {
   private final NotificationStore notificationStore;
 
   @Transactional(readOnly = true)
-  public List<Notification> getRecentNotifications(Long recipientUserId, int limit) {
-    return notificationReader.getRecentNotifications(currentTenantId(), recipientUserId, sanitizeLimit(limit));
+  public NotificationPage getRecentNotifications(Long recipientUserId, int page, int size) {
+    return notificationReader.getRecentNotifications(
+        currentTenantId(), recipientUserId, sanitizePage(page), sanitizeSize(size));
   }
 
   @Transactional(readOnly = true)
   public List<Notification> getUnreadNotifications(Long recipientUserId) {
     return notificationReader.getUnreadNotifications(currentTenantId(), recipientUserId);
+  }
+
+  @Transactional(readOnly = true)
+  public NotificationPage getUnreadNotifications(Long recipientUserId, int page, int size) {
+    return notificationReader.getUnreadNotifications(
+        currentTenantId(), recipientUserId, sanitizePage(page), sanitizeSize(size));
+  }
+
+  @Transactional(readOnly = true)
+  public long countUnreadNotifications(Long recipientUserId) {
+    return notificationReader.countUnreadNotifications(currentTenantId(), recipientUserId);
   }
 
   @Transactional
@@ -53,10 +64,14 @@ public class NotificationService {
     return tenantId;
   }
 
-  private int sanitizeLimit(int limit) {
-    if (limit <= 0) {
+  private int sanitizePage(int page) {
+    return Math.max(page, 0);
+  }
+
+  private int sanitizeSize(int size) {
+    if (size <= 0) {
       return 20;
     }
-    return Math.min(limit, 100);
+    return Math.min(size, 100);
   }
 }
