@@ -6,6 +6,7 @@ import com.coffiness.calfit.v1.request.CalendarConnectRequest;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
+import com.coffiness.calfit.v1.response.ScheduleAvailabilityResponse;
 import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
 import com.coffiness.calfit.v1.response.ScheduleResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +76,21 @@ public record CalendarFixture(BaseFixture base) {
     String url = String.format("/api/v1/schedules/%d", scheduleId);
     return exchangeWithTenant(
         url, HttpMethod.GET, null, token, tenantId, ScheduleDetailResponse.class);
+  }
+
+  public ApiResponse<ScheduleAvailabilityResponse> getScheduleAvailability(
+      String token, String tenantId, String date, List<Long> attendeeIds) {
+    String attendeeQuery =
+        attendeeIds == null || attendeeIds.isEmpty()
+            ? ""
+            : "&"
+                + attendeeIds.stream()
+                    .map(attendeeId -> "attendeeIds=" + attendeeId)
+                    .reduce((left, right) -> left + "&" + right)
+                    .orElse("");
+    String url = String.format("/api/v1/schedules/availability?date=%s%s", date, attendeeQuery);
+    return exchangeWithTenant(
+        url, HttpMethod.GET, null, token, tenantId, ScheduleAvailabilityResponse.class);
   }
 
   public ApiResponse<Void> updateSchedule(
