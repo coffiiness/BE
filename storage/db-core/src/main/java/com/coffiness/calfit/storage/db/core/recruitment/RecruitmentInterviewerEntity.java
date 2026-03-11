@@ -21,7 +21,7 @@ public class RecruitmentInterviewerEntity extends TenantBaseEntity {
   @Column(name = "recruitment_id", nullable = false)
   private Long recruitmentId;
 
-  @Column(name = "member_id", nullable = false)
+  @Column(name = "user_id", nullable = false)
   private Long userId;
 
   @Builder
