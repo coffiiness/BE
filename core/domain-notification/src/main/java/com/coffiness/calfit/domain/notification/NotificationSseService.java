@@ -39,9 +39,7 @@ public class NotificationSseService {
 
     Map<String, Object> payload =
         Map.of(
-            "event", "notification-created",
-            "notificationId", notificationId,
-            "type", type.name());
+            "event", "notification-created", "notificationId", notificationId, "type", type.name());
 
     for (SseEmitter emitter : userEmitters) {
       send(key, emitter, "notification-created", payload);

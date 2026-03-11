@@ -38,7 +38,8 @@ class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                     .hasSizeGreaterThanOrEqualTo(2));
 
     NotificationPageResponse listResponse =
@@ -53,7 +54,11 @@ class DELETE_specs {
         .untilAsserted(
             () ->
                 assertThat(
-                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents().stream()
+                        notificationFixture
+                            .list(token, tenantId, null, 0, 10)
+                            .getData()
+                            .contents()
+                            .stream()
                             .map(NotificationResponse::id))
                     .doesNotContain(notificationId));
 
@@ -64,7 +69,8 @@ class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                     .isEmpty());
   }
 }

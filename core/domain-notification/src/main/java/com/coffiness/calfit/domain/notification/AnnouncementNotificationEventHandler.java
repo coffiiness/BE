@@ -27,8 +27,7 @@ public class AnnouncementNotificationEventHandler {
     try {
       TenantContext.setTenantId(event.tenantId());
 
-      NotificationMessage message =
-          notificationTemplateFactory.buildAnnouncementCreated(event);
+      NotificationMessage message = notificationTemplateFactory.buildAnnouncementCreated(event);
 
       List<NotificationCreateCommand> commands =
           memberReader.getMembers().stream()

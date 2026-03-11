@@ -38,8 +38,9 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
   Optional<NotificationEntity> findByTenantIdAndRecipientUserIdAndIdAndStatus(
       String tenantId, Long recipientUserId, Long id, EntityStatus status);
 
-  List<NotificationEntity> findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseOrderByCreatedAtDesc(
-      String tenantId, Long recipientUserId, EntityStatus status);
+  List<NotificationEntity>
+      findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseOrderByCreatedAtDesc(
+          String tenantId, Long recipientUserId, EntityStatus status);
 
   long countByTenantIdAndRecipientUserIdAndStatusAndIsReadFalse(
       String tenantId, Long recipientUserId, EntityStatus status);
