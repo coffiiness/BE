@@ -7,8 +7,6 @@ import com.coffiness.calfit.domain.recruitment.*;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
 import java.util.Comparator;
 import java.util.List;
@@ -31,7 +29,6 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
   private final UserReader userReader;
   private final GroupReader groupReader;
-  private final MemberReader memberReader;
 
   @Override
   public List<RecruitmentListInfo> readList(
@@ -62,21 +59,13 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         allInterviewers.stream()
             .collect(Collectors.groupingBy(RecruitmentInterviewerEntity::getRecruitmentId));
 
-    // member와 user 맵핑 로직
-    List<Long> memberIds =
+    // 외부 유저 도메인 정보 가져오기
+    List<Long> userIds =
         allInterviewers.stream()
-            .map(RecruitmentInterviewerEntity::getMemberId)
+            .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
-
-    Map<Long, Long> memberIdToUserIdMap =
-        memberReader.getMembersByIds(memberIds).stream()
-            .filter(m -> m.userId() != null)
-            .collect(Collectors.toMap(Member::id, Member::userId));
-
-    // 외부 유저 도메인 정보 가져오기
-    List<Long> userIds = memberIdToUserIdMap.values().stream().distinct().toList();
     Map<Long, String> userNameMap =
         userReader.getUsers(userIds).stream()
             .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
@@ -116,14 +105,9 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   interviewerMap.getOrDefault(recruitmentId, List.of()).stream()
                       .map(
                           i -> {
-                            Long memberId = i.getMemberId(); // 원본 Member ID
-                            Long userId = memberIdToUserIdMap.get(memberId); // 매핑된 User ID (이름 찾기용)
-                            String name =
-                                userId != null
-                                    ? userNameMap.getOrDefault(userId, "알 수 없는 사용자")
-                                    : "알 수 없는 사용자";
-
-                            return new RecruitmentListInfo.AssigneeSummaryInfo(memberId, name);
+                            Long userId = i.getUserId();
+                            String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
+                            return new RecruitmentListInfo.AssigneeSummaryInfo(userId, name);
                           })
                       .toList();
 
@@ -162,37 +146,26 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // 면접관 정보 매핑
     List<RecruitmentInterviewerEntity> interviewers =
         recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId);
-
-    List<Long> memberIds =
+    List<Long> userIds =
         interviewers.stream()
-            .map(RecruitmentInterviewerEntity::getMemberId)
+            .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .distinct()
             .toList();
 
-    Map<Long, Long> memberIdToUserIdMap =
-        memberReader.getMembersByIds(memberIds).stream()
-            .filter(m -> m.userId() != null)
-            .collect(Collectors.toMap(Member::id, Member::userId));
-
-    List<Long> userIds = memberIdToUserIdMap.values().stream().distinct().toList();
     Map<Long, String> userNameMap =
         userReader.getUsers(userIds).stream()
             .collect(Collectors.toMap(UserInfo::id, UserInfo::name));
 
     List<InterviewerInfo> interviewerInfos =
         interviewers.stream()
-            .filter(i -> i.getMemberId() != null)
+            .filter(i -> i.getUserId() != null)
             .map(
                 i -> {
-                  Long memberId = i.getMemberId();
-                  Long userId = memberIdToUserIdMap.get(memberId);
-                  String name =
-                      userId != null
-                          ? userNameMap.getOrDefault(userId, "알 수 없는 사용자")
-                          : "알 수 없는 사용자";
+                  Long userId = i.getUserId();
+                  String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
                   // 체크박스는 우선 true
-                  return new InterviewerInfo(memberId, name, true);
+                  return new InterviewerInfo(userId, name, true);
                 })
             .toList();
 
@@ -237,7 +210,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
     List<Long> interviewerIds =
         recruitmentInterviewerRepository.findByRecruitmentId(recruitmentId).stream()
-            .map(RecruitmentInterviewerEntity::getMemberId)
+            .map(RecruitmentInterviewerEntity::getUserId)
             .filter(Objects::nonNull)
             .toList();
 

@@ -14,25 +14,25 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
   @Query(
       "SELECT DISTINCT s FROM ScheduleEntity s "
           + "LEFT JOIN ScheduleAttendeeEntity a ON a.scheduleId = s.id "
-          + "WHERE (s.memberId = :memberId OR a.attendeeId = :memberId) "
+          + "WHERE (s.userId = :userId OR a.attendeeId = :userId) "
           + "AND s.startTime <= :endDate "
           + "AND s.endTime >= :startDate "
           + "AND s.status = 'ACTIVE'")
   List<ScheduleEntity> findOverlappingSchedules(
-      @Param("memberId") long memberId,
+      @Param("userId") long userId,
       @Param("startDate") LocalDateTime startDate,
       @Param("endDate") LocalDateTime endDate);
 
   @Query(
       "SELECT DISTINCT s FROM ScheduleEntity s "
           + "LEFT JOIN ScheduleAttendeeEntity a ON a.scheduleId = s.id "
-          + "WHERE (s.memberId IN :memberIds OR a.attendeeId IN :memberIds) "
+          + "WHERE (s.userId IN :userIds OR a.attendeeId IN :userIds) "
           + "AND s.startTime < :to "
           + "AND s.endTime > :from "
           + "AND s.status = :status "
           + "AND s.isBusy = true")
   List<ScheduleEntity> findBusyOverlappingSchedulesByUserIds(
-      @Param("memberIds") List<Long> memberIds,
+      @Param("userIds") List<Long> userIds,
       @Param("from") LocalDateTime from,
       @Param("to") LocalDateTime to,
       @Param("status") EntityStatus status);
@@ -65,9 +65,9 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
   @Query(
       "UPDATE ScheduleEntity s "
           + "SET s.googleEventId = null "
-          + "WHERE s.memberId = :memberId "
+          + "WHERE s.userId = :userId "
           + "AND s.status = :status "
           + "AND s.googleEventId IS NOT NULL")
-  int clearGoogleEventIdsByMemberIdAndStatus(
-      @Param("memberId") Long memberId, @Param("status") EntityStatus status);
+  int clearGoogleEventIdsByUserIdAndStatus(
+      @Param("userId") Long userId, @Param("status") EntityStatus status);
 }

@@ -31,7 +31,9 @@ public class NotificationStoreImpl implements NotificationStore {
       return List.of();
     }
 
-    return notificationRepository.saveAll(commands.stream().map(command -> toEntity(tenantId, command)).toList()).stream()
+    return notificationRepository
+        .saveAll(commands.stream().map(command -> toEntity(tenantId, command)).toList())
+        .stream()
         .map(this::toNotification)
         .toList();
   }

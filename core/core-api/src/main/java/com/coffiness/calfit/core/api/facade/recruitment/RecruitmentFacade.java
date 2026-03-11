@@ -40,7 +40,7 @@ public class RecruitmentFacade {
 
     // 권한 검증: HR이 아닌 경우에만 면접관 여부 확인
     if (member.memberType() != MemberType.HR) {
-      recruitmentService.assertCanAccess(member.id(), recruitmentId);
+      recruitmentService.assertCanAccess(userId, recruitmentId);
     }
 
     // 기간 파싱 및 면접 일정 조회
@@ -71,7 +71,7 @@ public class RecruitmentFacade {
       throw new IllegalArgumentException("채용 담당자만 수정이 가능합니다.");
     }
 
-    recruitmentService.updateRecruitment(member.id(), recruitmentId, request);
+    recruitmentService.updateRecruitment(userId, recruitmentId, request);
 
     return recruitmentReader.readDetail(recruitmentId);
   }
@@ -90,6 +90,6 @@ public class RecruitmentFacade {
 
     // TODO : 지원자나 진행중인 면접이 있을 경우의 검증 로직 (지원자 모듈, 면접 모듈)
 
-    recruitmentService.deleteRecruitment(member.id(), recruitmentId);
+    recruitmentService.deleteRecruitment(userId, recruitmentId);
   }
 }

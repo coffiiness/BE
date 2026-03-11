@@ -51,7 +51,8 @@ public record NotificationFixture(BaseFixture base) {
         NotificationPageResponse.class);
   }
 
-  public ApiResponse<NotificationResponse> read(String token, String tenantId, Long notificationId) {
+  public ApiResponse<NotificationResponse> read(
+      String token, String tenantId, Long notificationId) {
     return exchangeWithTenant(
         "/api/v1/notifications/" + notificationId + "/read",
         HttpMethod.PATCH,

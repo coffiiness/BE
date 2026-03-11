@@ -87,7 +87,7 @@ public class RecruitmentService {
   }
 
   public Recruitment updateRecruitment(
-      long memberId, Long recruitmentId, RecruitmentUpdateRequest request) {
+      long userId, Long recruitmentId, RecruitmentUpdateRequest request) {
 
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
@@ -119,7 +119,7 @@ public class RecruitmentService {
 
     recruitmentHistoryAppender.append(
         updatedRecruitment.id(),
-        memberId,
+        userId,
         RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
         "채용 공고 수정",
         updatedRecruitment);
@@ -127,12 +127,12 @@ public class RecruitmentService {
     return savedRecruitment;
   }
 
-  public void assertCanAccess(long memberId, Long recruitmentId) {
+  public void assertCanAccess(long userId, Long recruitmentId) {
     RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
 
     boolean isInterviewer =
         recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.memberId().equals(memberId));
+            .anyMatch(interviewer -> interviewer.userId().equals(userId));
 
     if (isInterviewer) {
       return;
@@ -141,7 +141,7 @@ public class RecruitmentService {
     throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
-  public void deleteRecruitment(Long memberId, Long recruitmentId) {
+  public void deleteRecruitment(Long userId, Long recruitmentId) {
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
       throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
@@ -154,7 +154,7 @@ public class RecruitmentService {
     recruitmentStore.delete(recruitmentId);
 
     recruitmentHistoryAppender.append(
-        recruitmentId, memberId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
+        recruitmentId, userId, RecruitmentActionType.RECRUITMENT_DELETE, "채용 공고 삭제", recruitment);
   }
 
   // 전달받은 타임스탬프를 기준으로 채용 공고 상태를 일괄 전환

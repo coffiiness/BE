@@ -176,9 +176,9 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
         sql,
         recruitment.interviewerIds(),
         recruitment.interviewerIds().size(),
-        (ps, memberId) -> {
+        (ps, userId) -> {
           ps.setLong(1, recruitmentId);
-          ps.setLong(2, memberId);
+          ps.setLong(2, userId);
           ps.setString(3, tenantId);
           ps.setString(4, EntityStatus.ACTIVE.name());
         });

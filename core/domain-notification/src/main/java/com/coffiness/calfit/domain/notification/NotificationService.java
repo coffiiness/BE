@@ -1,4 +1,5 @@
 package com.coffiness.calfit.domain.notification;
+
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
@@ -24,11 +25,7 @@ public class NotificationService {
   public NotificationPage getRecentNotifications(
       Long recipientUserId, NotificationCategory category, int page, int size) {
     return notificationReader.getRecentNotifications(
-        currentTenantId(),
-        recipientUserId,
-        category,
-        sanitizePage(page),
-        sanitizeSize(size));
+        currentTenantId(), recipientUserId, category, sanitizePage(page), sanitizeSize(size));
   }
 
   @Transactional(readOnly = true)
@@ -46,11 +43,7 @@ public class NotificationService {
   public NotificationPage getUnreadNotifications(
       Long recipientUserId, NotificationCategory category, int page, int size) {
     return notificationReader.getUnreadNotifications(
-        currentTenantId(),
-        recipientUserId,
-        category,
-        sanitizePage(page),
-        sanitizeSize(size));
+        currentTenantId(), recipientUserId, category, sanitizePage(page), sanitizeSize(size));
   }
 
   @Transactional(readOnly = true)

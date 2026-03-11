@@ -28,7 +28,7 @@ public class GoogleCalendarTokenService {
 
   // 구글 연결 직후 토큰을 저장하거나 기존 연결을 워크스페이스 캘린더 기준으로 갱신
   public ExternalCalendar upsertConnectedToken(
-      Long userId, Long memberId, String calendarId, OAuthExchangeResult result) {
+      Long userId, String calendarId, OAuthExchangeResult result) {
     validateExchangeResult(result);
 
     LocalDateTime expiresAt = calculateExpiresAt(result.expiresIn());
@@ -52,7 +52,7 @@ public class GoogleCalendarTokenService {
               existing.id(), calendarId, result.accessToken(), refreshToken, expiresAt);
 
       if (calendarChanged) {
-        scheduleStore.clearGoogleEventIdsByMemberId(memberId);
+        scheduleStore.clearGoogleEventIdsByUserId(userId);
       }
 
       return updated;
