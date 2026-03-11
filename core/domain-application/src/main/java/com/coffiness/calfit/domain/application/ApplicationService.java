@@ -268,6 +268,7 @@ public class ApplicationService {
         ApplicationProcessChangedEvent.of(
             currentTenantId(),
             applicationId,
+            entity.getName(),
             entity.getRecruitmentId(),
             actorId,
             currentStage.getId(),

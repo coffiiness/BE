@@ -64,7 +64,7 @@ public class ApplicantAutomationEmailFactory {
               .accepted(true)
               .subject(String.format("[%s] %s 최종 합격 안내", companyName, positionName))
               .headline("최종 합격을 축하드립니다")
-              .summary("모든 전형을 통과하셨습니다. 이후 절차는 담당자가 별도로 안내드릴 예정입니다.")
+              .summary("모든 전형을 통과하셨습니다. 이후 입사 절차는 담당자가 별도로 안내드릴 예정입니다.")
               .highlightLabel("현재 상태")
               .highlightValue(destinationStage.getStageName())
               .build();

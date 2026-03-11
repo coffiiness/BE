@@ -133,8 +133,10 @@ public class AutomationRuleService {
   }
 
   private void validatePayload(AutomationActionType actionType, JsonNode payload) {
+    JsonNode normalizedPayload = normalizePayload(payload);
     if (actionType == AutomationActionType.EMAIL) {
-      JsonNode templateCodeNode = payload == null ? null : payload.get("templateCode");
+      JsonNode templateCodeNode =
+          normalizedPayload == null ? null : normalizedPayload.get("templateCode");
       if (templateCodeNode == null
           || !templateCodeNode.isTextual()
           || !AutomationTemplateCode.supports(templateCodeNode.asText())) {
@@ -186,7 +188,7 @@ public class AutomationRuleService {
 
   private JsonNode parsePayload(String payload) {
     try {
-      return payload == null ? objectMapper.nullNode() : objectMapper.readTree(payload);
+      return payload == null ? objectMapper.nullNode() : normalizePayload(objectMapper.readTree(payload));
     } catch (JsonProcessingException e) {
       throw new CoreException(ErrorType.DEFAULT_ERROR);
     }
@@ -194,9 +196,27 @@ public class AutomationRuleService {
 
   private String toJson(JsonNode payload) {
     try {
-      return objectMapper.writeValueAsString(payload);
+      return objectMapper.writeValueAsString(normalizePayload(payload));
     } catch (JsonProcessingException e) {
       throw new CoreException(ErrorType.DEFAULT_ERROR);
+    }
+  }
+
+  private JsonNode normalizePayload(JsonNode payload) {
+    if (payload == null || payload.isNull()) {
+      return objectMapper.nullNode();
+    }
+    if (!payload.isTextual()) {
+      return payload;
+    }
+    String raw = payload.asText();
+    if (raw == null || raw.isBlank()) {
+      return objectMapper.nullNode();
+    }
+    try {
+      return objectMapper.readTree(raw);
+    } catch (JsonProcessingException e) {
+      return payload;
     }
   }
 

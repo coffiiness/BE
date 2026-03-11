@@ -94,7 +94,7 @@ public class AutomationEventExecutor {
 
   private AutomationTemplateCode extractTemplateCode(AutomationRuleEntity rule) {
     try {
-      JsonNode payload = objectMapper.readTree(rule.getPayload());
+      JsonNode payload = normalizePayload(objectMapper.readTree(rule.getPayload()));
       JsonNode templateCodeNode = payload == null ? null : payload.get(TEMPLATE_CODE_FIELD);
       if (templateCodeNode == null || !templateCodeNode.isTextual()) {
         throw new IllegalStateException("AUTOMATION_TEMPLATE_CODE_MISSING");
@@ -104,6 +104,21 @@ public class AutomationEventExecutor {
       throw new IllegalStateException("AUTOMATION_TEMPLATE_CODE_INVALID", e);
     } catch (Exception e) {
       throw new IllegalStateException("AUTOMATION_PAYLOAD_INVALID", e);
+    }
+  }
+
+  private JsonNode normalizePayload(JsonNode payload) {
+    if (payload == null || payload.isNull() || !payload.isTextual()) {
+      return payload;
+    }
+    String raw = payload.asText();
+    if (raw == null || raw.isBlank()) {
+      return payload;
+    }
+    try {
+      return objectMapper.readTree(raw);
+    } catch (Exception e) {
+      return payload;
     }
   }
 

@@ -6,6 +6,7 @@ import com.coffiness.calfit.support.event.DomainEvent;
 public record ApplicationProcessChangedEvent(
     String tenantId,
     Long applicationId,
+    String applicantName,
     Long recruitmentId,
     Long actorUserId,
     Long fromStageId,
@@ -20,6 +21,7 @@ public record ApplicationProcessChangedEvent(
   public static ApplicationProcessChangedEvent of(
       String tenantId,
       Long applicationId,
+      String applicantName,
       Long recruitmentId,
       Long actorUserId,
       Long fromStageId,
@@ -31,6 +33,7 @@ public record ApplicationProcessChangedEvent(
     return new ApplicationProcessChangedEvent(
         tenantId,
         applicationId,
+        applicantName,
         recruitmentId,
         actorUserId,
         fromStageId,
