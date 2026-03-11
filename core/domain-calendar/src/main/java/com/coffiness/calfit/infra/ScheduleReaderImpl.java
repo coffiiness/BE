@@ -18,7 +18,9 @@ import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -120,9 +122,14 @@ public class ScheduleReaderImpl implements ScheduleReader {
               .orElse("알 수 없는 장소");
     }
 
-    List<Long> userIdsForAttendees = members.stream().map(Member::userId).toList();
+    List<Long> userIdsForLookup =
+        Stream.concat(
+                Stream.of(schedule.userId()),
+                members.stream().map(Member::userId).filter(Objects::nonNull))
+            .distinct()
+            .toList();
     Map<Long, UserInfo> userMap =
-        userReader.getUsers(userIdsForAttendees).stream()
+        userReader.getUsers(userIdsForLookup).stream()
             .collect(Collectors.toMap(UserInfo::id, u -> u, (u1, u2) -> u1));
 
     Map<Long, Member> memberMap =
@@ -142,13 +149,16 @@ public class ScheduleReaderImpl implements ScheduleReader {
                   if (user == null || user.name() == null) {
                     return "이름 없는 사용자";
                   }
-                  return String.format("%s (%s)", user.name(), member.memberType().name());
+                  return user.name();
                 })
             .toList();
 
+    UserInfo owner = userMap.get(schedule.userId());
+    String ownerName = owner != null && owner.name() != null ? owner.name() : "알 수 없는 사용자";
     String applicantName = null;
 
-    return ScheduleDetailInfo.of(schedule, location, attendeeIds, attendees, applicantName);
+    return ScheduleDetailInfo.of(
+        schedule, location, ownerName, attendeeIds, attendees, applicantName);
   }
 
   private Schedule toDomain(ScheduleEntity entity) {

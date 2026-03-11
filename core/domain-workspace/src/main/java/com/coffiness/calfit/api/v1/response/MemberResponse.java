@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record MemberResponse(
     Long id,
+    Long userId,
     String name,
     LocalDateTime createdAt,
     LocalDateTime recentAt,
@@ -14,6 +15,12 @@ public record MemberResponse(
 
   public static MemberResponse from(MemberInfo info) {
     return new MemberResponse(
-        info.id(), info.name(), info.createdAt(), info.recentAt(), info.group(), info.memberType());
+        info.id(),
+        info.userId(),
+        info.name(),
+        info.createdAt(),
+        info.recentAt(),
+        info.group(),
+        info.memberType());
   }
 }

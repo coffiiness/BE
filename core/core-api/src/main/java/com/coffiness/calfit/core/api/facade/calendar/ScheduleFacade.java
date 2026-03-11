@@ -42,7 +42,7 @@ public class ScheduleFacade {
   @Transactional
   public void createSchedule(long userId, ScheduleCreateRequest request) {
     validateAndGetMember(userId);
-    List<Long> attendeeIds = validateAndNormalizeAttendeeIds(request.attendeeIds());
+    List<Long> attendeeIds = validateAndNormalizeAttendeeIds(userId, request.attendeeIds());
     ScheduleCreateRequest normalizedRequest =
         new ScheduleCreateRequest(
             request.title(),
@@ -98,7 +98,7 @@ public class ScheduleFacade {
     validateAndGetMember(userId);
     List<Long> attendeeIds =
         request.attendeeIds() != null
-            ? validateAndNormalizeAttendeeIds(request.attendeeIds())
+            ? validateAndNormalizeAttendeeIds(userId, request.attendeeIds())
             : null;
     ScheduleUpdateRequest normalizedRequest =
         new ScheduleUpdateRequest(
@@ -170,7 +170,7 @@ public class ScheduleFacade {
     scheduleService.deleteSchedule(userId, scheduleId);
   }
 
-  private List<Long> validateAndNormalizeAttendeeIds(List<Long> attendeeIds) {
+  private List<Long> validateAndNormalizeAttendeeIds(long ownerUserId, List<Long> attendeeIds) {
     if (attendeeIds == null) {
       return null;
     }
@@ -179,6 +179,9 @@ public class ScheduleFacade {
     for (Long attendeeId : attendeeIds) {
       if (attendeeId == null || attendeeId <= 0) {
         throw new IllegalArgumentException("유효하지 않은 참석자 ID가 포함되어 있습니다.");
+      }
+      if (attendeeId.equals(ownerUserId)) {
+        continue;
       }
       uniqueAttendeeIds.add(attendeeId);
     }

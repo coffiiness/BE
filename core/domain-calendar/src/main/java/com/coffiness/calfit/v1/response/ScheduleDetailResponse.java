@@ -18,6 +18,7 @@ public record ScheduleDetailResponse(
     @JsonProperty("isAllDay") boolean isAllDay,
     @JsonProperty("isBusy") boolean isBusy,
     String location,
+    String ownerName,
     List<Long> attendeeIds,
     List<String> attendees,
     String applicantName) {
@@ -37,6 +38,7 @@ public record ScheduleDetailResponse(
         info.isAllDay(),
         info.isBusy(),
         info.location(),
+        info.ownerName(),
         info.attendeeIds(),
         info.attendees(),
         info.applicantName());

@@ -16,6 +16,7 @@ public record ScheduleDetailInfo(
     boolean isAllDay,
     boolean isBusy,
     String location,
+    String ownerName,
     List<Long> attendeeIds,
     List<String> attendees,
     String applicantName) {
@@ -23,6 +24,7 @@ public record ScheduleDetailInfo(
   public static ScheduleDetailInfo of(
       Schedule schedule,
       String location,
+      String ownerName,
       List<Long> attendeeIds,
       List<String> attendees,
       String applicantName) {
@@ -38,6 +40,7 @@ public record ScheduleDetailInfo(
         schedule.isAllDay(),
         schedule.isBusy(),
         location,
+        ownerName,
         attendeeIds,
         attendees,
         applicantName);
