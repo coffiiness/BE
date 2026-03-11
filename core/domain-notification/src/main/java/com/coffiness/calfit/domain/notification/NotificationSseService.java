@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 public class NotificationSseService {
   private static final long DEFAULT_TIMEOUT_MILLIS = 30L * 60L * 1000L;
+  private static final long HEARTBEAT_INTERVAL_MILLIS = 25L * 1000L;
 
   private final Map<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
@@ -44,6 +46,16 @@ public class NotificationSseService {
     for (SseEmitter emitter : userEmitters) {
       send(key, emitter, "notification-created", payload);
     }
+  }
+
+  @Scheduled(fixedRate = HEARTBEAT_INTERVAL_MILLIS)
+  public void sendHeartbeat() {
+    emitters.forEach(
+        (key, userEmitters) -> {
+          for (SseEmitter emitter : userEmitters) {
+            send(key, emitter, "heartbeat", Map.of("event", "heartbeat"));
+          }
+        });
   }
 
   private void send(String key, SseEmitter emitter, String eventName, Object payload) {
