@@ -22,7 +22,11 @@ public class AnnouncementBoardStoreImpl implements AnnouncementBoardStore {
     AnnouncementBoardEntity saved = announcementBoardRepository.save(entity);
 
     return new AnnouncementBoard(
-        saved.getId(), saved.getTitle(), saved.getContent(), saved.getPinned());
+        saved.getId(),
+        saved.getTitle(),
+        saved.getContent(),
+        saved.getPinned(),
+        saved.getCreatedAt());
   }
 
   @Override
@@ -36,7 +40,11 @@ public class AnnouncementBoardStoreImpl implements AnnouncementBoardStore {
     entity.update(title, content, pinned);
 
     return new AnnouncementBoard(
-        entity.getId(), entity.getTitle(), entity.getContent(), entity.getPinned());
+        entity.getId(),
+        entity.getTitle(),
+        entity.getContent(),
+        entity.getPinned(),
+        entity.getCreatedAt());
   }
 
   @Override

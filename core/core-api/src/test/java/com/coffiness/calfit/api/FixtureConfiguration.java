@@ -49,6 +49,12 @@ public class FixtureConfiguration {
 
   @Bean
   @Scope("prototype")
+  NotificationFixture notificationFixture(Environment environment, ObjectMapper objectMapper) {
+    return NotificationFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
   InterviewFixture interviewFixture(Environment environment, ObjectMapper objectMapper) {
     return InterviewFixture.create(environment, objectMapper);
   }

@@ -26,6 +26,11 @@ public class AnnouncementBoardFacade {
     return announcementBoardService.list();
   }
 
+  @Transactional(readOnly = true)
+  public AnnouncementBoard getAnnouncement(Long announcementBoardId) {
+    return announcementBoardService.get(announcementBoardId);
+  }
+
   @Transactional
   public AnnouncementBoard updateAnnouncement(
       Long userId, Long announcementBoardId, AnnouncementBoardUpdateRequest request) {
