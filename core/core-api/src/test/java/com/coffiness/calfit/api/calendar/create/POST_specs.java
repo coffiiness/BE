@@ -11,12 +11,15 @@ import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.fixture.NotificationFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
+import com.coffiness.calfit.api.v1.response.NotificationResponse;
 import com.coffiness.calfit.api.v1.response.UserResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.enums.NotificationType;
 import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -175,8 +178,8 @@ public class POST_specs {
 
     ScheduleCreateRequest attendeeSchedule =
         new ScheduleCreateRequest(
-            "Attendee busy event",
-            "Existing busy schedule",
+            "참석자 바쁜 일정",
+            "기존 바쁜 일정",
             ScheduleType.MEETING,
             startTime,
             endTime,
@@ -190,8 +193,8 @@ public class POST_specs {
 
     ScheduleCreateRequest ownerSchedule =
         new ScheduleCreateRequest(
-            "Overlapping meeting",
-            "Attendee conflict test",
+            "겹치는 회의",
+            "참석자 충돌 테스트",
             ScheduleType.MEETING,
             startTime,
             endTime,
@@ -234,8 +237,8 @@ public class POST_specs {
 
     ScheduleCreateRequest attendeeSchedule =
         new ScheduleCreateRequest(
-            "Attendee free event",
-            "Existing non-busy schedule",
+            "참석자 한가한 일정",
+            "기존 한가한 일정",
             ScheduleType.MEETING,
             startTime,
             endTime,
@@ -249,8 +252,8 @@ public class POST_specs {
 
     ScheduleCreateRequest ownerSchedule =
         new ScheduleCreateRequest(
-            "Allowed overlap",
-            "Attendee free-time test",
+            "겹침 허용 회의",
+            "참석자 한가함 테스트",
             ScheduleType.MEETING,
             startTime,
             endTime,
@@ -301,6 +304,69 @@ public class POST_specs {
 
     assertThat(detailInfo).isNotNull();
     assertThat(detailInfo.attendeeIds()).containsExactly(me.id());
+  }
+
+  @Test
+  void 참석자를_초대해_일정을_생성하면_참석자의_내_일정에_바로_보이고_초대_알림이_발송된다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MemberFixture memberFixture,
+      @Autowired NotificationFixture notificationFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
+    Long attendeeUserId = userFixture.me(attendeeToken).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startTime = now.plusDays(1).withHour(14).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime endTime = startTime.plusHours(1);
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "참석자 초대 일정",
+            "참석자 초대 일정 설명",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of(attendeeUserId));
+
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, createRequest);
+
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().toString();
+    String endDate = now.toLocalDate().plusDays(3).toString();
+
+    assertThat(calendarFixture.getSchedules(attendeeToken, tenantId, startDate, endDate).getData())
+        .anySatisfy(
+            schedule -> assertThat(schedule.title()).isEqualTo("참석자 초대 일정"));
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              ApiResponse<NotificationFixture.NotificationPageResponse> unreadResponse =
+                  notificationFixture.unread(attendeeToken, tenantId, null, 0, 10);
+
+              assertThat(unreadResponse.getData().contents())
+                  .extracting(NotificationResponse::type)
+                  .contains(NotificationType.SCHEDULE_INVITED);
+            });
   }
 
   @Test
