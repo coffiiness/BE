@@ -113,7 +113,7 @@ class DELETE_specs {
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String token = context.hrToken();
     String tenantId = context.workspaceId();
-    Long interviewerMemberId = memberFixture.addSecondMember(context);
+    Long interviewerUserId = memberFixture.addSecondMemberUserId(context);
 
     ApiResponse<MeetingRoomResponse> room =
         meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 6);
@@ -133,7 +133,7 @@ class DELETE_specs {
             null,
             1L,
             List.of(1L, 2L),
-            List.of(interviewerMemberId),
+            List.of(interviewerUserId),
             List.of(new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 1)));
 
     recruitmentFixture.createRecruitment(token, tenantId, recruitmentRequest);
@@ -147,7 +147,7 @@ class DELETE_specs {
             recruitmentId,
             null,
             InterviewRound.FIRST,
-            List.of(interviewerMemberId),
+            List.of(interviewerUserId),
             List.of(101L),
             meetingRoomId,
             scheduledAt,
@@ -189,7 +189,7 @@ class DELETE_specs {
             tenantId,
             scheduledAt.minusDays(1),
             List.of(meetingRoomId),
-            List.of(interviewerMemberId));
+            List.of(interviewerUserId));
 
     assertThat(availability.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(availability.getData().meetingRoomBusySlots()).isEmpty();

@@ -26,9 +26,9 @@ public class MeetingRoomReservationService {
       Long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime,
-      List<Long> participantMemberIds) {
+      List<Long> participantUserIds) {
     meetingRoomValidator.validateReserveRequest(
-        userId, meetingRoomId, startDatetime, endDatetime, participantMemberIds);
+        userId, meetingRoomId, startDatetime, endDatetime, participantUserIds);
     return meetingRoomStore.reserve(meetingRoomId, userId, startDatetime, endDatetime);
   }
 

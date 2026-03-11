@@ -258,8 +258,6 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .distinct()
             .toList();
     Map<Long, String> interviewerNameMap = resolveInterviewerNameMap(interviewerIds);
-    Map<Long, Long> interviewerMemberIdMap =
-        resolveInterviewerMemberIdMap(tenantId, interviewerIds);
 
     List<Long> applicantIds =
         applicantsByScheduleId.values().stream()
@@ -276,11 +274,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       List<InterviewScheduleApplicantEntity> applicantMappings =
           applicantsByScheduleId.getOrDefault(schedule.getId(), List.of());
 
-      Long interviewerMemberId =
-          interviewerMappings.isEmpty()
-              ? null
-              : interviewerMemberIdMap.getOrDefault(
-                  interviewerMappings.get(0).getUserId(), interviewerMappings.get(0).getUserId());
+      Long interviewerUserId =
+          interviewerMappings.isEmpty() ? null : interviewerMappings.get(0).getUserId();
 
       String interviewerName =
           interviewerMappings.stream()
@@ -301,7 +296,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getId(),
               schedule.getScheduledAt(),
               schedule.getEndTime(),
-              interviewerMemberId,
+              interviewerUserId,
               interviewerName,
               applicantName,
               fallbackName(schedule.getMemo(), "")));
@@ -430,6 +425,10 @@ public class InterviewRepositoryImpl implements InterviewRepository {
                 .sorted(Comparator.naturalOrder())
                 .toList();
     if (!orderedInterviewerIds.isEmpty()) {
+      if (memberReader.getMembersByUserIds(tenantId, orderedInterviewerIds).size()
+          != orderedInterviewerIds.size()) {
+        throw new CoreException(ErrorType.VALIDATION_ERROR);
+      }
       userRepository.findAllByIdInOrderByIdAsc(orderedInterviewerIds);
     }
 
@@ -516,38 +515,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       return Map.of();
     }
 
-    String tenantId = requireTenantId();
     Map<Long, String> resolved = new HashMap<>();
-
-    List<Long> memberUserIds =
-        memberReader.getMembersByUserIds(tenantId, interviewerIds).stream()
-            .map(Member::userId)
-            .filter(id -> id != null)
-            .distinct()
-            .toList();
-
-    if (!memberUserIds.isEmpty()) {
-      userRepository
-          .findAllById(memberUserIds)
-          .forEach(
-              user -> {
-                if (user.getId() != null && hasText(user.getName())) {
-                  resolved.put(user.getId(), user.getName());
-                }
-              });
-    }
-
-    List<Long> unresolvedIds =
-        interviewerIds.stream()
-            .filter(id -> id != null && !resolved.containsKey(id))
-            .distinct()
-            .toList();
-    if (unresolvedIds.isEmpty()) {
-      return resolved;
-    }
-
     userRepository
-        .findAllById(unresolvedIds)
+        .findAllById(interviewerIds.stream().filter(id -> id != null && id > 0).distinct().toList())
         .forEach(
             user -> {
               if (user.getId() != null && hasText(user.getName())) {
@@ -555,34 +525,6 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               }
             });
 
-    return resolved;
-  }
-
-  private Map<Long, Long> resolveInterviewerMemberIdMap(
-      String tenantId, List<Long> interviewerIds) {
-    if (interviewerIds == null || interviewerIds.isEmpty()) {
-      return Map.of();
-    }
-
-    Map<Long, Long> resolved = new HashMap<>();
-    memberReader
-        .getMembersByUserIds(tenantId, interviewerIds)
-        .forEach(
-            member -> {
-              if (member.userId() != null && member.id() != null) {
-                resolved.put(member.userId(), member.id());
-              }
-            });
-
-    for (Long interviewerId : interviewerIds) {
-      if (interviewerId == null || resolved.containsKey(interviewerId)) {
-        continue;
-      }
-      Member member = memberReader.getMember(tenantId, interviewerId);
-      if (member != null && member.id() != null) {
-        resolved.put(interviewerId, member.id());
-      }
-    }
     return resolved;
   }
 

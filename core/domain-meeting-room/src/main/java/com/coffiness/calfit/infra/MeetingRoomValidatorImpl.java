@@ -2,6 +2,7 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.InterviewStatus;
+import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
@@ -14,6 +15,7 @@ import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
+import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
@@ -31,6 +33,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   private final UserReader userReader;
   private final InterviewScheduleInterviewerRepository interviewScheduleInterviewerRepository;
   private final InterviewScheduleRepository interviewScheduleRepository;
+  private final MeetingRoomReservationRepository meetingRoomReservationRepository;
   private final ScheduleRepository scheduleRepository;
 
   @Override
@@ -71,6 +74,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
     meetingRoomReader.getMeetingRoom(meetingRoomId);
+    validateRoomHasNoFutureUsages(tenantId, meetingRoomId);
   }
 
   @Override
@@ -79,7 +83,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       Long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime,
-      List<Long> participantMemberIds) {
+      List<Long> participantUserIds) {
     String tenantId = requireTenantId();
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
@@ -104,21 +108,21 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     validateParticipantScheduleConflicts(
-        tenantId, ownerMember.id(), participantMemberIds, startDatetime, endDatetime);
+        tenantId, userId, participantUserIds, startDatetime, endDatetime);
   }
 
   private void validateParticipantScheduleConflicts(
       String tenantId,
-      Long ownerMemberId,
-      List<Long> participantMemberIds,
+      Long ownerUserId,
+      List<Long> participantUserIds,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime) {
     LinkedHashSet<Long> uniqueParticipantIds = new LinkedHashSet<>();
-    if (ownerMemberId != null && ownerMemberId > 0) {
-      uniqueParticipantIds.add(ownerMemberId);
+    if (ownerUserId != null && ownerUserId > 0) {
+      uniqueParticipantIds.add(ownerUserId);
     }
-    if (participantMemberIds != null) {
-      participantMemberIds.stream()
+    if (participantUserIds != null) {
+      participantUserIds.stream()
           .filter(id -> id != null && id > 0)
           .forEach(uniqueParticipantIds::add);
     }
@@ -129,7 +133,8 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       return;
     }
 
-    List<Member> participants = memberReader.getMembersByIds(normalizedParticipantIds);
+    List<Member> participants =
+        memberReader.getMembersByUserIds(tenantId, normalizedParticipantIds);
     if (participants.size() != normalizedParticipantIds.size()) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
@@ -168,6 +173,36 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       if (interviewStart.isBefore(endDatetime) && startDatetime.isBefore(interviewEnd)) {
         throw new CoreException(ErrorType.VALIDATION_ERROR);
       }
+    }
+  }
+
+  private void validateRoomHasNoFutureUsages(String tenantId, Long meetingRoomId) {
+    LocalDateTime now = LocalDateTime.now();
+
+    long reservationCount =
+        meetingRoomReservationRepository
+            .countByTenantIdAndMeetingRoomIdAndReservationStatusInAndEndDatetimeAfter(
+                tenantId,
+                meetingRoomId,
+                List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE),
+                now);
+    if (reservationCount > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    long interviewCount =
+        interviewScheduleRepository
+            .countByTenantIdAndMeetingRoomIdAndInterviewStatusNotAndScheduledAtAfter(
+                tenantId, meetingRoomId, InterviewStatus.CANCELLED, now);
+    if (interviewCount > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    long scheduleCount =
+        scheduleRepository.countByRoomIdAndStatusAndEndTimeAfter(
+            meetingRoomId, EntityStatus.ACTIVE, now);
+    if (scheduleCount > 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }
 
