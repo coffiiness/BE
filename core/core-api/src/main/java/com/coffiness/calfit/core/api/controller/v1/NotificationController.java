@@ -4,6 +4,7 @@ import com.coffiness.calfit.api.v1.response.NotificationUnreadCountResponse;
 import com.coffiness.calfit.api.v1.response.NotificationResponse;
 import com.coffiness.calfit.core.api.facade.notification.NotificationFacade;
 import com.coffiness.calfit.core.support.Page;
+import com.coffiness.calfit.domain.notification.NotificationCategory;
 import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
@@ -34,10 +35,14 @@ public class NotificationController {
   @GetMapping("/unread")
   public ApiResponse<Page<NotificationResponse>> unread(
       @AuthenticationPrincipal SecurityUser user,
+      @RequestParam(required = false) String type,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
+    NotificationCategory category = parseCategory(type);
     NotificationPage notifications =
-        notificationFacade.getUnreadNotifications(user.userId(), page, size);
+        category == null
+            ? notificationFacade.getUnreadNotifications(user.userId(), page, size)
+            : notificationFacade.getUnreadNotifications(user.userId(), category, page, size);
     return ApiResponse.success(
         new Page<>(
             notifications.contents().stream().map(NotificationResponse::from).toList(),
@@ -47,10 +52,14 @@ public class NotificationController {
   @GetMapping
   public ApiResponse<Page<NotificationResponse>> list(
       @AuthenticationPrincipal SecurityUser user,
+      @RequestParam(required = false) String type,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
+    NotificationCategory category = parseCategory(type);
     NotificationPage notifications =
-        notificationFacade.getRecentNotifications(user.userId(), page, size);
+        category == null
+            ? notificationFacade.getRecentNotifications(user.userId(), page, size)
+            : notificationFacade.getRecentNotifications(user.userId(), category, page, size);
     return ApiResponse.success(
         new Page<>(
             notifications.contents().stream().map(NotificationResponse::from).toList(),
@@ -69,5 +78,16 @@ public class NotificationController {
   public ApiResponse<?> readAll(@AuthenticationPrincipal SecurityUser user) {
     notificationFacade.readAllNotifications(user.userId());
     return ApiResponse.success();
+  }
+
+  private NotificationCategory parseCategory(String type) {
+    if (type == null || type.isBlank()) {
+      return null;
+    }
+    try {
+      return NotificationCategory.valueOf(type.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 }

@@ -1,6 +1,7 @@
 package com.coffiness.calfit.storage.db.core.notification;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.NotificationType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -12,9 +13,24 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
   Page<NotificationEntity> findByTenantIdAndRecipientUserIdAndStatusOrderByCreatedAtDesc(
       String tenantId, Long recipientUserId, EntityStatus status, Pageable pageable);
 
+  Page<NotificationEntity> findByTenantIdAndRecipientUserIdAndStatusAndTypeInOrderByCreatedAtDesc(
+      String tenantId,
+      Long recipientUserId,
+      EntityStatus status,
+      List<NotificationType> types,
+      Pageable pageable);
+
   Page<NotificationEntity>
       findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseOrderByCreatedAtDesc(
           String tenantId, Long recipientUserId, EntityStatus status, Pageable pageable);
+
+  Page<NotificationEntity>
+      findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseAndTypeInOrderByCreatedAtDesc(
+          String tenantId,
+          Long recipientUserId,
+          EntityStatus status,
+          List<NotificationType> types,
+          Pageable pageable);
 
   Optional<NotificationEntity> findByTenantIdAndRecipientUserIdAndIdAndStatus(
       String tenantId, Long recipientUserId, Long id, EntityStatus status);

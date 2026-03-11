@@ -2,6 +2,7 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.domain.notification.Notification;
+import com.coffiness.calfit.domain.notification.NotificationCategory;
 import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.domain.notification.NotificationReader;
 import com.coffiness.calfit.storage.db.core.notification.NotificationEntity;
@@ -32,12 +33,53 @@ public class NotificationReaderImpl implements NotificationReader {
   }
 
   @Override
+  public NotificationPage getRecentNotifications(
+      String tenantId,
+      Long recipientUserId,
+      NotificationCategory category,
+      int page,
+      int size) {
+    org.springframework.data.domain.Page<NotificationEntity> notificationPage =
+        notificationRepository.findByTenantIdAndRecipientUserIdAndStatusAndTypeInOrderByCreatedAtDesc(
+            tenantId,
+            recipientUserId,
+            EntityStatus.ACTIVE,
+            List.copyOf(category.types()),
+            PageRequest.of(page, size));
+
+    return new NotificationPage(
+        notificationPage.getContent().stream().map(this::toNotification).toList(),
+        notificationPage.hasNext());
+  }
+
+  @Override
   public NotificationPage getUnreadNotifications(
       String tenantId, Long recipientUserId, int page, int size) {
     org.springframework.data.domain.Page<NotificationEntity> notificationPage =
         notificationRepository
             .findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseOrderByCreatedAtDesc(
                 tenantId, recipientUserId, EntityStatus.ACTIVE, PageRequest.of(page, size));
+
+    return new NotificationPage(
+        notificationPage.getContent().stream().map(this::toNotification).toList(),
+        notificationPage.hasNext());
+  }
+
+  @Override
+  public NotificationPage getUnreadNotifications(
+      String tenantId,
+      Long recipientUserId,
+      NotificationCategory category,
+      int page,
+      int size) {
+    org.springframework.data.domain.Page<NotificationEntity> notificationPage =
+        notificationRepository
+            .findByTenantIdAndRecipientUserIdAndStatusAndIsReadFalseAndTypeInOrderByCreatedAtDesc(
+                tenantId,
+                recipientUserId,
+                EntityStatus.ACTIVE,
+                List.copyOf(category.types()),
+                PageRequest.of(page, size));
 
     return new NotificationPage(
         notificationPage.getContent().stream().map(this::toNotification).toList(),

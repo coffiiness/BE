@@ -21,6 +21,17 @@ public class NotificationService {
   }
 
   @Transactional(readOnly = true)
+  public NotificationPage getRecentNotifications(
+      Long recipientUserId, NotificationCategory category, int page, int size) {
+    return notificationReader.getRecentNotifications(
+        currentTenantId(),
+        recipientUserId,
+        category,
+        sanitizePage(page),
+        sanitizeSize(size));
+  }
+
+  @Transactional(readOnly = true)
   public List<Notification> getUnreadNotifications(Long recipientUserId) {
     return notificationReader.getUnreadNotifications(currentTenantId(), recipientUserId);
   }
@@ -29,6 +40,17 @@ public class NotificationService {
   public NotificationPage getUnreadNotifications(Long recipientUserId, int page, int size) {
     return notificationReader.getUnreadNotifications(
         currentTenantId(), recipientUserId, sanitizePage(page), sanitizeSize(size));
+  }
+
+  @Transactional(readOnly = true)
+  public NotificationPage getUnreadNotifications(
+      Long recipientUserId, NotificationCategory category, int page, int size) {
+    return notificationReader.getUnreadNotifications(
+        currentTenantId(),
+        recipientUserId,
+        category,
+        sanitizePage(page),
+        sanitizeSize(size));
   }
 
   @Transactional(readOnly = true)

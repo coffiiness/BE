@@ -2,6 +2,7 @@ package com.coffiness.calfit.core.api.facade.notification;
 
 import com.coffiness.calfit.core.support.Page;
 import com.coffiness.calfit.domain.notification.Notification;
+import com.coffiness.calfit.domain.notification.NotificationCategory;
 import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.domain.notification.NotificationService;
 import java.util.List;
@@ -21,8 +22,20 @@ public class NotificationFacade {
   }
 
   @Transactional(readOnly = true)
+  public NotificationPage getRecentNotifications(
+      Long userId, NotificationCategory category, int page, int size) {
+    return notificationService.getRecentNotifications(userId, category, page, size);
+  }
+
+  @Transactional(readOnly = true)
   public NotificationPage getUnreadNotifications(Long userId, int page, int size) {
     return notificationService.getUnreadNotifications(userId, page, size);
+  }
+
+  @Transactional(readOnly = true)
+  public NotificationPage getUnreadNotifications(
+      Long userId, NotificationCategory category, int page, int size) {
+    return notificationService.getUnreadNotifications(userId, category, page, size);
   }
 
   @Transactional(readOnly = true)
