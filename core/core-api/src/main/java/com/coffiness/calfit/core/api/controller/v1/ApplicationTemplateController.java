@@ -75,12 +75,12 @@ public class ApplicationTemplateController {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
-    String schema = request.toSchemaJson(objectMapper);
+    String formFields = request.toFormFieldsJson(objectMapper);
     boolean inUse = request.resolveRequestedUseStatus().orElse(false);
 
     ApplicationTemplateEntity saved =
         applicationTemplateRepository.save(
-            ApplicationTemplateEntity.create(templateName, schema, inUse));
+            ApplicationTemplateEntity.create(templateName, formFields, inUse));
 
     return ApiResponse.success(toListResponse(saved, 0L));
   }
@@ -112,7 +112,7 @@ public class ApplicationTemplateController {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
-    template.updateTemplate(templateName, request.toSchemaJson(objectMapper));
+    template.updateTemplate(templateName, request.toFormFieldsJson(objectMapper));
     request.resolveRequestedUseStatus().ifPresent(template::updateUseStatus);
 
     Long recruitmentCount =
@@ -230,7 +230,7 @@ public class ApplicationTemplateController {
         used ? STATUS_IN_USE : STATUS_UNUSED,
         used,
         recruitmentCount == null ? 0L : recruitmentCount,
-        template.getSchema());
+        template.getFormFields());
   }
 
   private static Optional<Boolean> resolveUseStatus(Boolean used, String... rawStatuses) {
@@ -270,6 +270,7 @@ public class ApplicationTemplateController {
       Object questionFields,
       Object customQuestions,
       Object schema,
+      String formFields,
       String status,
       String templateStatus,
       String useStatus,
@@ -286,9 +287,10 @@ public class ApplicationTemplateController {
       return StringUtils.hasText(templateName) ? templateName.trim() : "";
     }
 
-    private String toSchemaJson(ObjectMapper objectMapper) {
+    private String toFormFieldsJson(ObjectMapper objectMapper) {
       Object schemaSource =
-          firstNonNull(customFields, questions, questionFields, customQuestions, schema);
+          firstNonNull(
+              customFields, questions, questionFields, customQuestions, schema, formFields);
       if (schemaSource == null) {
         schemaSource = List.of();
       }

@@ -1,5 +1,6 @@
 package com.coffiness.calfit.storage.db.core.template;
 
+import com.coffiness.calfit.core.enums.EntityStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,10 +12,10 @@ public interface ApplicationTemplateRepository
 
   @Query(
       value =
-          "SELECT t.`schema` FROM applicationTemplates t"
+          "SELECT t.form_fields FROM applicationTemplates t"
               + " WHERE t.id = :templateId AND t.status = 'ACTIVE'",
       nativeQuery = true)
-  Optional<String> findSchemaById(@Param("templateId") Long templateId);
+  Optional<String> findFormFieldsById(@Param("templateId") Long templateId);
 
   @Query(
       "SELECT t FROM ApplicationTemplateEntity t"
@@ -27,4 +28,6 @@ public interface ApplicationTemplateRepository
           + " WHERE t.id = :templateId"
           + " AND t.status = com.coffiness.calfit.core.enums.EntityStatus.ACTIVE")
   Optional<ApplicationTemplateEntity> findActiveById(@Param("templateId") Long templateId);
+
+  Optional<ApplicationTemplateEntity> findByIdAndStatus(Long id, EntityStatus status);
 }

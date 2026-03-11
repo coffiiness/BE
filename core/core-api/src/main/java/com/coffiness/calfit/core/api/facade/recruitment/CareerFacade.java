@@ -88,7 +88,7 @@ public class CareerFacade {
       String customFields =
           applicationTemplateRepository
               .findByIdAndStatus(templateId, EntityStatus.ACTIVE)
-              .map(ApplicationTemplateEntity::getSchema)
+              .map(ApplicationTemplateEntity::getFormFields)
               .orElse("[]");
 
       return new CareerApplyFormResponse(

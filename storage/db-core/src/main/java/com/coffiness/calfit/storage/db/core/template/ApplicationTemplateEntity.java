@@ -40,9 +40,9 @@ public class ApplicationTemplateEntity extends TenantBaseEntity {
   @Column(nullable = false, unique = true, length = 50)
   private String email;
 
-  // Template schema payload
-  @Column(name = "`schema`", columnDefinition = "JSON", nullable = false)
-  private String schema;
+  // Template form field payload
+  @Column(name = "form_fields", columnDefinition = "JSON", nullable = false)
+  private String formFields;
 
   @Column(name = "is_default")
   private Boolean isDefault = false;
@@ -54,33 +54,33 @@ public class ApplicationTemplateEntity extends TenantBaseEntity {
       LocalDateTime birthDate,
       String phone,
       String email,
-      String schema,
+      String formFields,
       Boolean isDefault) {
     this.name = name;
     this.gender = gender;
     this.birthDate = birthDate;
     this.phone = phone;
     this.email = email;
-    this.schema = schema;
+    this.formFields = formFields;
     this.isDefault = isDefault;
   }
 
   public static ApplicationTemplateEntity create(
-      String templateName, String schema, boolean inUse) {
+      String templateName, String formFields, boolean inUse) {
     return ApplicationTemplateEntity.builder()
         .name(templateName)
         .gender(Gender.MALE)
         .birthDate(LocalDateTime.of(2000, 1, 1, 0, 0))
         .phone("000-0000-0000")
         .email("t-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16) + "@cf.io")
-        .schema(schema)
+        .formFields(formFields)
         .isDefault(inUse)
         .build();
   }
 
-  public void updateTemplate(String templateName, String schema) {
+  public void updateTemplate(String templateName, String formFields) {
     this.name = templateName;
-    this.schema = schema;
+    this.formFields = formFields;
   }
 
   public void updateUseStatus(boolean inUse) {
