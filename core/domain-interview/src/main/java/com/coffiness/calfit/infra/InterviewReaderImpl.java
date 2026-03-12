@@ -3,6 +3,8 @@ package com.coffiness.calfit.infra;
 import com.coffiness.calfit.domain.interview.InterviewAvailability;
 import com.coffiness.calfit.domain.interview.InterviewReader;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
+import com.coffiness.calfit.domain.interview.PendingInterviewApplicant;
+import com.coffiness.calfit.domain.interview.PendingInterviewStage;
 import com.coffiness.calfit.domain.interview.WeeklyInterviewScheduleItem;
 import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;
 import java.time.LocalDateTime;
@@ -74,6 +76,28 @@ public class InterviewReaderImpl implements InterviewReader {
                     row.title(),
                     row.applicantName(),
                     row.description()))
+        .toList();
+  }
+
+  // 저장소 조회 결과를 면접 단계별 대기 지원자 도메인 모델로 변환
+  @Override
+  public List<PendingInterviewStage> getPendingInterviewStages(Long recruitmentId) {
+    return interviewRepository.getPendingInterviewStages(recruitmentId).stream()
+        .map(
+            row ->
+                new PendingInterviewStage(
+                    row.recruitmentStageId(),
+                    row.stageName(),
+                    row.stageStep(),
+                    row.applicants().stream()
+                        .map(
+                            applicant ->
+                                new PendingInterviewApplicant(
+                                    applicant.applicationId(),
+                                    applicant.applicantId(),
+                                    applicant.name(),
+                                    applicant.email()))
+                        .toList()))
         .toList();
   }
 

@@ -21,6 +21,9 @@ public interface InterviewReader {
   List<InterviewScheduleCalendarItem> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to);
 
+  // 채용 공고의 면접 단계별 대기 지원자 목록을 조회
+  List<PendingInterviewStage> getPendingInterviewStages(Long recruitmentId);
+
   // 주간 면접 일정 화면에 필요한 인터뷰 목록을 조회
   List<WeeklyInterviewScheduleItem> getWeeklySchedules(
       Long interviewerUserId, LocalDateTime from, LocalDateTime to);

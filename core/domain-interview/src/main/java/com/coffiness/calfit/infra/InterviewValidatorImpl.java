@@ -3,10 +3,13 @@ package com.coffiness.calfit.infra;
 import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.domain.interview.InterviewReader;
 import com.coffiness.calfit.domain.interview.InterviewValidator;
+import com.coffiness.calfit.domain.interview.PendingInterviewStage;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -58,6 +61,39 @@ public class InterviewValidatorImpl implements InterviewValidator {
     }
     // Allow a single interview to span multiple contiguous 1-hour slots.
     if (durationMinutes < 60 || durationMinutes % 60 != 0) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+  }
+
+  @Override
+  public void validatePendingApplicants(
+      Long recruitmentId, Long recruitmentStageId, List<Long> applicantIds) {
+    if (recruitmentId == null
+        || recruitmentStageId == null
+        || applicantIds == null
+        || applicantIds.isEmpty()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    List<Long> normalizedApplicantIds =
+        applicantIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+    if (normalizedApplicantIds.size() != applicantIds.size()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    PendingInterviewStage targetStage =
+        interviewReader.getPendingInterviewStages(recruitmentId).stream()
+            .filter(stage -> Objects.equals(stage.recruitmentStageId(), recruitmentStageId))
+            .findFirst()
+            .orElseThrow(() -> new CoreException(ErrorType.VALIDATION_ERROR));
+
+    Set<Long> pendingApplicantIds =
+        targetStage.applicants().stream()
+            .map(applicant -> applicant.applicantId())
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+
+    if (!pendingApplicantIds.containsAll(normalizedApplicantIds)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }

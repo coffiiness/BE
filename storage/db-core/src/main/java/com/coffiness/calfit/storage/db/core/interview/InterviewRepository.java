@@ -24,6 +24,15 @@ public interface InterviewRepository {
       String applicantName,
       String description) {}
 
+  record PendingInterviewApplicantRow(
+      Long applicationId, Long applicantId, String name, String email) {}
+
+  record PendingInterviewStageRow(
+      Long recruitmentStageId,
+      String stageName,
+      Integer stageStep,
+      List<PendingInterviewApplicantRow> applicants) {}
+
   // 주간 면접 일정 조회 결과를 저장소 계층에서 전달
   record WeeklyInterviewScheduleRow(
       Long interviewScheduleId,
@@ -52,6 +61,9 @@ public interface InterviewRepository {
 
   List<InterviewScheduleCalendarRow> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to);
+
+  // 채용 공고의 면접 단계별 대기 지원자 목록을 조회
+  List<PendingInterviewStageRow> getPendingInterviewStages(Long recruitmentId);
 
   // 주간 면접 일정 화면용 인터뷰 목록을 조회
   List<WeeklyInterviewScheduleRow> getWeeklySchedules(

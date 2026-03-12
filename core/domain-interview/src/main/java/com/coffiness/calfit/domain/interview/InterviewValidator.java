@@ -20,6 +20,9 @@ public interface InterviewValidator {
 
   void validateInterviewTime(LocalDateTime scheduledAt, Integer durationMinutes);
 
+  void validatePendingApplicants(
+      Long recruitmentId, Long recruitmentStageId, List<Long> applicantIds);
+
   void validateCapacity(Long meetingRoomId, int totalParticipants);
 
   void validateFromDate(LocalDateTime from);

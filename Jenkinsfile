@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION   = 'ap-northeast-2'
         ECR_REGISTRY = credentials('ecr-registry')  // Jenkins Credential에 등록
         ECR_REPO     = 'calfit-be'
-        EKS_CLUSTER  = 'coffiiness-cluster'
+        EKS_CLUSTER  = 'calfit-cluster'
     }
 
     stages {

@@ -53,14 +53,30 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
               recruitmentStatus, EntityStatus.ACTIVE, pageable);
     }
 
-    if (recruitments.isEmpty()) {}
+    if (recruitments.isEmpty()) {
+      return List.of();
+    }
 
     List<Long> recruitmentIds = recruitments.stream().map(RecruitmentEntity::getId).toList();
+    String tenantId = TenantContext.getTenantId();
 
     // 단계
     Map<Long, List<RecruitmentStageEntity>> stageMap =
         recruitmentStageRepository.findByRecruitmentIdIn(recruitmentIds).stream()
             .collect(Collectors.groupingBy(RecruitmentStageEntity::getRecruitmentId));
+
+    // 단계별 지원자 수
+    Map<Long, Map<Long, Integer>> applicantCountMapByRecruitment =
+        applicationRepository
+            .countGroupByRecruitmentIdAndRecruitmentProcessId(
+                tenantId, recruitmentIds, EntityStatus.ACTIVE)
+            .stream()
+            .collect(
+                Collectors.groupingBy(
+                    row -> ((Number) row[0]).longValue(),
+                    Collectors.toMap(
+                        row -> ((Number) row[1]).longValue(),
+                        row -> ((Number) row[2]).intValue())));
 
     // 면접관
     List<RecruitmentInterviewerEntity> allInterviewers =
@@ -106,9 +122,15 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   stageMap.getOrDefault(recruitmentId, List.of()).stream()
                       .sorted(Comparator.comparing(RecruitmentStageEntity::getStageStep))
                       .map(
-                          s ->
-                              new RecruitmentListInfo.StageSummaryInfo(
-                                  s.getId(), s.getStageName(), 0))
+                          s -> {
+                            int applicantCount =
+                                applicantCountMapByRecruitment
+                                    .getOrDefault(recruitmentId, Map.of())
+                                    .getOrDefault(s.getId(), 0);
+
+                            return new RecruitmentListInfo.StageSummaryInfo(
+                                s.getId(), s.getStageName(), applicantCount);
+                          })
                       .toList();
 
               List<RecruitmentListInfo.AssigneeSummaryInfo> assigneeInfos =

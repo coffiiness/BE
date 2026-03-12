@@ -4,6 +4,8 @@ import com.coffiness.calfit.core.enums.*;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
+import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -13,6 +15,7 @@ import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.error.CoreException;
@@ -37,6 +40,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   private final ScheduleRepository scheduleRepository;
   private final UserRepository userRepository;
   private final ApplicantRepository applicantRepository;
+  private final ApplicationRepository applicationRepository;
   private final RecruitmentRepository recruitmentRepository;
   private final RecruitmentStageRepository recruitmentStageRepository;
 
@@ -327,6 +331,65 @@ public class InterviewRepositoryImpl implements InterviewRepository {
                   stageNameMap.get(schedule.getRecruitmentStageId())),
               applicantName,
               fallbackName(schedule.getMemo(), "")));
+    }
+    return result;
+  }
+
+  // 채용 공고의 면접 단계별 대기 지원자 목록을 조회
+  @Override
+  public List<PendingInterviewStageRow> getPendingInterviewStages(Long recruitmentId) {
+    if (recruitmentId == null) {
+      return List.of();
+    }
+
+    String tenantId = requireTenantId();
+    List<RecruitmentStageEntity> interviewStages =
+        recruitmentStageRepository.findByRecruitmentIdOrderByStageStepAsc(recruitmentId).stream()
+            .filter(RecruitmentStageEntity::isActive)
+            .filter(stage -> stage.getStageType() == RecruitmentStageType.INTERVIEW)
+            .toList();
+    if (interviewStages.isEmpty()) {
+      return List.of();
+    }
+
+    Set<Long> interviewStageIds =
+        interviewStages.stream().map(RecruitmentStageEntity::getId).collect(Collectors.toSet());
+
+    Map<Long, List<ApplicationEntity>> applicationsByStageId =
+        applicationRepository
+            .findByRecruitmentIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
+            .stream()
+            .filter(
+                application -> interviewStageIds.contains(application.getRecruitmentProcessId()))
+            .collect(Collectors.groupingBy(ApplicationEntity::getRecruitmentProcessId));
+
+    Map<Long, Set<Long>> scheduledApplicantIdsByStageId =
+        getScheduledApplicantIdsByStageId(tenantId, recruitmentId, interviewStageIds);
+
+    List<PendingInterviewStageRow> result = new ArrayList<>();
+    for (RecruitmentStageEntity stage : interviewStages) {
+      Set<Long> scheduledApplicantIds =
+          scheduledApplicantIdsByStageId.getOrDefault(stage.getId(), Set.of());
+
+      List<PendingInterviewApplicantRow> applicants =
+          applicationsByStageId.getOrDefault(stage.getId(), List.of()).stream()
+              .filter(application -> !scheduledApplicantIds.contains(application.getApplicantId()))
+              .sorted(
+                  Comparator.comparing(ApplicationEntity::getCreatedAt)
+                      .thenComparing(ApplicationEntity::getId))
+              .map(
+                  application ->
+                      new PendingInterviewApplicantRow(
+                          application.getId(),
+                          application.getApplicantId(),
+                          fallbackName(
+                              application.getName(), "지원자#" + application.getApplicantId()),
+                          fallbackName(application.getEmail(), "")))
+              .toList();
+
+      result.add(
+          new PendingInterviewStageRow(
+              stage.getId(), stage.getStageName(), stage.getStageStep(), applicants));
     }
     return result;
   }
@@ -642,6 +705,49 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     }
 
     return false;
+  }
+
+  // 같은 채용 단계에서 이미 일정이 잡힌 지원자 ID를 수집
+  private Map<Long, Set<Long>> getScheduledApplicantIdsByStageId(
+      String tenantId, Long recruitmentId, Set<Long> interviewStageIds) {
+    if (interviewStageIds == null || interviewStageIds.isEmpty()) {
+      return Map.of();
+    }
+
+    List<InterviewScheduleEntity> schedules =
+        interviewScheduleRepository.findAllByTenantIdAndRecruitmentIdOrderByScheduledAtAsc(
+            tenantId, recruitmentId);
+    Map<Long, Long> stageIdByScheduleId = new HashMap<>();
+    for (InterviewScheduleEntity schedule : schedules) {
+      if (schedule.getInterviewStatus() == InterviewStatus.CANCELLED) {
+        continue;
+      }
+      Long stageId = schedule.getRecruitmentStageId();
+      if (stageId == null || !interviewStageIds.contains(stageId)) {
+        continue;
+      }
+      stageIdByScheduleId.put(schedule.getId(), stageId);
+    }
+
+    if (stageIdByScheduleId.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, Set<Long>> scheduledApplicantIdsByStageId = new HashMap<>();
+    applicantMappingRepository
+        .findAllByTenantIdAndInterviewScheduleIdIn(
+            tenantId, new ArrayList<>(stageIdByScheduleId.keySet()))
+        .forEach(
+            applicantMapping -> {
+              Long stageId = stageIdByScheduleId.get(applicantMapping.getInterviewScheduleId());
+              if (stageId == null || applicantMapping.getApplicantId() == null) {
+                return;
+              }
+              scheduledApplicantIdsByStageId
+                  .computeIfAbsent(stageId, ignored -> new HashSet<>())
+                  .add(applicantMapping.getApplicantId());
+            });
+    return scheduledApplicantIdsByStageId;
   }
 
   private boolean hasMeetingRoomConflict(

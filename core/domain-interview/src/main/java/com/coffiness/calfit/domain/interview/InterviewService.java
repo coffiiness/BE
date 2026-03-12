@@ -51,6 +51,7 @@ public class InterviewService {
         scheduledAt,
         durationMinutes);
     interviewValidator.validateInterviewTime(scheduledAt, durationMinutes);
+    interviewValidator.validatePendingApplicants(recruitmentId, recruitmentStageId, applicantIds);
 
     int totalParticipants = interviewerIds.size() + applicantIds.size();
     interviewValidator.validateCapacity(meetingRoomId, totalParticipants);
@@ -104,6 +105,16 @@ public class InterviewService {
         memo,
         interviewerIds,
         applicantIds);
+  }
+
+  // 면접 생성 화면에 필요한 단계별 대기 지원자 목록을 조회
+  @Transactional(readOnly = true)
+  public List<PendingInterviewStage> getPendingInterviewStages(Long userId, Long recruitmentId) {
+    interviewValidator.validateHrMember(userId);
+    if (recruitmentId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    return interviewReader.getPendingInterviewStages(recruitmentId);
   }
 
   @Transactional(readOnly = true)

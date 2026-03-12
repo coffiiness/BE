@@ -40,6 +40,18 @@ public interface ApplicationRepository extends JpaRepository<ApplicationEntity, 
           + " GROUP BY a.recruitmentProcessId")
   List<Object[]> countGroupByRecruitmentProcessId(@Param("status") EntityStatus status);
 
+  // 현재 tenant의 채용 공고/단계별 활성 지원자 수를 집계
+  @Query(
+      "SELECT a.recruitmentId, a.recruitmentProcessId, COUNT(a) FROM ApplicationEntity a"
+          + " WHERE a.tenantId = :tenantId"
+          + " AND a.recruitmentId IN :recruitmentIds"
+          + " AND a.status = :status"
+          + " GROUP BY a.recruitmentId, a.recruitmentProcessId")
+  List<Object[]> countGroupByRecruitmentIdAndRecruitmentProcessId(
+      @Param("tenantId") String tenantId,
+      @Param("recruitmentIds") List<Long> recruitmentIds,
+      @Param("status") EntityStatus status);
+
   @Query(
       "SELECT a.recruitmentId, COUNT(a) FROM ApplicationEntity a"
           + " WHERE a.status = :status"
