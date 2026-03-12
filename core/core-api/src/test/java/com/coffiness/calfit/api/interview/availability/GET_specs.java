@@ -180,6 +180,66 @@ class GET_specs {
   }
 
   @Test
+  void 면접관이_수동_회의실_예약의_참석자인_경우도_가용시간_조회에_포함된다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired InterviewFixture interviewFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    String interviewerEmail = userFixture.randomEmail();
+    String interviewerPassword = userFixture.randomPassword();
+    Long interviewerUserId =
+        userFixture.signUp(interviewerEmail, interviewerPassword, "회의실 예약 면접관").getData().id();
+    String interviewerToken =
+        userFixture.login(interviewerEmail, interviewerPassword).getData().accessToken();
+
+    String invitationToken =
+        memberFixture
+            .createInvitation(hrToken, tenantId, interviewerEmail, MemberType.INTERVIEWER)
+            .getData()
+            .token();
+    memberFixture.acceptInvitation(invitationToken, interviewerToken);
+
+    Long meetingRoomId = meetingRoomFixture.create(hrToken, tenantId, "회의실 A", 3, 6).getData().id();
+    LocalDateTime start =
+        LocalDateTime.now().plusDays(4).withHour(15).withMinute(0).withSecond(0).withNano(0);
+    LocalDateTime end = start.plusHours(1);
+
+    assertThat(
+            meetingRoomFixture.reserve(
+                hrToken,
+                tenantId,
+                meetingRoomId,
+                "회식",
+                "면접관이 참석자인 수동 회의실 예약",
+                start,
+                end,
+                List.of(interviewerUserId)))
+        .extracting(ApiResponse::getResult)
+        .isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<InterviewAvailabilityResponse> response =
+        interviewFixture.availability(
+            hrToken,
+            tenantId,
+            start.minusHours(1),
+            List.of(meetingRoomId),
+            List.of(interviewerUserId));
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData().interviewerBusySlots())
+        .anySatisfy(
+            slot -> {
+              assertThat(slot.interviewerId()).isEqualTo(interviewerUserId);
+              assertThat(slot.start()).isEqualTo(start);
+              assertThat(slot.end()).isEqualTo(end);
+            });
+  }
+
+  @Test
   void 면접_일정이_내_일정에_반영되어도_면접관_가용시간에는_중복_집계되지_않는다(
       @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
