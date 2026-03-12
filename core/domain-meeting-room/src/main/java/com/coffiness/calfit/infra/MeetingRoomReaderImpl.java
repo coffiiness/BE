@@ -100,6 +100,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
     if (fromDatetime == null || toDatetime == null || !fromDatetime.isBefore(toDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
+    syncReservationStatuses(tenantId);
 
     List<Long> meetingRoomIds =
         meetingRoomRepository.findAllByStatusOrderByNameAsc(EntityStatus.ACTIVE).stream()

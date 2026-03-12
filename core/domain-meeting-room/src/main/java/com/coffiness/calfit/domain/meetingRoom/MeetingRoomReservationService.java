@@ -38,4 +38,9 @@ public class MeetingRoomReservationService {
     meetingRoomValidator.validateCancelReservationRequest(userId, meetingRoomId, reservationId);
     return meetingRoomStore.cancelReservation(meetingRoomId, reservationId, userId);
   }
+
+  @Transactional
+  public int updateReservationStatusesBySchedule() {
+    return meetingRoomStore.syncReservationStatuses();
+  }
 }

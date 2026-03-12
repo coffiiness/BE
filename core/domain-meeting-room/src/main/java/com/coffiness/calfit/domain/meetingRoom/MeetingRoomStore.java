@@ -30,4 +30,6 @@ public interface MeetingRoomStore {
       Long meetingRoomId, Long userId, LocalDateTime startDatetime, LocalDateTime endDatetime);
 
   MeetingRoomReservation cancelReservation(Long meetingRoomId, Long reservationId, Long userId);
+
+  int syncReservationStatuses();
 }

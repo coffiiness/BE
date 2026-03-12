@@ -176,6 +176,12 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
     return toReservation(entity);
   }
 
+  @Override
+  public int syncReservationStatuses() {
+    String tenantId = requireTenantId();
+    return syncReservationStatuses(tenantId);
+  }
+
   private void appendHistory(
       Long meetingRoomId,
       Long reservationId,
@@ -234,15 +240,18 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
     return value.replace("\\", "\\\\").replace("\"", "\\\"");
   }
 
-  private void syncReservationStatuses(String tenantId) {
+  private int syncReservationStatuses(String tenantId) {
     LocalDateTime now = LocalDateTime.now();
-    reservationRepository.bulkUpdateToExpired(
-        tenantId,
-        new ArrayList<>(List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE)),
-        MeetingRoomStatus.EXPIRED,
-        now);
-    reservationRepository.bulkUpdateToActive(
-        tenantId, MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE, now);
+    int expiredCount =
+        reservationRepository.bulkUpdateToExpired(
+            tenantId,
+            new ArrayList<>(List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE)),
+            MeetingRoomStatus.EXPIRED,
+            now);
+    int activeCount =
+        reservationRepository.bulkUpdateToActive(
+            tenantId, MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE, now);
+    return expiredCount + activeCount;
   }
 
   private MeetingRoomReservation toReservation(MeetingRoomReservationEntity entity) {
