@@ -40,7 +40,8 @@ public class POST_specs {
 
   @Test
   void 토큰이_없으면_401_Unauthorized를_반환한다(@Autowired ApplicationFileFixture fixture) {
-    ResponseEntity<String> response = fixture.completeUploadWithoutToken(new CompleteUploadRequest(1L));
+    ResponseEntity<String> response =
+        fixture.completeUploadWithoutToken(new CompleteUploadRequest(1L));
 
     assertThat(response.getStatusCode().value()).isEqualTo(401);
   }
