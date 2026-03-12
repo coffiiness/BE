@@ -169,6 +169,23 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                 })
             .toList();
 
+    List<Long> referenceGroupIds =
+        recruitmentReferenceGroupRepository.findByRecruitmentId(recruitmentId).stream()
+            .map(RecruitmentReferenceGroupEntity::getGroupId)
+            .filter(Objects::nonNull)
+            .toList();
+
+    List<RecruitmentStage> stages =
+        recruitmentStageRepository.findByRecruitmentIdOrderByStageStepAsc(recruitmentId).stream()
+            .map(
+                stage ->
+                    new RecruitmentStage(
+                        stage.getId(),
+                        stage.getStageName(),
+                        stage.getStageStep(),
+                        stage.getStageType()))
+            .toList();
+
     // D-Day 및 링크 URL
     int dDay =
         (int)
@@ -179,7 +196,12 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     return new RecruitmentDetailInfo(
         entity.getId(),
         entity.getTitle(),
+        entity.getContents(),
         groupName,
+        entity.getLeadGroupId(),
+        referenceGroupIds,
+        entity.getTargetCount(),
+        entity.getApplicationTemplateId(),
         entity.getCareerType(),
         entity.getMinExperienceYears(),
         entity.getMaxExperienceYears(),
@@ -190,7 +212,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         dDay,
         shareUrl,
         entity.getRecruitmentStatus(),
-        interviewerInfos);
+        interviewerInfos,
+        stages);
   }
 
   @Override
