@@ -3,19 +3,23 @@ package com.coffiness.calfit.api.meetingRoom.reserveCancel;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.InterviewFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.RecruitmentFixture;
+import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.InterviewAvailabilityResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.InterviewRound;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -107,13 +111,17 @@ class DELETE_specs {
   @Test
   void 면접_예약을_취소하면_연결된_면접일정과_가용시간도_함께_해제된다(
       @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
       @Autowired MeetingRoomFixture meetingRoomFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired CalendarFixture calendarFixture,
       @Autowired InterviewFixture interviewFixture) {
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String token = context.hrToken();
     String tenantId = context.workspaceId();
-    Long interviewerUserId = memberFixture.addSecondMemberUserId(context);
+    InterviewerContext interviewer =
+        inviteInterviewer(memberFixture, userFixture, token, tenantId, "취소 확인 면접관");
+    Long interviewerUserId = interviewer.userId();
 
     ApiResponse<MeetingRoomResponse> room =
         meetingRoomFixture.create(token, tenantId, "회의실 A", 1, 6);
@@ -156,6 +164,12 @@ class DELETE_specs {
 
     assertThat(createdInterview.getResult()).isEqualTo(ResultType.SUCCESS);
 
+    ApiResponse<List<com.coffiness.calfit.v1.response.ScheduleResponse>> beforeCancelSchedules =
+        calendarFixture.getSchedules(interviewer.token(), tenantId, "2030-03-10", "2030-03-10");
+
+    assertThat(beforeCancelSchedules.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(beforeCancelSchedules.getData()).hasSize(1);
+
     ApiResponse<MeetingRoomReservationResponse[]> reservations =
         meetingRoomFixture.listReservations(
             token, tenantId, scheduledAt.minusHours(1), scheduledAt.plusHours(2));
@@ -194,5 +208,32 @@ class DELETE_specs {
     assertThat(availability.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(availability.getData().meetingRoomBusySlots()).isEmpty();
     assertThat(availability.getData().interviewerBusySlots()).isEmpty();
+
+    ApiResponse<List<com.coffiness.calfit.v1.response.ScheduleResponse>> afterCancelSchedules =
+        calendarFixture.getSchedules(interviewer.token(), tenantId, "2030-03-10", "2030-03-10");
+
+    assertThat(afterCancelSchedules.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(afterCancelSchedules.getData()).isEmpty();
   }
+
+  // 테스트용 면접관 사용자를 생성하고 워크스페이스에 초대
+  private InterviewerContext inviteInterviewer(
+      MemberFixture memberFixture,
+      UserFixture userFixture,
+      String hrToken,
+      String tenantId,
+      String name) {
+    String email = userFixture.randomEmail();
+    String password = userFixture.randomPassword();
+    Long userId = userFixture.signUp(email, password, name).getData().id();
+    String userToken = userFixture.login(email, password).getData().accessToken();
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(hrToken, tenantId, email, MemberType.INTERVIEWER);
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), userToken);
+
+    return new InterviewerContext(userId, userToken);
+  }
+
+  private record InterviewerContext(Long userId, String token) {}
 }
