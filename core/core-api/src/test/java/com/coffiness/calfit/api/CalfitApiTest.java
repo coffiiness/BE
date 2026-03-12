@@ -13,6 +13,7 @@ import org.springframework.test.context.TestConstructor;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(
     classes = {CoreApiApplication.class, FixtureConfiguration.class},
+    properties = {"app.local-interview-demo.enabled=false"},
     webEnvironment = WebEnvironment.RANDOM_PORT)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 public @interface CalfitApiTest {}

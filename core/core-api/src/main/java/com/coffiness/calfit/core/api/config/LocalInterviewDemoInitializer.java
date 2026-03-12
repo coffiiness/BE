@@ -35,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -46,6 +47,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @Profile("local")
+@ConditionalOnProperty(
+    name = "app.local-interview-demo.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
 @Order(1)
 @RequiredArgsConstructor
 public class LocalInterviewDemoInitializer implements ApplicationRunner {
@@ -172,7 +177,9 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         ensureApplicant("applicant2@coffiiness.com", "지원자 박둘"),
         ensureApplicant("applicant3@coffiiness.com", "지원자 이셋"),
         ensureApplicant("applicant4@coffiiness.com", "지원자 최넷"),
-        ensureApplicant("applicant5@coffiiness.com", "지원자 정다섯"));
+        ensureApplicant("applicant5@coffiiness.com", "지원자 정다섯"),
+        ensureApplicant("applicant6@coffiiness.com", "지원자 한여섯"),
+        ensureApplicant("applicant7@coffiiness.com", "지원자 윤일곱"));
   }
 
   // 이메일 기준으로 지원자 더미를 한 명씩 보장
@@ -230,14 +237,18 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
                       .orElseThrow();
                 });
 
-    Long interviewStageId =
+    List<Long> interviewStageIds =
         recruitmentStageRepository
             .findByRecruitmentIdOrderByStageStepAsc(recruitment.getId())
             .stream()
             .filter(stage -> stage.getStageType() == RecruitmentStageType.INTERVIEW)
             .map(RecruitmentStageEntity::getId)
-            .findFirst()
-            .orElseThrow();
+            .toList();
+    Long firstInterviewStageId = interviewStageIds.stream().findFirst().orElseThrow();
+    Long finalInterviewStageId =
+        interviewStageIds.isEmpty()
+            ? firstInterviewStageId
+            : interviewStageIds.get(interviewStageIds.size() - 1);
 
     Long firstStageId =
         recruitmentStageRepository
@@ -251,7 +262,8 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         recruitment.getId(),
         recruitment.getApplicationTemplateId(),
         firstStageId,
-        interviewStageId);
+        firstInterviewStageId,
+        finalInterviewStageId);
   }
 
   // 테스트 공고별 지원서를 중복 없이 생성
@@ -290,6 +302,21 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         Gender.MALE,
         LocalDate.of(1997, 9, 28),
         "010-1000-0004");
+
+    ensureApplicationAtStage(
+        backendRecruitment,
+        backendRecruitment.firstInterviewStageId(),
+        applicants.get(5),
+        Gender.FEMALE,
+        LocalDate.of(1998, 12, 9),
+        "010-1000-0006");
+    ensureApplicationAtStage(
+        frontendRecruitment,
+        frontendRecruitment.finalInterviewStageId(),
+        applicants.get(6),
+        Gender.MALE,
+        LocalDate.of(1995, 6, 14),
+        "010-1000-0007");
   }
 
   // 지원자와 공고 조합별 지원서를 첫 단계에 보장
@@ -299,8 +326,21 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
       Gender gender,
       LocalDate birthDate,
       String phone) {
+    ensureApplicationAtStage(
+        recruitment, recruitment.firstStageId(), applicant, gender, birthDate, phone);
+  }
+
+  // 지원자와 공고 조합별 지원서를 원하는 단계에 보장
+  private void ensureApplicationAtStage(
+      RecruitmentSeed recruitment,
+      Long recruitmentStageId,
+      ApplicantEntity applicant,
+      Gender gender,
+      LocalDate birthDate,
+      String phone) {
     if (applicationRepository.existsByApplicantIdAndRecruitmentId(
         applicant.getId(), recruitment.recruitmentId())) {
+      moveApplicationToStage(recruitment.recruitmentId(), applicant.getId(), recruitmentStageId);
       return;
     }
 
@@ -308,7 +348,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         ApplicationEntity.create(
             applicant.getId(),
             recruitment.recruitmentId(),
-            recruitment.firstStageId(),
+            recruitmentStageId,
             recruitment.applicationTemplateId(),
             applicant.getName(),
             gender,
@@ -461,6 +501,8 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
       Long applicantId,
       LocalDateTime scheduledAt,
       String memo) {
+    moveApplicationToStage(recruitment.recruitmentId(), applicantId, recruitment.firstInterviewStageId());
+
     boolean exists =
         interviewScheduleRepository
             .findAllByTenantIdAndRecruitmentIdAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndStatusNotOrderByScheduledAtAsc(
@@ -479,7 +521,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
     interviewService.create(
         hrUserId,
         recruitment.recruitmentId(),
-        recruitment.interviewStageId(),
+        recruitment.firstInterviewStageId(),
         InterviewRound.FIRST,
         List.of(interviewerUserId),
         List.of(applicantId),
@@ -487,6 +529,18 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         scheduledAt,
         60,
         memo);
+  }
+
+  // 기존 지원서를 원하는 면접 단계로 이동시켜 대기 지원자 상태를 맞춤
+  private void moveApplicationToStage(Long recruitmentId, Long applicantId, Long recruitmentStageId) {
+    applicationRepository.findByRecruitmentIdAndStatus(recruitmentId, EntityStatus.ACTIVE).stream()
+        .filter(application -> applicantId.equals(application.getApplicantId()))
+        .findFirst()
+        .ifPresent(
+            application -> {
+              application.updateRecruitmentProcessId(recruitmentStageId);
+              applicationRepository.save(application);
+            });
   }
 
   // 이번 주 일요일 시작일을 계산
@@ -499,5 +553,9 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
    * 더미 채용 공고와 면접 단계 식별자를 함께 보관
    * */
   private record RecruitmentSeed(
-      Long recruitmentId, Long applicationTemplateId, Long firstStageId, Long interviewStageId) {}
+      Long recruitmentId,
+      Long applicationTemplateId,
+      Long firstStageId,
+      Long firstInterviewStageId,
+      Long finalInterviewStageId) {}
 }
