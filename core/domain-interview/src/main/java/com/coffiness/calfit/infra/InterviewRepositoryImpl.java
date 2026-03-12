@@ -126,51 +126,72 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     List<InterviewScheduleInterviewerEntity> mappings =
         interviewerRepository.findAllByTenantIdAndUserIdIn(tenantId, interviewerIds);
 
+    Map<String, InterviewerBusySlotRow> uniqueResult = new HashMap<>();
+
     Set<Long> scheduleIds =
         mappings.stream()
             .map(InterviewScheduleInterviewerEntity::getInterviewScheduleId)
             .collect(Collectors.toSet());
-    if (scheduleIds.isEmpty()) {
-      return List.of();
-    }
+    if (!scheduleIds.isEmpty()) {
+      List<InterviewScheduleEntity> schedules =
+          interviewScheduleRepository.findAllByTenantIdAndIdInAndStatusNotAndScheduledAtBefore(
+              tenantId, new ArrayList<>(scheduleIds), InterviewStatus.CANCELLED, to);
 
-    List<InterviewScheduleEntity> schedules =
-        interviewScheduleRepository.findAllByTenantIdAndIdInAndStatusNotAndScheduledAtBefore(
-            tenantId, new ArrayList<>(scheduleIds), InterviewStatus.CANCELLED, to);
+      Map<Long, InterviewScheduleEntity> scheduleMap = new HashMap<>();
+      for (InterviewScheduleEntity schedule : schedules) {
+        LocalDateTime start = schedule.getScheduledAt();
+        LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+        if (start.isBefore(to) && from.isBefore(end)) {
+          scheduleMap.put(schedule.getId(), schedule);
+        }
+      }
 
-    Map<Long, InterviewScheduleEntity> scheduleMap = new HashMap<>();
-    for (InterviewScheduleEntity schedule : schedules) {
-      LocalDateTime start = schedule.getScheduledAt();
-      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
-      if (start.isBefore(to) && from.isBefore(end)) {
-        scheduleMap.put(schedule.getId(), schedule);
+      for (InterviewScheduleInterviewerEntity mapping : mappings) {
+        InterviewScheduleEntity schedule = scheduleMap.get(mapping.getInterviewScheduleId());
+        if (schedule == null) {
+          continue;
+        }
+
+        LocalDateTime start = schedule.getScheduledAt();
+        LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
+        String key = mapping.getUserId() + "|" + schedule.getId() + "|" + start + "|" + end;
+        uniqueResult.putIfAbsent(
+            key, new InterviewerBusySlotRow(mapping.getUserId(), schedule.getId(), start, end));
       }
     }
 
-    List<InterviewerBusySlotRow> result = new ArrayList<>();
-    for (InterviewScheduleInterviewerEntity mapping : mappings) {
-      InterviewScheduleEntity schedule = scheduleMap.get(mapping.getInterviewScheduleId());
-      if (schedule == null) {
-        continue;
+    List<Long> normalizedInterviewerIds =
+        interviewerIds.stream().filter(id -> id != null && id > 0).distinct().toList();
+    for (Long interviewerId : normalizedInterviewerIds) {
+      List<ScheduleEntity> visibleSchedules =
+          scheduleRepository.findOverlappingSchedules(interviewerId, from, to);
+
+      for (ScheduleEntity schedule : visibleSchedules) {
+        if (!schedule.isActive() || !schedule.isBusy()) {
+          continue;
+        }
+
+        String key =
+            interviewerId
+                + "|"
+                + schedule.getId()
+                + "|"
+                + schedule.getStartTime()
+                + "|"
+                + schedule.getEndTime();
+        uniqueResult.putIfAbsent(
+            key,
+            new InterviewerBusySlotRow(
+                interviewerId, schedule.getId(), schedule.getStartTime(), schedule.getEndTime()));
       }
-      LocalDateTime start = schedule.getScheduledAt();
-      LocalDateTime end = start.plusMinutes(schedule.getDurationMinutes());
-      result.add(new InterviewerBusySlotRow(mapping.getUserId(), schedule.getId(), start, end));
     }
 
-    List<ScheduleEntity> calendarBusySchedules =
-        scheduleRepository.findBusyOverlappingSchedulesByUserIds(
-            interviewerIds, from, to, EntityStatus.ACTIVE);
-
-    for (ScheduleEntity schedule : calendarBusySchedules) {
-      result.add(
-          new InterviewerBusySlotRow(
-              schedule.getUserId(),
-              schedule.getId(),
-              schedule.getStartTime(),
-              schedule.getEndTime()));
-    }
-    return result;
+    return uniqueResult.values().stream()
+        .sorted(
+            Comparator.comparing(InterviewerBusySlotRow::start)
+                .thenComparing(InterviewerBusySlotRow::interviewerId)
+                .thenComparing(InterviewerBusySlotRow::interviewScheduleId))
+        .toList();
   }
 
   @Override
