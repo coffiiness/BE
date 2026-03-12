@@ -84,6 +84,24 @@ public class ScheduleController {
     return ApiResponse.success(ScheduleAvailabilityResponse.from(availability));
   }
 
+  // 선택한 참석자들의 기간별 바쁜 일정 현황 조회
+  @GetMapping("/api/v1/schedules/availability/range")
+  public ApiResponse<ScheduleAvailabilityResponse> getAttendeeAvailabilityRange(
+      @AuthenticationPrincipal SecurityUser user,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+      @RequestParam(required = false) List<Long> attendeeIds) {
+
+    LocalDateTime startDateTime = startDate.atStartOfDay();
+    LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+
+    ScheduleAvailability availability =
+        scheduleFacade.getAttendeeAvailability(
+            user.userId(), startDateTime, endDateTime, attendeeIds);
+
+    return ApiResponse.success(ScheduleAvailabilityResponse.from(availability));
+  }
+
   @GetMapping("/api/v1/schedules/{scheduleId}")
   public ApiResponse<ScheduleDetailResponse> getDetailSchedule(
       @AuthenticationPrincipal SecurityUser user, @PathVariable("scheduleId") Long scheduleId) {

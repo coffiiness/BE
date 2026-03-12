@@ -103,7 +103,7 @@ public class ScheduleFacade {
       return ScheduleAvailability.empty();
     }
 
-    List<Long> normalizedAttendeeIds = validateAndNormalizeAttendeeIds(userId, attendeeIds);
+    List<Long> normalizedAttendeeIds = validateAndNormalizeAttendeeIds(userId, attendeeIds, true);
     return scheduleService.getAttendeeAvailability(startDate, endDate, normalizedAttendeeIds);
   }
 
@@ -113,7 +113,7 @@ public class ScheduleFacade {
     validateAndGetMember(userId);
     List<Long> attendeeIds =
         request.attendeeIds() != null
-            ? validateAndNormalizeAttendeeIds(userId, request.attendeeIds())
+            ? validateAndNormalizeAttendeeIds(userId, request.attendeeIds(), false)
             : null;
     ScheduleUpdateRequest normalizedRequest =
         new ScheduleUpdateRequest(
@@ -186,6 +186,11 @@ public class ScheduleFacade {
   }
 
   private List<Long> validateAndNormalizeAttendeeIds(long ownerUserId, List<Long> attendeeIds) {
+    return validateAndNormalizeAttendeeIds(ownerUserId, attendeeIds, false);
+  }
+
+  private List<Long> validateAndNormalizeAttendeeIds(
+      long ownerUserId, List<Long> attendeeIds, boolean includeOwnerUserId) {
     if (attendeeIds == null) {
       return null;
     }
@@ -195,7 +200,7 @@ public class ScheduleFacade {
       if (attendeeId == null || attendeeId <= 0) {
         throw new IllegalArgumentException("유효하지 않은 참석자 ID가 포함되어 있습니다.");
       }
-      if (attendeeId.equals(ownerUserId)) {
+      if (!includeOwnerUserId && attendeeId.equals(ownerUserId)) {
         continue;
       }
       uniqueAttendeeIds.add(attendeeId);
