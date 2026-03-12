@@ -115,6 +115,13 @@ public record RecruitmentFixture(BaseFixture base) {
         url, HttpMethod.PATCH, request, token, tenantId, RecruitmentDetailResponse.class);
   }
 
+  public ApiResponse<RecruitmentDetailResponse> publishRecruitment(
+      String token, String tenantId, Long recruitmentId) {
+    String url = String.format("/api/v1/recruitments/%s/publish", recruitmentId);
+    return exchangeWithTenant(
+        url, HttpMethod.PATCH, null, token, tenantId, RecruitmentDetailResponse.class);
+  }
+
   public ApiResponse<Void> deleteRecruitment(String token, String tenantId, Long recruitmentId) {
     String url = String.format("/api/v1/recruitments/%s", recruitmentId);
     return exchangeWithTenant(url, HttpMethod.DELETE, null, token, tenantId, Void.class);

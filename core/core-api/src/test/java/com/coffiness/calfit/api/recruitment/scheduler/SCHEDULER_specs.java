@@ -16,6 +16,8 @@ import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.domain.recruitment.RecruitmentService;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +98,74 @@ public class SCHEDULER_specs {
             .orElseThrow();
 
     assertThat(closedStatus).isEqualTo(RecruitmentStatus.CLOSED);
+  }
+
+  @Test
+  void 시작_시간_직전에는_DRAFT이고_정확한_시각이_되면_OPEN으로_변경된다(
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired RecruitmentService recruitmentService) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+
+    String targetTitle = "scheduler-time-target-" + System.nanoTime();
+    LocalDateTime openAt = LocalDateTime.of(2026, 3, 12, 14, 0);
+
+    recruitmentFixture.createRecruitment(
+        token, tenantId, createRequest(targetTitle, openAt, openAt.plusDays(2)));
+
+    ApiResponse<List<RecruitmentListResponse>> beforeResponse =
+        recruitmentFixture.getRecruitmentList(token, tenantId);
+
+    RecruitmentStatus beforeStatus =
+        beforeResponse.getData().stream()
+            .filter(item -> item.title().equals(targetTitle))
+            .map(RecruitmentListResponse::status)
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(beforeStatus).isEqualTo(RecruitmentStatus.DRAFT);
+
+    TenantContext.setTenantId(tenantId);
+    try {
+      recruitmentService.updateRecruitmentStatusBySchedule(openAt.minusMinutes(1));
+    } finally {
+      TenantContext.clear();
+    }
+
+    ApiResponse<List<RecruitmentListResponse>> afterResponse =
+        recruitmentFixture.getRecruitmentList(token, tenantId);
+
+    RecruitmentStatus afterStatus =
+        afterResponse.getData().stream()
+            .filter(item -> item.title().equals(targetTitle))
+            .map(RecruitmentListResponse::status)
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(afterStatus).isEqualTo(RecruitmentStatus.DRAFT);
+
+    TenantContext.setTenantId(tenantId);
+    try {
+      recruitmentService.updateRecruitmentStatusBySchedule(openAt);
+    } finally {
+      TenantContext.clear();
+    }
+
+    ApiResponse<List<RecruitmentListResponse>> openedResponse =
+        recruitmentFixture.getRecruitmentList(token, tenantId);
+
+    RecruitmentStatus openedStatus =
+        openedResponse.getData().stream()
+            .filter(item -> item.title().equals(targetTitle))
+            .map(RecruitmentListResponse::status)
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(openedStatus).isEqualTo(RecruitmentStatus.OPEN);
   }
 
   private RecruitmentCreateRequest createRequest(
