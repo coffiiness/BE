@@ -1,5 +1,6 @@
 package com.coffiness.calfit.v1.response;
 
+import com.coffiness.calfit.core.enums.ScheduleType;
 import com.coffiness.calfit.domain.ScheduleAvailability;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
@@ -35,7 +36,9 @@ public record ScheduleAvailabilityResponse(
       String title,
       LocalDateTime startDateTime,
       LocalDateTime endDateTime,
-      @JsonProperty("isAllDay") boolean isAllDay) {
+      @JsonProperty("isAllDay") boolean isAllDay,
+      ScheduleType type,
+      Long interviewScheduleId) {
 
     public static BusyScheduleResponse from(ScheduleAvailability.BusySchedule busySchedule) {
       return new BusyScheduleResponse(
@@ -43,7 +46,9 @@ public record ScheduleAvailabilityResponse(
           busySchedule.title(),
           busySchedule.startDateTime(),
           busySchedule.endDateTime(),
-          busySchedule.isAllDay());
+          busySchedule.isAllDay(),
+          busySchedule.type(),
+          busySchedule.interviewScheduleId());
     }
   }
 }

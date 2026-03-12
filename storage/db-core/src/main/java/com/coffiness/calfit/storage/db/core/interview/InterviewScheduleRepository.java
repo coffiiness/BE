@@ -38,6 +38,10 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
           @Param("to") LocalDateTime to,
           @Param("status") InterviewStatus status);
 
+  // 채용 공고에 연결된 면접 일정을 상태 판별용으로 모두 조회
+  List<InterviewScheduleEntity> findAllByTenantIdAndRecruitmentIdOrderByScheduledAtAsc(
+      String tenantId, Long recruitmentId);
+
   @Query(
       "SELECT e FROM InterviewScheduleEntity e "
           + "WHERE e.tenantId = :tenantId "

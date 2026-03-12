@@ -1,5 +1,6 @@
 package com.coffiness.calfit.domain;
 
+import com.coffiness.calfit.core.enums.ScheduleType;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,5 +21,7 @@ public record ScheduleAvailability(List<AttendeeAvailability> attendeeAvailabili
       String title,
       LocalDateTime startDateTime,
       LocalDateTime endDateTime,
-      boolean isAllDay) {}
+      boolean isAllDay,
+      ScheduleType type,
+      Long interviewScheduleId) {}
 }

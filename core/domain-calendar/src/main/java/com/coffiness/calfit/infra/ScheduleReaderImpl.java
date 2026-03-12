@@ -7,10 +7,16 @@ import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleReader;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
+import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleAttendeeRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantRepository;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import java.time.LocalDateTime;
@@ -29,6 +35,9 @@ public class ScheduleReaderImpl implements ScheduleReader {
   private final ScheduleAttendeeRepository scheduleAttendeeRepository;
   private final MeetingRoomRepository meetingRoomRepository;
   private final UserReader userReader;
+  private final InterviewScheduleInterviewerRepository interviewScheduleInterviewerRepository;
+  private final InterviewScheduleApplicantRepository interviewScheduleApplicantRepository;
+  private final ApplicantRepository applicantRepository;
 
   @Override
   public List<Schedule> findOverlappingSchedules(
@@ -106,6 +115,12 @@ public class ScheduleReaderImpl implements ScheduleReader {
   public ScheduleDetailInfo readDetail(Long scheduleId) {
     Schedule schedule = read(scheduleId);
     List<Long> attendeeIds = readAttendeeIds(scheduleId);
+    String applicantName = null;
+
+    if (schedule.interviewScheduleId() != null) {
+      attendeeIds = readInterviewAttendeeIds(schedule);
+      applicantName = readInterviewApplicantName(schedule.interviewScheduleId());
+    }
 
     String location = "지정한 장소 없음";
     if (schedule.roomId() != null) {
@@ -129,7 +144,8 @@ public class ScheduleReaderImpl implements ScheduleReader {
 
     String ownerName = resolveUserName(userMap.get(schedule.userId()), schedule.userId());
 
-    return ScheduleDetailInfo.of(schedule, location, ownerName, attendeeIds, attendees, null);
+    return ScheduleDetailInfo.of(
+        schedule, location, ownerName, attendeeIds, attendees, applicantName);
   }
 
   // 선택한 참석자들의 바쁜 일정 현황을 조회
@@ -194,7 +210,9 @@ public class ScheduleReaderImpl implements ScheduleReader {
                                         schedule.getTitle(),
                                         schedule.getStartTime(),
                                         schedule.getEndTime(),
-                                        schedule.isAllDay()))
+                                        schedule.isAllDay(),
+                                        schedule.getType(),
+                                        schedule.getInterviewScheduleId()))
                             .toList()))
             .toList();
 
@@ -214,7 +232,60 @@ public class ScheduleReaderImpl implements ScheduleReader {
         entity.getRoomId(),
         entity.getReservationId(),
         entity.isBusy(),
-        entity.getGoogleEventId());
+        entity.getGoogleEventId(),
+        entity.getInterviewScheduleId());
+  }
+
+  // 면접 연동 일정이면 함께 참여하는 다른 면접관 ID를 조회
+  private List<Long> readInterviewAttendeeIds(Schedule schedule) {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank() || schedule.interviewScheduleId() == null) {
+      return List.of();
+    }
+
+    return interviewScheduleInterviewerRepository
+        .findAllByTenantIdAndInterviewScheduleIdIn(
+            tenantId, List.of(schedule.interviewScheduleId()))
+        .stream()
+        .map(InterviewScheduleInterviewerEntity::getUserId)
+        .filter(userId -> userId != null && !userId.equals(schedule.userId()))
+        .distinct()
+        .toList();
+  }
+
+  // 면접 연동 일정이면 지원자 이름을 조회
+  private String readInterviewApplicantName(Long interviewScheduleId) {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank() || interviewScheduleId == null) {
+      return null;
+    }
+
+    List<Long> applicantIds =
+        interviewScheduleApplicantRepository
+            .findAllByTenantIdAndInterviewScheduleIdIn(tenantId, List.of(interviewScheduleId))
+            .stream()
+            .map(InterviewScheduleApplicantEntity::getApplicantId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+    if (applicantIds.isEmpty()) {
+      return null;
+    }
+
+    Map<Long, String> applicantNameMap =
+        applicantRepository.findByTenantIdAndIdIn(tenantId, applicantIds).stream()
+            .filter(applicant -> applicant.getId() != null)
+            .collect(
+                Collectors.toMap(
+                    applicant -> applicant.getId(),
+                    applicant -> fallbackApplicantName(applicant.getName(), applicant.getId()),
+                    (left, right) -> left,
+                    LinkedHashMap::new));
+
+    return applicantIds.stream()
+        .map(applicantId -> applicantNameMap.getOrDefault(applicantId, "지원자#" + applicantId))
+        .collect(Collectors.joining(", "));
   }
 
   // 참석자에게 해당 일정이 실제로 보이는지 확인
@@ -229,5 +300,13 @@ public class ScheduleReaderImpl implements ScheduleReader {
       return "이름 없는 사용자 (" + attendeeId + ")";
     }
     return userInfo.name();
+  }
+
+  // 지원자 이름이 비어 있으면 기본 표시명을 반환
+  private String fallbackApplicantName(String applicantName, Long applicantId) {
+    if (applicantName == null || applicantName.isBlank()) {
+      return "지원자#" + applicantId;
+    }
+    return applicantName;
   }
 }

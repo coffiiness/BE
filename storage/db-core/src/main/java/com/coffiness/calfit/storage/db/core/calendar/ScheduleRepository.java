@@ -75,6 +75,9 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
 
   List<ScheduleEntity> findAllByReservationIdAndStatus(Long reservationId, EntityStatus status);
 
+  List<ScheduleEntity> findAllByInterviewScheduleIdAndStatus(
+      Long interviewScheduleId, EntityStatus status);
+
   List<ScheduleEntity> findAllByGoogleEventIdInAndStatus(
       List<String> googleEventIds, EntityStatus status);
 

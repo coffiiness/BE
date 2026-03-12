@@ -15,6 +15,10 @@ public interface ApplicationRepository extends JpaRepository<ApplicationEntity, 
 
   List<ApplicationEntity> findByRecruitmentIdAndStatus(Long recruitmentId, EntityStatus status);
 
+  // 현재 tenant 기준으로 채용 공고의 활성 지원자 수를 카운팅
+  long countByTenantIdAndRecruitmentIdAndStatus(
+      String tenantId, Long recruitmentId, EntityStatus status);
+
   List<ApplicationEntity> findByRecruitmentIdAndRecruitmentProcessIdAndStatus(
       Long recruitmentId, Long recruitmentProcessId, EntityStatus status);
 

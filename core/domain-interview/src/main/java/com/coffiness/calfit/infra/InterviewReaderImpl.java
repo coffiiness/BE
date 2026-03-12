@@ -71,7 +71,7 @@ public class InterviewReaderImpl implements InterviewReader {
                     row.endAt(),
                     row.interviewerUserId(),
                     row.interviewerName(),
-                    "면접 일정",
+                    row.title(),
                     row.applicantName(),
                     row.description()))
         .toList();
