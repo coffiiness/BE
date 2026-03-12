@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.controller.v1.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentInterviewersUpdateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
@@ -115,6 +116,19 @@ public class RecruitmentController {
     long userId = user.userId();
     RecruitmentDetailInfo info =
         recruitmentFacade.updateRecruitment(userId, recruitmentId, request);
+
+    return ApiResponse.success(RecruitmentDetailResponse.from(info));
+  }
+
+  // 게시 이후에도 면접관만 따로 수정할 수 있는 API
+  @PatchMapping("/api/v1/recruitments/{recruitmentId}/interviewers")
+  public ApiResponse<RecruitmentDetailResponse> updateRecruitmentInterviewers(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long recruitmentId,
+      @Valid @RequestBody RecruitmentInterviewersUpdateRequest request) {
+    long userId = user.userId();
+    RecruitmentDetailInfo info =
+        recruitmentFacade.updateRecruitmentInterviewers(userId, recruitmentId, request);
 
     return ApiResponse.success(RecruitmentDetailResponse.from(info));
   }

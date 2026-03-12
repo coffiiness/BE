@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.facade.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentInterviewersUpdateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.interview.InterviewReader;
@@ -88,6 +89,19 @@ public class RecruitmentFacade {
     validateTemplateInUse(request.applicationTemplateId());
 
     recruitmentService.updateRecruitment(userId, recruitmentId, request);
+
+    return recruitmentReader.readDetail(recruitmentId);
+  }
+
+  // 게시된 공고도 면접관 목록은 별도로 수정할 수 있게 처리
+  @Transactional
+  public RecruitmentDetailInfo updateRecruitmentInterviewers(
+      long userId, Long recruitmentId, RecruitmentInterviewersUpdateRequest request) {
+    Member member = getRequiredMember(userId);
+    validateHrMember(member, "채용 담당자만 면접관 설정을 수정할 수 있습니다.");
+
+    recruitmentService.updateRecruitmentInterviewers(
+        userId, recruitmentId, request.interviewerIds());
 
     return recruitmentReader.readDetail(recruitmentId);
   }

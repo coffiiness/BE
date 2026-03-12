@@ -3,6 +3,7 @@ package com.coffiness.calfit.domain.recruitment;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public record Recruitment(
@@ -117,6 +118,31 @@ public record Recruitment(
         this.leadGroupId,
         this.referenceGroupIds,
         this.interviewerIds,
+        this.stages);
+  }
+
+  // 채용 공고의 면접관 목록만 별도로 교체
+  public Recruitment updateInterviewers(List<Long> newInterviewerIds) {
+    if (newInterviewerIds == null || newInterviewerIds.isEmpty()) {
+      throw new IllegalArgumentException("면접관은 최소 1명 이상이어야 합니다.");
+    }
+
+    return new Recruitment(
+        this.id,
+        this.creatorId,
+        this.title,
+        this.contents,
+        this.recruitmentStatus,
+        this.targetCount,
+        this.startDate,
+        this.endDate,
+        this.applicationTemplateId,
+        this.careerType,
+        this.minExperienceYears,
+        this.maxExperienceYears,
+        this.leadGroupId,
+        this.referenceGroupIds,
+        List.copyOf(new ArrayList<>(newInterviewerIds)),
         this.stages);
   }
 

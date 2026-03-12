@@ -10,6 +10,9 @@ public interface RecruitmentStore {
 
   Recruitment update(Recruitment recruitment);
 
+  // 채용 공고의 면접관 연결만 갱신
+  Recruitment updateInterviewers(Recruitment recruitment);
+
   void delete(Long recruitmentId);
 
   // 시작 시각이 지난 DRAFT 공고를 OPEN으로 전환

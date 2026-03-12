@@ -103,6 +103,23 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
   }
 
   @Override
+  // 채용 공고 기본 정보는 건드리지 않고 면접관 연결만 갱신
+  public Recruitment updateInterviewers(Recruitment recruitment) {
+    if (recruitment.id() == null) {
+      throw new IllegalArgumentException("수정할 채용 공고 ID가 없습니다.");
+    }
+
+    recruitmentRepository
+        .findByIdAndStatus(recruitment.id(), EntityStatus.ACTIVE)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
+
+    recruitmentInterviewerRepository.deleteAllByRecruitmentId(recruitment.id());
+    batchInsertInterviewers(recruitment.id(), recruitment, resolveTenantId());
+
+    return recruitment;
+  }
+
+  @Override
   public void delete(Long recruitmentId) {
     RecruitmentEntity entity =
         recruitmentRepository
