@@ -55,6 +55,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class LocalInterviewDemoInitializer implements ApplicationRunner {
 
+  private static final String ADMIN_EMAIL = "admin@coffiiness.com";
   private static final String HR_EMAIL = "hr@coffiiness.com";
   private static final String MEMBER_EMAIL = "member@coffiiness.com";
 
@@ -78,6 +79,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
   // 로컬 실행 시 필요한 면접 테스트 데이터를 한 번에 구성
   @Override
   public void run(ApplicationArguments args) {
+    UserEntity adminUser = userRepository.findByEmail(ADMIN_EMAIL).orElse(null);
     UserEntity hrUser = userRepository.findByEmail(HR_EMAIL).orElse(null);
     UserEntity memberUser = userRepository.findByEmail(MEMBER_EMAIL).orElse(null);
 
@@ -95,6 +97,10 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
     TenantContext.setTenantId(tenantId);
     try {
       GroupInfo devGroup = ensureGroup("개발팀", "#3B82F6");
+      GroupInfo hrGroup = ensureGroup("인사팀", "#10B981");
+      ensureGroup("마케팅팀", "#F59E0B");
+      ensureGroupAssignment(adminUser != null ? adminUser.getId() : null, hrGroup.id());
+      ensureGroupAssignment(hrUser.getId(), hrGroup.id());
       ensureGroupAssignment(memberUser.getId(), devGroup.id());
 
       Long largeRoomId = ensureMeetingRoom(hrUser.getId(), tenantId, "대회의실", 3, 10);
@@ -150,8 +156,11 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         .orElseGet(() -> groupService.createGroup(name, color));
   }
 
-  // 테스트용 면접관 계정을 개발팀 그룹에 배정
+  // 로컬 기본 멤버 계정을 지정한 그룹에 배정
   private void ensureGroupAssignment(Long userId, Long groupId) {
+    if (userId == null) {
+      return;
+    }
     String tenantId = TenantContext.getTenantId();
     MemberEntity member =
         memberRepository.findByTenantIdAndUserIdAndStatus(tenantId, userId, EntityStatus.ACTIVE);

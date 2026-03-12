@@ -1,8 +1,11 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.CreateInvitationRequest;
+import com.coffiness.calfit.api.v1.request.CreateGroupRequest;
+import com.coffiness.calfit.api.v1.request.AssignGroupRequest;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.MemberResponse;
+import com.coffiness.calfit.api.v1.response.GroupResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -42,6 +45,27 @@ public record MemberFixture(
   public ApiResponse<Void> removeMember(Long memberId, String token, String tenantId) {
     return exchangeWithTenant(
         "/api/v1/members/" + memberId, HttpMethod.DELETE, null, token, tenantId, Void.class);
+  }
+
+  public ApiResponse<Void> assignGroup(Long memberId, Long groupId, String token, String tenantId) {
+    return exchangeWithTenant(
+        "/api/v1/members/" + memberId + "/group",
+        HttpMethod.PATCH,
+        new AssignGroupRequest(groupId),
+        token,
+        tenantId,
+        Void.class);
+  }
+
+  public ApiResponse<GroupResponse> createGroup(
+      String name, String color, String token, String tenantId) {
+    return exchangeWithTenant(
+        "/api/v1/groups",
+        HttpMethod.POST,
+        new CreateGroupRequest(name, color),
+        token,
+        tenantId,
+        GroupResponse.class);
   }
 
   // ==================== Invitation API Calls ====================
@@ -84,9 +108,8 @@ public record MemberFixture(
             context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.INTERVIEWER);
     String invitationToken = invitationResponse.getData().token();
 
-    acceptInvitation(invitationToken);
-
     String inviteeToken = userFixture.login(inviteeEmail, inviteePassword).getData().accessToken();
+    acceptInvitation(invitationToken, inviteeToken);
     MemberResponse memberResponse = getMyMember(inviteeToken, context.workspaceId()).getData();
     return memberResponse.id();
   }
@@ -100,7 +123,8 @@ public record MemberFixture(
     ApiResponse<InvitationResponse> invitationResponse =
         createInvitation(
             context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.INTERVIEWER);
-    acceptInvitation(invitationResponse.getData().token());
+    String inviteeToken = userFixture.login(inviteeEmail, inviteePassword).getData().accessToken();
+    acceptInvitation(invitationResponse.getData().token(), inviteeToken);
 
     return userId;
   }
