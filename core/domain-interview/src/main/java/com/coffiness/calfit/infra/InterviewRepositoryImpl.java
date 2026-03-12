@@ -17,12 +17,11 @@ import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageReposito
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
@@ -159,7 +158,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
           scheduleRepository.findOverlappingSchedules(interviewerId, from, to);
 
       for (ScheduleEntity schedule : visibleSchedules) {
-        if (!schedule.isActive() || !schedule.isBusy() || schedule.getInterviewScheduleId() != null) {
+        if (!schedule.isActive()
+            || !schedule.isBusy()
+            || schedule.getInterviewScheduleId() != null) {
           continue;
         }
 
@@ -280,8 +281,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .toList();
     Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
 
-    Map<Long, String> recruitmentTitleMap =
-        resolveRecruitmentTitleMap(List.of(recruitmentId));
+    Map<Long, String> recruitmentTitleMap = resolveRecruitmentTitleMap(List.of(recruitmentId));
 
     List<Long> recruitmentStageIds =
         schedules.stream()

@@ -244,7 +244,8 @@ public class ScheduleReaderImpl implements ScheduleReader {
     }
 
     return interviewScheduleInterviewerRepository
-        .findAllByTenantIdAndInterviewScheduleIdIn(tenantId, List.of(schedule.interviewScheduleId()))
+        .findAllByTenantIdAndInterviewScheduleIdIn(
+            tenantId, List.of(schedule.interviewScheduleId()))
         .stream()
         .map(InterviewScheduleInterviewerEntity::getUserId)
         .filter(userId -> userId != null && !userId.equals(schedule.userId()))

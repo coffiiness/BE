@@ -1,5 +1,7 @@
 package com.coffiness.calfit.api.recruitment.weekly;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
@@ -12,16 +14,13 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /*
  * 이번 주 면접 일정 조회 API 동작을 검증

@@ -13,11 +13,6 @@ import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -26,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -199,9 +198,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
             .toList();
 
     // D-Day 및 링크 URL
-    int dDay =
-        (int)
-            ChronoUnit.DAYS.between(LocalDate.now(), entity.getEndDate().toLocalDate());
+    int dDay = (int) ChronoUnit.DAYS.between(LocalDate.now(), entity.getEndDate().toLocalDate());
     // TODO : 공고 링크 연결
     String shareUrl = "https://careers.nexus.ai/jobs/" + recruitmentId;
     int totalApplicants = countTotalApplicants(tenantId, recruitmentId);
@@ -331,7 +328,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     LocalDateTime now = LocalDateTime.now();
     return (int)
         interviewScheduleRepository
-            .findAllByTenantIdAndRecruitmentIdOrderByScheduledAtAsc(tenantId, recruitmentId).stream()
+            .findAllByTenantIdAndRecruitmentIdOrderByScheduledAtAsc(tenantId, recruitmentId)
+            .stream()
             .filter(schedule -> isProcessingInterview(schedule, now))
             .count();
   }

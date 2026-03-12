@@ -10,10 +10,10 @@ import com.coffiness.calfit.domain.recruitment.RecruitmentService;
 import com.coffiness.calfit.domain.workspace.group.GroupInfo;
 import com.coffiness.calfit.domain.workspace.group.GroupService;
 import com.coffiness.calfit.domain.workspace.member.MemberService;
-import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
-import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantEntity;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
+import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
@@ -248,7 +248,10 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
             .orElseThrow();
 
     return new RecruitmentSeed(
-        recruitment.getId(), recruitment.getApplicationTemplateId(), firstStageId, interviewStageId);
+        recruitment.getId(),
+        recruitment.getApplicationTemplateId(),
+        firstStageId,
+        interviewStageId);
   }
 
   // 테스트 공고별 지원서를 중복 없이 생성
@@ -257,16 +260,36 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
       RecruitmentSeed frontendRecruitment,
       List<ApplicantEntity> applicants) {
     ensureApplication(
-        backendRecruitment, applicants.get(0), Gender.FEMALE, LocalDate.of(1998, 1, 15), "010-1000-0001");
+        backendRecruitment,
+        applicants.get(0),
+        Gender.FEMALE,
+        LocalDate.of(1998, 1, 15),
+        "010-1000-0001");
     ensureApplication(
-        backendRecruitment, applicants.get(1), Gender.MALE, LocalDate.of(1996, 4, 3), "010-1000-0002");
+        backendRecruitment,
+        applicants.get(1),
+        Gender.MALE,
+        LocalDate.of(1996, 4, 3),
+        "010-1000-0002");
     ensureApplication(
-        backendRecruitment, applicants.get(4), Gender.MALE, LocalDate.of(1994, 11, 21), "010-1000-0005");
+        backendRecruitment,
+        applicants.get(4),
+        Gender.MALE,
+        LocalDate.of(1994, 11, 21),
+        "010-1000-0005");
 
     ensureApplication(
-        frontendRecruitment, applicants.get(2), Gender.FEMALE, LocalDate.of(1999, 7, 10), "010-1000-0003");
+        frontendRecruitment,
+        applicants.get(2),
+        Gender.FEMALE,
+        LocalDate.of(1999, 7, 10),
+        "010-1000-0003");
     ensureApplication(
-        frontendRecruitment, applicants.get(3), Gender.MALE, LocalDate.of(1997, 9, 28), "010-1000-0004");
+        frontendRecruitment,
+        applicants.get(3),
+        Gender.MALE,
+        LocalDate.of(1997, 9, 28),
+        "010-1000-0004");
   }
 
   // 지원자와 공고 조합별 지원서를 첫 단계에 보장

@@ -1,5 +1,7 @@
 package com.coffiness.calfit.api.calendar.availability;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
@@ -10,15 +12,12 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.response.ScheduleAvailabilityResponse;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @CalfitApiTest
 @DisplayName("GET /api/v1/schedules/availability")
@@ -214,6 +213,7 @@ public class GET_specs {
         response.getData().attendeeAvailabilities().get(0).busySchedules().get(0);
 
     assertThat(busySchedule.type()).isEqualTo(ScheduleType.INTERVIEW);
-    assertThat(busySchedule.interviewScheduleId()).isEqualTo(createInterviewResponse.getData().id());
+    assertThat(busySchedule.interviewScheduleId())
+        .isEqualTo(createInterviewResponse.getData().id());
   }
 }

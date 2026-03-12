@@ -1,5 +1,7 @@
 package com.coffiness.calfit.api.recruitment.detail;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
@@ -17,16 +19,13 @@ import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateReposito
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
 import com.coffiness.calfit.storage.db.core.user.GroupRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @CalfitApiTest
 @DisplayName("GET /api/v1/recruitments/{recruitmentId}")
@@ -46,8 +45,7 @@ public class GET_specs {
     String tenantId = context.workspaceId();
     Long interviewerId = userFixture.me(token).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId =
-        createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
 
     List<RecruitmentStageRequest> stages1 =
         List.of(
@@ -71,7 +69,8 @@ public class GET_specs {
             List.of(interviewerId),
             stages1);
 
-    ApiResponse<Void> createResponse = recruitmentFixture.createRecruitment(token, tenantId, request1);
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request1);
     assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     Long recruitmentId =
@@ -229,8 +228,7 @@ public class GET_specs {
       GroupRepository groupRepository,
       ApplicationTemplateRepository applicationTemplateRepository) {
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId =
-        createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
 
     RecruitmentCreateRequest request =
         new RecruitmentCreateRequest(
