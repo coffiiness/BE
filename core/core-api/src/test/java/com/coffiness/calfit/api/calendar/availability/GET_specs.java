@@ -89,4 +89,52 @@ public class GET_specs {
     assertThat(attendeeAvailability.busySchedules().get(0).title()).isEqualTo("참석자 기존 일정");
     assertThat(attendeeAvailability.busySchedules().get(0).isAllDay()).isFalse();
   }
+
+  @Test
+  void 본인_userId를_조회하면_본인_바쁜_일정도_포함한다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture) {
+
+    String ownerToken = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(ownerToken).getData();
+    String tenantId = workspace.workspaceId();
+    Long ownerUserId = userFixture.me(ownerToken).getData().id();
+
+    LocalDate targetDate = LocalDate.now().plusDays(1);
+    LocalDateTime startTime = targetDate.atTime(14, 0);
+    LocalDateTime endTime = targetDate.atTime(15, 0);
+
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "내 기존 일정",
+            "로그인한 사용자의 바쁜 일정",
+            ScheduleType.MEETING,
+            startTime,
+            endTime,
+            false,
+            null,
+            true,
+            List.of());
+
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(ownerToken, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<ScheduleAvailabilityResponse> response =
+        calendarFixture.getScheduleAvailability(
+            ownerToken, tenantId, targetDate.toString(), List.of(ownerUserId));
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isNotNull();
+    assertThat(response.getData().attendeeAvailabilities()).hasSize(1);
+
+    ScheduleAvailabilityResponse.AttendeeAvailabilityResponse attendeeAvailability =
+        response.getData().attendeeAvailabilities().get(0);
+
+    assertThat(attendeeAvailability.attendeeId()).isEqualTo(ownerUserId);
+    assertThat(attendeeAvailability.busySchedules()).hasSize(1);
+    assertThat(attendeeAvailability.busySchedules().get(0).title()).isEqualTo("내 기존 일정");
+    assertThat(attendeeAvailability.busySchedules().get(0).isAllDay()).isFalse();
+  }
 }
