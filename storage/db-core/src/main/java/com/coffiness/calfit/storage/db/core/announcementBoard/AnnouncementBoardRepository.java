@@ -7,17 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AnnouncementBoardRepository extends JpaRepository<AnnouncementBoardEntity, Long> {
 
-  boolean existsByTitle(String title);
-
-  boolean existsByTitleAndStatus(String title, EntityStatus status);
-
-  Optional<AnnouncementBoardEntity> findByTitle(String title);
-
-  Optional<AnnouncementBoardEntity> findByTitleAndStatus(String title, EntityStatus status);
-
   Optional<AnnouncementBoardEntity> findByIdAndStatus(Long id, EntityStatus status);
-
-  List<AnnouncementBoardEntity> findAllByOrderByPinnedDescCreatedAtDesc();
 
   List<AnnouncementBoardEntity> findAllByStatusOrderByPinnedDescCreatedAtDesc(EntityStatus status);
 }

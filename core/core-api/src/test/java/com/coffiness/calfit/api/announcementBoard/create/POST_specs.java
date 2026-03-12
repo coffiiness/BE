@@ -108,4 +108,25 @@ class POST_specs {
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
+
+  @Test
+  void 같은_제목의_공지사항도_중복_생성할_수_있다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired AnnouncementBoardFixture announcementBoardFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    String title = "중복 허용 제목";
+
+    ApiResponse<AnnouncementBoardResponse> firstResponse =
+        announcementBoardFixture.create(token, tenantId, title, "첫 번째 내용", false);
+    ApiResponse<AnnouncementBoardResponse> secondResponse =
+        announcementBoardFixture.create(token, tenantId, title, "두 번째 내용", true);
+
+    assertThat(firstResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(secondResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(secondResponse.getData()).isNotNull();
+    assertThat(secondResponse.getData().id()).isNotEqualTo(firstResponse.getData().id());
+    assertThat(secondResponse.getData().title()).isEqualTo(title);
+  }
 }
