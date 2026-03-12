@@ -13,6 +13,14 @@ public interface ApplicationRepository extends JpaRepository<ApplicationEntity, 
 
   Optional<ApplicationEntity> findByIdAndStatus(Long id, EntityStatus status);
 
+  @Query(
+      value =
+          "SELECT a.tenant_id FROM applications a"
+              + " WHERE a.id = :applicationId"
+              + " AND a.status = 'ACTIVE'",
+      nativeQuery = true)
+  Optional<String> findTenantIdById(@Param("applicationId") Long applicationId);
+
   List<ApplicationEntity> findByRecruitmentIdAndStatus(Long recruitmentId, EntityStatus status);
 
   // 현재 tenant 기준으로 채용 공고의 활성 지원자 수를 카운팅

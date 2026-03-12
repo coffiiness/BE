@@ -5,10 +5,19 @@ import com.coffiness.calfit.api.v1.request.PresignUploadRequest;
 import com.coffiness.calfit.api.v1.response.CompleteUploadResponse;
 import com.coffiness.calfit.api.v1.response.PresignDownloadResponse;
 import com.coffiness.calfit.api.v1.response.PresignUploadResponse;
+import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.UploadStatus;
-import com.coffiness.calfit.storage.db.core.application.*;
+import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationFileEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationFileRepository;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.member.MemberEntity;
+import com.coffiness.calfit.storage.db.core.member.MemberRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -32,7 +41,11 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 @RequiredArgsConstructor
 public class ApplicationFileService {
 
+  private static final String DEFAULT_TENANT = "default";
+
   private final ApplicationFileRepository applicationFileRepository;
+  private final ApplicationRepository applicationRepository;
+  private final MemberRepository memberRepository;
   private final S3Presigner presigner; // presigner URL 제공
   private final S3Client s3Client; // s3에 업로드 검증
 
@@ -43,19 +56,18 @@ public class ApplicationFileService {
   private String keyPrefix;
 
   @Value("${s3.presign-expire-minutes}")
-  private long expireMinutes; // presigned URL 유효시간: 10분
-
-  private void validateApplicant(Long requesterUserId, Long applicantId) {
-    if (requesterUserId == null || !requesterUserId.equals(applicantId)) {
-      throw new CoreException(ErrorType.UNAUTHORIZED);
-    }
-  }
-
-  private void validateRecruiterCanAccess(Long requesterUserId, Long applicationId) {}
+  private long expireMinutes;//유효시간 10분
 
   @Transactional
-  public PresignUploadResponse presignUpload(PresignUploadRequest req, Long requesterUserId) {
-    validateApplicant(requesterUserId, req.applicantId());
+  public PresignUploadResponse presignUpload(PresignUploadRequest req, SecurityUser requester) {
+    ensureTenantFromApplication(req.applicationId());
+
+    ApplicationEntity application = getActiveApplication(req.applicationId());
+    validateApplicant(requester, application.getApplicantId());
+
+    if (req.applicantId() == null || !req.applicantId().equals(application.getApplicantId())) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
 
     // 같은 application + fieldKey 기존 파일 있으면 삭제 상태로 변경
     applicationFileRepository
@@ -67,7 +79,7 @@ public class ApplicationFileService {
         String.format(
             "%s/%d/%d/%s/%s%s",
             keyPrefix,
-            req.applicantId(),
+            application.getApplicantId(),
             req.applicationId(),
             sanitizeFieldKey(req.fieldKey()),
             UUID.randomUUID(),
@@ -76,7 +88,7 @@ public class ApplicationFileService {
     ApplicationFileEntity entity =
         ApplicationFileEntity.builder()
             .applicationId(req.applicationId())
-            .applicantId(req.applicantId())
+            .applicantId(application.getApplicantId())
             .fieldKey(req.fieldKey())
             .objectKey(objectKey)
             .originalFilename(req.originalFilename())
@@ -106,13 +118,15 @@ public class ApplicationFileService {
   }
 
   @Transactional
-  public CompleteUploadResponse completeUpload(CompleteUploadRequest req, Long requesterUserId) {
+  public CompleteUploadResponse completeUpload(CompleteUploadRequest req, SecurityUser requester) {
+    ensureTenantFromFile(req.fileId());
+
     ApplicationFileEntity file =
         applicationFileRepository
             .findById(req.fileId())
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
-    validateApplicant(requesterUserId, file.getApplicantId());
+    validateApplicant(requester, file.getApplicantId());
 
     if (file.getUploadStatus() != UploadStatus.PENDING) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
@@ -129,7 +143,9 @@ public class ApplicationFileService {
   }
 
   @Transactional(readOnly = true)
-  public PresignDownloadResponse presignDownload(Long fileId, Long requesterUserId, String role) {
+  public PresignDownloadResponse presignDownload(Long fileId, SecurityUser requester) {
+    ensureTenantFromFile(fileId);
+
     ApplicationFileEntity file =
         applicationFileRepository
             .findById(fileId)
@@ -139,13 +155,7 @@ public class ApplicationFileService {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
 
-    if ("APPLICANT".equalsIgnoreCase(role)) {
-      validateApplicant(requesterUserId, file.getApplicantId());
-    } else if ("RECRUITER".equalsIgnoreCase(role)) {
-      validateRecruiterCanAccess(requesterUserId, file.getApplicationId());
-    } else {
-      throw new CoreException(ErrorType.VALIDATION_ERROR);
-    }
+    validateRecruiterCanAccess(requester, file.getApplicationId());
 
     String encoded = URLEncoder.encode(file.getOriginalFilename(), StandardCharsets.UTF_8);
     String disposition = "attachment; filename*=UTF-8''" + encoded;
@@ -168,11 +178,88 @@ public class ApplicationFileService {
     return new PresignDownloadResponse(presigned.url().toString(), expireMinutes);
   }
 
+  private void validateApplicant(SecurityUser requester, Long applicantId) {
+    if (requester == null
+        || !"APPLICANT".equalsIgnoreCase(requester.role())
+        || requester.userId() == null
+        || !requester.userId().equals(applicantId)) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+  }
+
+  private void validateRecruiterCanAccess(SecurityUser requester, Long applicationId) {
+    if (requester == null
+        || requester.userId() == null
+        || "APPLICANT".equalsIgnoreCase(requester.role())) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    getActiveApplication(applicationId);
+
+    MemberEntity member =
+        memberRepository.findByTenantIdAndUserIdAndStatus(
+            currentTenantId(), requester.userId(), EntityStatus.ACTIVE);
+    if (member == null || member.getMemberType() != MemberType.HR) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+  }
+
+  private ApplicationEntity getActiveApplication(Long applicationId) {
+    return applicationRepository
+        .findByIdAndStatus(applicationId, EntityStatus.ACTIVE)
+        .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
+  }
+
+  private void ensureTenantFromApplication(Long applicationId) {
+    ensureTenant(
+        applicationId,
+        id ->
+            applicationRepository
+                .findTenantIdById(id)
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND)));
+  }
+
+  private void ensureTenantFromFile(Long fileId) {
+    ensureTenant(
+        fileId,
+        id ->
+            applicationFileRepository
+                .findTenantIdById(id)
+                .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND)));
+  }
+
+  private void ensureTenant(Long resourceId, java.util.function.Function<Long, String> resolver) {
+    if (resourceId == null) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+
+    String tenantId = resolver.apply(resourceId);
+    String currentTenantId = TenantContext.getTenantId();
+    if (currentTenantId == null
+        || currentTenantId.isBlank()
+        || DEFAULT_TENANT.equals(currentTenantId)
+        || !currentTenantId.equals(tenantId)) {
+      TenantContext.setTenantId(tenantId);
+    }
+  }
+
+  private String currentTenantId() {
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank() || DEFAULT_TENANT.equals(tenantId)) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return tenantId;
+  }
+
   private String extractExt(String filename) {
-    if (filename == null) return "";
+    if (filename == null) {
+      return "";
+    }
     int idx = filename.lastIndexOf('.');
-    if (idx == -1) return "";
-    return filename.substring(idx); // ".pdf"
+    if (idx == -1) {
+      return "";
+    }
+    return filename.substring(idx);
   }
 
   private String sanitizeFieldKey(String fieldKey) {

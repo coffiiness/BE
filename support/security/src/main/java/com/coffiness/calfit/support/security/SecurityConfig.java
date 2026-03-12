@@ -59,11 +59,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/**", "/health", "/h2-console/**", "/docs/**")
                     .permitAll()
-                    .requestMatchers(
-                        "/api/v1/application-files/health",
-                        "/api/v1/application-files/presign-upload",
-                        "/api/v1/application-files/complete",
-                        "/api/v1/application-files/*/presign-download")
+                    .requestMatchers("/api/v1/application-files/health")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
