@@ -38,6 +38,36 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
           @Param("to") LocalDateTime to,
           @Param("status") InterviewStatus status);
 
+  @Query(
+      "SELECT e FROM InterviewScheduleEntity e "
+          + "WHERE e.tenantId = :tenantId "
+          + "AND e.scheduledAt >= :from "
+          + "AND e.scheduledAt < :to "
+          + "AND e.interviewStatus <> :status "
+          + "ORDER BY e.scheduledAt ASC")
+  List<InterviewScheduleEntity>
+      findAllByTenantIdAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
+          @Param("tenantId") String tenantId,
+          @Param("from") LocalDateTime from,
+          @Param("to") LocalDateTime to,
+          @Param("status") InterviewStatus status);
+
+  @Query(
+      "SELECT e FROM InterviewScheduleEntity e "
+          + "WHERE e.tenantId = :tenantId "
+          + "AND e.id IN :ids "
+          + "AND e.scheduledAt >= :from "
+          + "AND e.scheduledAt < :to "
+          + "AND e.interviewStatus <> :status "
+          + "ORDER BY e.scheduledAt ASC")
+  List<InterviewScheduleEntity>
+      findAllByTenantIdAndIdInAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
+          @Param("tenantId") String tenantId,
+          @Param("ids") List<Long> ids,
+          @Param("from") LocalDateTime from,
+          @Param("to") LocalDateTime to,
+          @Param("status") InterviewStatus status);
+
   Optional<InterviewScheduleEntity> findByTenantIdAndIdAndInterviewStatusNot(
       String tenantId, Long id, InterviewStatus status);
 

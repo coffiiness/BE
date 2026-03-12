@@ -20,4 +20,8 @@ public interface InterviewReader {
 
   List<InterviewScheduleCalendarItem> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to);
+
+  // 주간 면접 일정 화면에 필요한 인터뷰 목록을 조회
+  List<WeeklyInterviewScheduleItem> getWeeklySchedules(
+      Long interviewerUserId, LocalDateTime from, LocalDateTime to);
 }

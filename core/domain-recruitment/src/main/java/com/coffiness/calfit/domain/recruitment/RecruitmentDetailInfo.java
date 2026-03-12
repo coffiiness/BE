@@ -9,7 +9,12 @@ import java.util.List;
 public record RecruitmentDetailInfo(
     Long id,
     String title,
+    String contents,
     String leadGroupName,
+    Long leadGroupId,
+    List<Long> referenceGroupIds,
+    int targetCount,
+    Long applicationTemplateId,
     CareerType careerType,
     Integer minExperienceYears,
     Integer maxExperienceYears,
@@ -20,4 +25,5 @@ public record RecruitmentDetailInfo(
     int dDay,
     String shareUrl,
     RecruitmentStatus recruitmentStatus,
-    List<InterviewerInfo> interviewers) {}
+    List<InterviewerInfo> interviewers,
+    List<RecruitmentStage> stages) {}
