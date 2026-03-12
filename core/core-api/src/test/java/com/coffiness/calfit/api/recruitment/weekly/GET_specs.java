@@ -1,7 +1,5 @@
 package com.coffiness.calfit.api.recruitment.weekly;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
@@ -9,19 +7,21 @@ import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.api.v1.response.WeeklyInterviewScheduleResponse;
-import com.coffiness.calfit.core.enums.CareerType;
-import com.coffiness.calfit.core.enums.InterviewRound;
-import com.coffiness.calfit.core.enums.MemberType;
-import com.coffiness.calfit.core.enums.RecruitmentStageType;
+import com.coffiness.calfit.core.enums.*;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.interview.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /*
  * 이번 주 면접 일정 조회 API 동작을 검증
@@ -167,6 +167,101 @@ class GET_specs {
     assertThat(response.getData()).hasSize(1);
     assertThat(response.getData().get(0).interviewerName()).isEqualTo("면접관 A");
     assertThat(response.getData().get(0).description()).isEqualTo("A 면접");
+  }
+
+  @Test
+  void 불완전한_면접_레코드는_이번주_면접_목록에서_제외한다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired InterviewFixture interviewFixture,
+      @Autowired InterviewScheduleRepository interviewScheduleRepository,
+      @Autowired InterviewScheduleInterviewerRepository interviewScheduleInterviewerRepository,
+      @Autowired InterviewScheduleApplicantRepository interviewScheduleApplicantRepository) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    InterviewerContext interviewer =
+        inviteInterviewer(memberFixture, userFixture, hrToken, tenantId, "면접관 A");
+
+    Long meetingRoomId = meetingRoomFixture.create(hrToken, tenantId, "C회의실", 3, 6).getData().id();
+
+    RecruitmentContext recruitment =
+        createRecruitment(
+            recruitmentFixture,
+            hrToken,
+            tenantId,
+            "상반기 QA 채용",
+            List.of(interviewer.userId()),
+            LocalDateTime.of(2030, 3, 1, 9, 0),
+            LocalDateTime.of(2030, 3, 31, 18, 0));
+
+    ApiResponse<?> validInterview =
+        interviewFixture.create(
+            hrToken,
+            tenantId,
+            recruitment.recruitmentId(),
+            recruitment.stageId(),
+            InterviewRound.FIRST,
+            List.of(interviewer.userId()),
+            List.of(401L),
+            meetingRoomId,
+            LocalDateTime.of(2030, 3, 13, 12, 0),
+            120,
+            "정상 면접");
+    assertThat(validInterview.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    InterviewScheduleEntity invalidInterview =
+        saveInvalidInterview(
+            tenantId,
+            interviewScheduleRepository,
+            interviewScheduleInterviewerRepository,
+            interviewScheduleApplicantRepository,
+            recruitment.recruitmentId(),
+            meetingRoomId,
+            interviewer.userId());
+
+    ApiResponse<List<WeeklyInterviewScheduleResponse>> response =
+        recruitmentFixture.getWeeklyInterviewSchedules(
+            hrToken, tenantId, LocalDate.of(2030, 3, 13));
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).hasSize(1);
+    assertThat(response.getData().get(0).title()).isEqualTo("상반기 QA 채용 · 실무 면접");
+    assertThat(response.getData().get(0).description()).isEqualTo("정상 면접");
+  }
+
+  // 단계 정보가 없는 면접 레코드를 현재 tenant에 직접 저장
+  private InterviewScheduleEntity saveInvalidInterview(
+      String tenantId,
+      InterviewScheduleRepository interviewScheduleRepository,
+      InterviewScheduleInterviewerRepository interviewScheduleInterviewerRepository,
+      InterviewScheduleApplicantRepository interviewScheduleApplicantRepository,
+      Long recruitmentId,
+      Long meetingRoomId,
+      Long interviewerUserId) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      InterviewScheduleEntity invalidInterview =
+          interviewScheduleRepository.save(
+              new InterviewScheduleEntity(
+                  recruitmentId,
+                  null,
+                  meetingRoomId,
+                  LocalDateTime.of(2030, 3, 13, 12, 0),
+                  120,
+                  "잘못된 면접",
+                  InterviewStatus.CONFIRMED));
+      interviewScheduleInterviewerRepository.save(
+          new InterviewScheduleInterviewerEntity(invalidInterview.getId(), interviewerUserId));
+      interviewScheduleApplicantRepository.save(
+          new InterviewScheduleApplicantEntity(invalidInterview.getId(), 402L));
+      return invalidInterview;
+    } finally {
+      TenantContext.clear();
+    }
   }
 
   // 테스트용 면접관 사용자를 생성하고 워크스페이스에 초대

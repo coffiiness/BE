@@ -1,33 +1,25 @@
 package com.coffiness.calfit.api.interview.create;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.coffiness.calfit.api.CalfitApiTest;
-import com.coffiness.calfit.api.fixture.CalendarFixture;
-import com.coffiness.calfit.api.fixture.InterviewFixture;
-import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
-import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.fixture.RecruitmentFixture;
-import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
-import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
-import com.coffiness.calfit.api.v1.response.ScheduleDetailResponse;
-import com.coffiness.calfit.core.enums.CareerType;
-import com.coffiness.calfit.core.enums.InterviewRound;
-import com.coffiness.calfit.core.enums.MemberType;
-import com.coffiness.calfit.core.enums.RecruitmentStageType;
-import com.coffiness.calfit.core.enums.ScheduleType;
+import com.coffiness.calfit.core.enums.*;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
-import java.time.LocalDateTime;
-import java.util.List;
+import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @CalfitApiTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -53,6 +45,49 @@ class POST_specs {
             LocalDateTime.now().plusDays(1),
             60,
             "memo");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 채용_단계가_없으면_생성에_실패한다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired InterviewFixture interviewFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    InterviewerContext interviewer =
+        inviteInterviewer(memberFixture, userFixture, hrToken, tenantId, "면접관 테스트");
+
+    Long meetingRoomId = meetingRoomFixture.create(hrToken, tenantId, "면접실 A", 3, 6).getData().id();
+
+    RecruitmentContext recruitment =
+        createRecruitment(
+            recruitmentFixture,
+            hrToken,
+            tenantId,
+            "백엔드 채용 공고",
+            List.of(interviewer.userId()),
+            LocalDateTime.of(2030, 3, 1, 9, 0),
+            LocalDateTime.of(2030, 3, 31, 18, 0));
+
+    ApiResponse<InterviewResponse> response =
+        interviewFixture.create(
+            hrToken,
+            tenantId,
+            recruitment.recruitmentId(),
+            null,
+            InterviewRound.FIRST,
+            List.of(interviewer.userId()),
+            List.of(101L),
+            meetingRoomId,
+            LocalDateTime.of(2030, 3, 13, 14, 0),
+            60,
+            "백엔드 1차 면접");
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
