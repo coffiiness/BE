@@ -5,9 +5,22 @@ import java.util.List;
 
 public interface MeetingRoomValidator {
 
-  void validateCreateInput(String name, Integer location, Integer capacity);
+  void validateCreateInput(
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color);
 
-  void validateUpdateInput(Long meetingRoomId, String name, Integer capacity);
+  void validateUpdateInput(
+      Long meetingRoomId,
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color);
 
   void validateDeleteRequest(Long meetingRoomId, Long userId);
 

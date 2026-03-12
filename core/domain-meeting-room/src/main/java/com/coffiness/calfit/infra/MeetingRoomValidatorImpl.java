@@ -37,9 +37,26 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   private final ScheduleRepository scheduleRepository;
 
   @Override
-  public void validateCreateInput(String name, Integer location, Integer capacity) {
+  public void validateCreateInput(
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color) {
     requireTenantId();
-    if (name == null || name.isBlank() || location == null || capacity == null || capacity < 2) {
+    if (name == null
+        || name.isBlank()
+        || location == null
+        || capacity == null
+        || capacity < 2
+        || facilities == null
+        || facilities.isEmpty()
+        || color == null
+        || color.isBlank()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    if (description != null && description.length() > 1000) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     if (meetingRoomReader.existsByName(name)) {
@@ -48,13 +65,28 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
   }
 
   @Override
-  public void validateUpdateInput(Long meetingRoomId, String name, Integer capacity) {
+  public void validateUpdateInput(
+      Long meetingRoomId,
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color) {
     requireTenantId();
     if (meetingRoomId == null
         || name == null
         || name.isBlank()
+        || location == null
         || capacity == null
-        || capacity < 2) {
+        || capacity < 2
+        || facilities == null
+        || facilities.isEmpty()
+        || color == null
+        || color.isBlank()) {
+      throw new CoreException(ErrorType.VALIDATION_ERROR);
+    }
+    if (description != null && description.length() > 1000) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     MeetingRoom current = meetingRoomReader.getMeetingRoom(meetingRoomId);

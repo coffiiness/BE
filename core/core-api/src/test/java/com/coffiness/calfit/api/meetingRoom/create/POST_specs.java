@@ -8,6 +8,7 @@ import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,5 +167,29 @@ class POST_specs {
 
     // Assert
     assertThat(second.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 설명과_시설_색상도_함께_저장된다(
+      @Autowired UserFixture userFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    String token = userFixture.createUserAndGetToken();
+
+    ApiResponse<MeetingRoomResponse> response =
+        meetingRoomFixture.create(
+            token,
+            null,
+            "회의실 메타",
+            18,
+            12,
+            "대형 모니터가 있는 회의실",
+            List.of("WiFi", "모니터", "화이트보드"),
+            "#3b82f6");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isNotNull();
+    assertThat(response.getData().location()).isEqualTo(18);
+    assertThat(response.getData().description()).isEqualTo("대형 모니터가 있는 회의실");
+    assertThat(response.getData().facilities()).containsExactly("WiFi", "모니터", "화이트보드");
+    assertThat(response.getData().color()).isEqualTo("#3b82f6");
   }
 }

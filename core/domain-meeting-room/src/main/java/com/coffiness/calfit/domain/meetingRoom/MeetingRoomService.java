@@ -15,16 +15,35 @@ public class MeetingRoomService {
 
   /* 회의실 생성 */
   @Transactional
-  public MeetingRoom create(String name, Integer location, Integer capacity, Long userId) {
-    meetingRoomValidator.validateCreateInput(name, location, capacity);
-    return meetingRoomStore.create(name, location, capacity, userId);
+  public MeetingRoom create(
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color,
+      Long userId) {
+    meetingRoomValidator.validateCreateInput(
+        name, location, capacity, description, facilities, color);
+    return meetingRoomStore.create(
+        name, location, capacity, description, facilities, color, userId);
   }
 
   /* 회의실 수정 */
   @Transactional
-  public MeetingRoom update(Long id, String name, Integer capacity, Long userId) {
-    meetingRoomValidator.validateUpdateInput(id, name, capacity);
-    return meetingRoomStore.update(id, name, capacity, userId);
+  public MeetingRoom update(
+      Long id,
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color,
+      Long userId) {
+    meetingRoomValidator.validateUpdateInput(
+        id, name, location, capacity, description, facilities, color);
+    return meetingRoomStore.update(
+        id, name, location, capacity, description, facilities, color, userId);
   }
 
   /* 회의실 삭제 */

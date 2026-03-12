@@ -107,6 +107,27 @@ public class DELETE_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
 
+  @Test
+  void 삭제한_회의실과_같은_이름으로_다시_생성할_수_있다(
+      @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    String name = "회의실 A";
+
+    long meetingRoomId = createMeetingRoomAndGetId(meetingRoomFixture, token, tenantId, name, 1, 5);
+
+    ApiResponse<Void> deleteResponse = meetingRoomFixture.delete(token, tenantId, meetingRoomId);
+    ApiResponse<MeetingRoomResponse> recreateResponse =
+        meetingRoomFixture.create(token, tenantId, name, 2, 8);
+
+    assertThat(deleteResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(recreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(recreateResponse.getData()).isNotNull();
+    assertThat(recreateResponse.getData().id()).isNotEqualTo(meetingRoomId);
+    assertThat(recreateResponse.getData().name()).isEqualTo(name);
+  }
+
   private long createMeetingRoomAndGetId(
       MeetingRoomFixture meetingRoomFixture,
       String token,

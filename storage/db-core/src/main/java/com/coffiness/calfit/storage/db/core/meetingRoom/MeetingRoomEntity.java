@@ -4,7 +4,6 @@ import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,9 +11,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(
-    name = "meeting_rooms",
-    uniqueConstraints = {@UniqueConstraint(columnNames = {"tenant_id", "name"})})
+@Table(name = "meeting_rooms")
 @SQLDelete(
     sql =
         "UPDATE meeting_rooms SET status = 'DELETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
@@ -35,15 +32,43 @@ public class MeetingRoomEntity extends TenantBaseEntity {
   @Column(name = "capacity", nullable = false)
   private Integer capacity;
 
+  @Column(name = "description", length = 1000)
+  private String description;
+
+  @Column(name = "facilities", columnDefinition = "TEXT", nullable = false)
+  private String facilities;
+
+  @Column(name = "color", length = 20)
+  private String color;
+
   @Builder
-  public MeetingRoomEntity(String name, Integer location, Integer capacity) {
+  public MeetingRoomEntity(
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      String facilities,
+      String color) {
     this.name = name;
     this.location = location;
     this.capacity = capacity;
+    this.description = description;
+    this.facilities = facilities;
+    this.color = color;
   }
 
-  public void update(String name, Integer capacity) {
+  public void update(
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      String facilities,
+      String color) {
     this.name = name;
+    this.location = location;
     this.capacity = capacity;
+    this.description = description;
+    this.facilities = facilities;
+    this.color = color;
   }
 }

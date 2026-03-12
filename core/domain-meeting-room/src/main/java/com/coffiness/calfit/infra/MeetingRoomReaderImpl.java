@@ -12,6 +12,9 @@ import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEn
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +27,7 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
 
   private final MeetingRoomRepository meetingRoomRepository;
   private final MeetingRoomReservationRepository reservationRepository;
+  private final ObjectMapper objectMapper;
 
   @Override
   public boolean existsByName(String name) {
@@ -129,7 +133,25 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   }
 
   private MeetingRoom toMeetingRoom(MeetingRoomEntity entity) {
-    return new MeetingRoom(entity.getId(), entity.getName(), entity.getCapacity());
+    return new MeetingRoom(
+        entity.getId(),
+        entity.getName(),
+        entity.getLocation(),
+        entity.getCapacity(),
+        entity.getDescription(),
+        readFacilities(entity.getFacilities()),
+        entity.getColor());
+  }
+
+  private List<String> readFacilities(String rawFacilities) {
+    if (rawFacilities == null || rawFacilities.isBlank()) {
+      return List.of();
+    }
+    try {
+      return objectMapper.readValue(rawFacilities, new TypeReference<>() {});
+    } catch (JsonProcessingException exception) {
+      throw new CoreException(ErrorType.DEFAULT_ERROR);
+    }
   }
 
   private MeetingRoomReservation toReservation(MeetingRoomReservationEntity entity) {
