@@ -10,6 +10,7 @@ public interface InterviewValidator {
 
   void validateCreateInput(
       Long recruitmentId,
+      Long recruitmentStageId,
       InterviewRound round,
       Long meetingRoomId,
       List<Long> interviewerIds,

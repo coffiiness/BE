@@ -34,6 +34,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
             .type(schedule.type())
             .isBusy(schedule.isBusy())
             .googleEventId(schedule.googleEventId())
+            .interviewScheduleId(schedule.interviewScheduleId())
             .build();
 
     ScheduleEntity savedEntity = scheduleRepository.save(entity);
@@ -168,6 +169,7 @@ public class ScheduleStoreImpl implements ScheduleStore {
         entity.getRoomId(),
         entity.getReservationId(),
         entity.isBusy(),
-        entity.getGoogleEventId());
+        entity.getGoogleEventId(),
+        entity.getInterviewScheduleId());
   }
 }

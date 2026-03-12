@@ -13,7 +13,8 @@ public record ScheduleInfo(
     Long roomId,
     Long reservationId,
     boolean isAllDay,
-    boolean isBusy) {
+    boolean isBusy,
+    Long interviewScheduleId) {
 
   public static ScheduleInfo from(Schedule schedule) {
     return new ScheduleInfo(
@@ -26,6 +27,7 @@ public record ScheduleInfo(
         schedule.roomId(),
         schedule.reservationId(),
         schedule.isAllDay(),
-        schedule.isBusy());
+        schedule.isBusy(),
+        schedule.interviewScheduleId());
   }
 }

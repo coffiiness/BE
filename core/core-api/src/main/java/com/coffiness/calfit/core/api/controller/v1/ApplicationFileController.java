@@ -6,8 +6,17 @@ import com.coffiness.calfit.api.v1.response.CompleteUploadResponse;
 import com.coffiness.calfit.api.v1.response.PresignDownloadResponse;
 import com.coffiness.calfit.api.v1.response.PresignUploadResponse;
 import com.coffiness.calfit.domain.applicationFile.ApplicationFileService;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
+import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -16,27 +25,33 @@ public class ApplicationFileController {
 
   private final ApplicationFileService service;
 
-  // 임시: requesterUserId는 나중에 JWT에서 꺼내도록 변경!!
   @PostMapping("/presign-upload")
   public PresignUploadResponse presignUpload(
-      @RequestParam Long requesterUserId, @RequestBody PresignUploadRequest req) {
-    return service.presignUpload(req, requesterUserId);
+      @AuthenticationPrincipal SecurityUser user, @RequestBody PresignUploadRequest req) {
+    return service.presignUpload(req, requireUser(user));
   }
 
   @PostMapping("/complete")
   public CompleteUploadResponse complete(
-      @RequestParam Long requesterUserId, @RequestBody CompleteUploadRequest req) {
-    return service.completeUpload(req, requesterUserId);
+      @AuthenticationPrincipal SecurityUser user, @RequestBody CompleteUploadRequest req) {
+    return service.completeUpload(req, requireUser(user));
   }
 
   @GetMapping("/{fileId}/presign-download")
   public PresignDownloadResponse presignDownload(
-      @PathVariable Long fileId, @RequestParam Long requesterUserId, @RequestParam String role) {
-    return service.presignDownload(fileId, requesterUserId, role);
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long fileId) {
+    return service.presignDownload(fileId, requireUser(user));
   }
 
   @GetMapping("/health")
   public String health() {
     return "ok";
+  }
+
+  private SecurityUser requireUser(SecurityUser user) {
+    if (user == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    return user;
   }
 }

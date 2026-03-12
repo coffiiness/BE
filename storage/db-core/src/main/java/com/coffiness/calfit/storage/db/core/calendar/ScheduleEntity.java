@@ -67,6 +67,9 @@ public class ScheduleEntity extends TenantBaseEntity {
   @Column(name = "google_event_id", length = 255)
   private String googleEventId;
 
+  @Column(name = "interview_schedule_id")
+  private Long interviewScheduleId;
+
   @Builder
   public ScheduleEntity(
       String tenantId,
@@ -80,7 +83,8 @@ public class ScheduleEntity extends TenantBaseEntity {
       Long roomId,
       Long reservationId,
       String googleEventId,
-      boolean isBusy) {
+      boolean isBusy,
+      Long interviewScheduleId) {
     super(tenantId);
     this.userId = userId;
     this.title = title;
@@ -93,6 +97,7 @@ public class ScheduleEntity extends TenantBaseEntity {
     this.reservationId = reservationId;
     this.googleEventId = googleEventId;
     this.isBusy = isBusy;
+    this.interviewScheduleId = interviewScheduleId;
   }
 
   public void update(

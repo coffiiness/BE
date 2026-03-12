@@ -12,6 +12,8 @@ import com.coffiness.calfit.domain.workspace.group.GroupService;
 import com.coffiness.calfit.domain.workspace.member.MemberService;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantEntity;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
+import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
@@ -56,6 +58,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
   private final RecruitmentRepository recruitmentRepository;
   private final RecruitmentStageRepository recruitmentStageRepository;
   private final MeetingRoomRepository meetingRoomRepository;
+  private final ApplicationRepository applicationRepository;
   private final ApplicantRepository applicantRepository;
   private final ScheduleRepository scheduleRepository;
   private final InterviewScheduleRepository interviewScheduleRepository;
@@ -116,6 +119,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
               null,
               null);
 
+      seedApplications(backendRecruitment, frontendRecruitment, applicants);
       seedMemberSchedules(hrUser.getId(), memberUser.getId());
       seedWeeklyInterviews(
           tenantId,
@@ -235,7 +239,94 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
             .findFirst()
             .orElseThrow();
 
-    return new RecruitmentSeed(recruitment.getId(), interviewStageId);
+    Long firstStageId =
+        recruitmentStageRepository
+            .findByRecruitmentIdOrderByStageStepAsc(recruitment.getId())
+            .stream()
+            .map(RecruitmentStageEntity::getId)
+            .findFirst()
+            .orElseThrow();
+
+    return new RecruitmentSeed(
+        recruitment.getId(),
+        recruitment.getApplicationTemplateId(),
+        firstStageId,
+        interviewStageId);
+  }
+
+  // 테스트 공고별 지원서를 중복 없이 생성
+  private void seedApplications(
+      RecruitmentSeed backendRecruitment,
+      RecruitmentSeed frontendRecruitment,
+      List<ApplicantEntity> applicants) {
+    ensureApplication(
+        backendRecruitment,
+        applicants.get(0),
+        Gender.FEMALE,
+        LocalDate.of(1998, 1, 15),
+        "010-1000-0001");
+    ensureApplication(
+        backendRecruitment,
+        applicants.get(1),
+        Gender.MALE,
+        LocalDate.of(1996, 4, 3),
+        "010-1000-0002");
+    ensureApplication(
+        backendRecruitment,
+        applicants.get(4),
+        Gender.MALE,
+        LocalDate.of(1994, 11, 21),
+        "010-1000-0005");
+
+    ensureApplication(
+        frontendRecruitment,
+        applicants.get(2),
+        Gender.FEMALE,
+        LocalDate.of(1999, 7, 10),
+        "010-1000-0003");
+    ensureApplication(
+        frontendRecruitment,
+        applicants.get(3),
+        Gender.MALE,
+        LocalDate.of(1997, 9, 28),
+        "010-1000-0004");
+  }
+
+  // 지원자와 공고 조합별 지원서를 첫 단계에 보장
+  private void ensureApplication(
+      RecruitmentSeed recruitment,
+      ApplicantEntity applicant,
+      Gender gender,
+      LocalDate birthDate,
+      String phone) {
+    if (applicationRepository.existsByApplicantIdAndRecruitmentId(
+        applicant.getId(), recruitment.recruitmentId())) {
+      return;
+    }
+
+    applicationRepository.save(
+        ApplicationEntity.create(
+            applicant.getId(),
+            recruitment.recruitmentId(),
+            recruitment.firstStageId(),
+            recruitment.applicationTemplateId(),
+            applicant.getName(),
+            gender,
+            birthDate.atStartOfDay(),
+            phone,
+            applicant.getEmail(),
+            buildApplicationFormFields(recruitment.recruitmentId(), applicant.getName())));
+  }
+
+  // 로컬 더미용 지원서 폼 데이터를 구성
+  private String buildApplicationFormFields(Long recruitmentId, String applicantName) {
+    return "{\"motivation\":\"로컬 H2 테스트 지원서입니다.\","
+        + "\"portfolio\":\"https://portfolio.example.com/"
+        + recruitmentId
+        + "\","
+        + "\"note\":\""
+        + applicantName
+        + " 더미 지원 데이터\"}";
   }
 
   // 면접관 본인 일정과 공유 일정을 함께 생성
@@ -407,5 +498,6 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
   /*
    * 더미 채용 공고와 면접 단계 식별자를 함께 보관
    * */
-  private record RecruitmentSeed(Long recruitmentId, Long interviewStageId) {}
+  private record RecruitmentSeed(
+      Long recruitmentId, Long applicationTemplateId, Long firstStageId, Long interviewStageId) {}
 }

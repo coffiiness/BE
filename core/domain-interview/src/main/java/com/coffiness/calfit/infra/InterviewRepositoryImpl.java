@@ -93,6 +93,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
 
     List<MeetingRoomBusySlotRow> merged = new ArrayList<>(result);
     for (ScheduleEntity schedule : calendarBusySchedules) {
+      if (schedule.getInterviewScheduleId() != null) {
+        continue;
+      }
       merged.add(
           new MeetingRoomBusySlotRow(
               schedule.getRoomId(),
@@ -155,7 +158,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
           scheduleRepository.findOverlappingSchedules(interviewerId, from, to);
 
       for (ScheduleEntity schedule : visibleSchedules) {
-        if (!schedule.isActive() || !schedule.isBusy()) {
+        if (!schedule.isActive()
+            || !schedule.isBusy()
+            || schedule.getInterviewScheduleId() != null) {
           continue;
         }
 
@@ -276,6 +281,16 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .toList();
     Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
 
+    Map<Long, String> recruitmentTitleMap = resolveRecruitmentTitleMap(List.of(recruitmentId));
+
+    List<Long> recruitmentStageIds =
+        schedules.stream()
+            .map(InterviewScheduleEntity::getRecruitmentStageId)
+            .filter(id -> id != null && id > 0)
+            .distinct()
+            .toList();
+    Map<Long, String> stageNameMap = resolveStageNameMap(recruitmentStageIds);
+
     List<InterviewScheduleCalendarRow> result = new ArrayList<>();
     for (InterviewScheduleEntity schedule : schedules) {
       List<InterviewScheduleInterviewerEntity> interviewerMappings =
@@ -307,6 +322,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getEndTime(),
               interviewerUserId,
               interviewerName,
+              buildWeeklyScheduleTitle(
+                  recruitmentTitleMap.get(schedule.getRecruitmentId()),
+                  stageNameMap.get(schedule.getRecruitmentStageId())),
               applicantName,
               fallbackName(schedule.getMemo(), "")));
     }
@@ -410,6 +428,12 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       List<InterviewScheduleApplicantEntity> applicantMappings =
           applicantsByScheduleId.getOrDefault(schedule.getId(), List.of());
 
+      String recruitmentTitle = recruitmentTitleMap.get(schedule.getRecruitmentId());
+      String stageName = stageNameMap.get(schedule.getRecruitmentStageId());
+      if (!hasText(recruitmentTitle) || !hasText(stageName)) {
+        continue;
+      }
+
       Long firstInterviewerUserId =
           interviewerMappings.isEmpty() ? null : interviewerMappings.get(0).getUserId();
 
@@ -435,9 +459,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getEndTime(),
               firstInterviewerUserId,
               interviewerName,
-              buildWeeklyScheduleTitle(
-                  recruitmentTitleMap.get(schedule.getRecruitmentId()),
-                  stageNameMap.get(schedule.getRecruitmentStageId())),
+              buildWeeklyScheduleTitle(recruitmentTitle, stageName),
               applicantName,
               fallbackName(schedule.getMemo(), ""),
               fallbackName(locationMap.get(schedule.getMeetingRoomId()), "")));
@@ -498,7 +520,10 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .endDatetime(end)
             .reservationStatus(MeetingRoomStatus.RESERVED)
             .build();
-    meetingRoomReservationRepository.save(reservation);
+    MeetingRoomReservationEntity savedReservation =
+        meetingRoomReservationRepository.save(reservation);
+
+    createInterviewerSchedules(saved, savedReservation.getId(), interviewerIds);
 
     Map<String, Object> eventData = new HashMap<>();
     eventData.put("recruitmentId", recruitmentId);
@@ -535,6 +560,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
 
     schedule.cancel();
+    deleteInterviewerSchedules(schedule.getId());
 
     Map<String, Object> eventData = new HashMap<>();
     eventData.put("status", InterviewStatus.CANCELLED.name());
@@ -649,6 +675,74 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       }
     }
     return false;
+  }
+
+  // 면접 확정 시 면접관 개인 캘린더에 읽기 전용 일정 행을 생성
+  private void createInterviewerSchedules(
+      InterviewScheduleEntity interviewSchedule, Long reservationId, List<Long> interviewerIds) {
+    if (interviewSchedule == null || interviewerIds == null || interviewerIds.isEmpty()) {
+      return;
+    }
+
+    String title =
+        buildInterviewScheduleTitle(
+            interviewSchedule.getRecruitmentId(), interviewSchedule.getRecruitmentStageId());
+
+    List<ScheduleEntity> interviewerSchedules =
+        interviewerIds.stream()
+            .filter(userId -> userId != null && userId > 0)
+            .distinct()
+            .map(
+                interviewerId ->
+                    ScheduleEntity.builder()
+                        .userId(interviewerId)
+                        .title(title)
+                        .description(fallbackName(interviewSchedule.getMemo(), ""))
+                        .type(ScheduleType.INTERVIEW)
+                        .startTime(interviewSchedule.getScheduledAt())
+                        .endTime(interviewSchedule.getEndTime())
+                        .isAllDay(false)
+                        .roomId(interviewSchedule.getMeetingRoomId())
+                        .reservationId(reservationId)
+                        .isBusy(true)
+                        .googleEventId(null)
+                        .interviewScheduleId(interviewSchedule.getId())
+                        .build())
+            .toList();
+
+    if (interviewerSchedules.isEmpty()) {
+      return;
+    }
+
+    scheduleRepository.saveAll(interviewerSchedules);
+  }
+
+  // 면접 취소 시 연결된 면접관 일정 행을 함께 삭제
+  private void deleteInterviewerSchedules(Long interviewScheduleId) {
+    if (interviewScheduleId == null) {
+      return;
+    }
+
+    scheduleRepository
+        .findAllByInterviewScheduleIdAndStatus(interviewScheduleId, EntityStatus.ACTIVE)
+        .forEach(
+            schedule -> {
+              schedule.updateGoogleEventId(null);
+              schedule.deleted();
+            });
+  }
+
+  // 채용 공고명과 단계명을 합쳐 면접 캘린더 제목을 생성
+  private String buildInterviewScheduleTitle(Long recruitmentId, Long recruitmentStageId) {
+    String recruitmentTitle =
+        recruitmentId == null
+            ? null
+            : resolveRecruitmentTitleMap(List.of(recruitmentId)).get(recruitmentId);
+    String stageName =
+        recruitmentStageId == null
+            ? null
+            : resolveStageNameMap(List.of(recruitmentStageId)).get(recruitmentStageId);
+    return buildWeeklyScheduleTitle(recruitmentTitle, stageName);
   }
 
   private Map<Long, String> resolveInterviewerNameMap(List<Long> interviewerIds) {

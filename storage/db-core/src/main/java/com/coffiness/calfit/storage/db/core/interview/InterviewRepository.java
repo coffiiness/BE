@@ -20,6 +20,7 @@ public interface InterviewRepository {
       LocalDateTime endAt,
       Long interviewerUserId,
       String interviewerName,
+      String title,
       String applicantName,
       String description) {}
 
