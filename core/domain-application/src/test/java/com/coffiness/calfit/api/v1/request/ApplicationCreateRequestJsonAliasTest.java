@@ -32,4 +32,27 @@ class ApplicationCreateRequestJsonAliasTest {
 
     assertThat(request.formFields().get("motivation").asText()).isEqualTo("I want to join");
   }
+
+  @Test
+  void formFieldsKeyIsMappedToFormFields() throws Exception {
+    String payload =
+        """
+        {
+          "recruitmentId": 1,
+          "name": "Applicant",
+          "gender": "MALE",
+          "birthDate": "1995-01-01",
+          "phone": "01012345678",
+          "email": "applicant@test.com",
+          "formFields": {
+            "motivation": "I want to join"
+          }
+        }
+        """;
+
+    ApplicationCreateRequest request =
+        objectMapper.readValue(payload, ApplicationCreateRequest.class);
+
+    assertThat(request.formFields().get("motivation").asText()).isEqualTo("I want to join");
+  }
 }
