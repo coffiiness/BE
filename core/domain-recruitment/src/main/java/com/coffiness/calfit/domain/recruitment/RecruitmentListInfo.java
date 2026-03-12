@@ -9,6 +9,8 @@ public record RecruitmentListInfo(
     Long id,
     String title,
     String leadGroupName,
+    Long leadGroupId,
+    List<Long> referenceGroupIds,
     CareerType careerType,
     Integer minExperienceYears,
     Integer maxExperienceYears,

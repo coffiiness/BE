@@ -89,6 +89,7 @@ public class MemberGroupFacade {
         user.name(),
         user.createdAt(),
         user.recentAt(),
+        member.groupId(),
         groupName,
         member.memberType());
   }

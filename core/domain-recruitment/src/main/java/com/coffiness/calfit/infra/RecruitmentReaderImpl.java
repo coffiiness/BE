@@ -65,6 +65,16 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         recruitmentStageRepository.findByRecruitmentIdIn(recruitmentIds).stream()
             .collect(Collectors.groupingBy(RecruitmentStageEntity::getRecruitmentId));
 
+    // 공고별 참조 조직
+    Map<Long, List<Long>> referenceGroupMap =
+        recruitmentReferenceGroupRepository.findByRecruitmentIdIn(recruitmentIds).stream()
+            .filter(referenceGroup -> referenceGroup.getGroupId() != null)
+            .collect(
+                Collectors.groupingBy(
+                    RecruitmentReferenceGroupEntity::getRecruitmentId,
+                    Collectors.mapping(
+                        RecruitmentReferenceGroupEntity::getGroupId, Collectors.toList())));
+
     // 단계별 지원자 수
     Map<Long, Map<Long, Integer>> applicantCountMapByRecruitment =
         applicationRepository
@@ -147,6 +157,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   recruitmentId,
                   entity.getTitle(),
                   groupName,
+                  entity.getLeadGroupId(),
+                  referenceGroupMap.getOrDefault(recruitmentId, List.of()),
                   entity.getCareerType(),
                   entity.getMinExperienceYears(),
                   entity.getMaxExperienceYears(),

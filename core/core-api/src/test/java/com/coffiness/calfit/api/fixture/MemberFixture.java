@@ -1,11 +1,11 @@
 package com.coffiness.calfit.api.fixture;
 
-import com.coffiness.calfit.api.v1.request.CreateInvitationRequest;
-import com.coffiness.calfit.api.v1.request.CreateGroupRequest;
 import com.coffiness.calfit.api.v1.request.AssignGroupRequest;
+import com.coffiness.calfit.api.v1.request.CreateGroupRequest;
+import com.coffiness.calfit.api.v1.request.CreateInvitationRequest;
+import com.coffiness.calfit.api.v1.response.GroupResponse;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.MemberResponse;
-import com.coffiness.calfit.api.v1.response.GroupResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
