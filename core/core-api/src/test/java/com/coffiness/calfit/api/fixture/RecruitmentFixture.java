@@ -5,12 +5,15 @@ import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
+import com.coffiness.calfit.api.v1.response.WeeklyInterviewScheduleResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
 import org.springframework.core.env.Environment;
 import org.springframework.http.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 public record RecruitmentFixture(BaseFixture base) {
 
@@ -84,6 +87,17 @@ public record RecruitmentFixture(BaseFixture base) {
     ApiResponse<InterviewScheduleResponse[]> response =
         exchangeWithTenant(
             url, HttpMethod.GET, null, token, tenantId, InterviewScheduleResponse[].class);
+
+    return ApiResponse.success(List.of(response.getData()));
+  }
+
+  // 이번 주 면접 일정 조회 API를 tenant 헤더와 함께 호출
+  public ApiResponse<List<WeeklyInterviewScheduleResponse>> getWeeklyInterviewSchedules(
+      String token, String tenantId, LocalDate date) {
+    String url = String.format("/api/v1/recruitments/weekly-interview-schedules?date=%s", date);
+    ApiResponse<WeeklyInterviewScheduleResponse[]> response =
+        exchangeWithTenant(
+            url, HttpMethod.GET, null, token, tenantId, WeeklyInterviewScheduleResponse[].class);
 
     return ApiResponse.success(List.of(response.getData()));
   }
