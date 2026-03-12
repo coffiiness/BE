@@ -56,7 +56,7 @@ public class ApplicationFileService {
   private String keyPrefix;
 
   @Value("${s3.presign-expire-minutes}")
-  private long expireMinutes;//유효시간 10분
+  private long expireMinutes; // 유효시간 10분
 
   @Transactional
   public PresignUploadResponse presignUpload(PresignUploadRequest req, SecurityUser requester) {
