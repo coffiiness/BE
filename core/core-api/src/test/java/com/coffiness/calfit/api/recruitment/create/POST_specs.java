@@ -69,7 +69,8 @@ public class POST_specs {
     Long hrUserId = userFixture.me(hrToken).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
     Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
-    InterviewerContext interviewer = inviteInterviewer(memberFixture, userFixture, tenantId, hrToken);
+    InterviewerContext interviewer =
+        inviteInterviewer(memberFixture, userFixture, tenantId, hrToken);
     RecruitmentCreateRequest request =
         createRequest(applicationTemplateId, leadGroupId, List.of(hrUserId));
 

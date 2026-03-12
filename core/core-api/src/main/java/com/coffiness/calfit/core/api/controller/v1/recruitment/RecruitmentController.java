@@ -14,9 +14,6 @@ import com.coffiness.calfit.domain.interview.WeeklyInterviewScheduleItem;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
-import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
-import com.coffiness.calfit.support.error.CoreException;
-import com.coffiness.calfit.support.error.ErrorType;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -38,7 +35,6 @@ public class RecruitmentController {
 
   private final RecruitmentService recruitmentService;
   private final RecruitmentFacade recruitmentFacade;
-  private final ApplicationTemplateRepository applicationTemplateRepository;
 
   @ResponseStatus(HttpStatus.CREATED)
   @PostMapping("/api/v1/recruitments")
@@ -47,9 +43,7 @@ public class RecruitmentController {
       @Valid @RequestBody RecruitmentCreateRequest request) {
 
     long userId = user.userId();
-    validateTemplateInUse(request.applicationTemplateId());
-
-    Long recruitmentId = recruitmentService.createRecruitment(userId, request);
+    Long recruitmentId = recruitmentFacade.createRecruitment(userId, request);
 
     return ApiResponse.success(recruitmentId);
   }
@@ -119,8 +113,6 @@ public class RecruitmentController {
       @PathVariable Long recruitmentId,
       @Valid @RequestBody RecruitmentUpdateRequest request) {
     long userId = user.userId();
-    validateTemplateInUse(request.applicationTemplateId());
-
     RecruitmentDetailInfo info =
         recruitmentFacade.updateRecruitment(userId, recruitmentId, request);
 
@@ -134,16 +126,5 @@ public class RecruitmentController {
     recruitmentFacade.deleteRecruitment(userId, recruitmentId);
 
     return ApiResponse.success(recruitmentId);
-  }
-
-  private void validateTemplateInUse(Long templateId) {
-    var template =
-        applicationTemplateRepository
-            .findActiveById(templateId)
-            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-
-    if (!template.isInUse()) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR);
-    }
   }
 }
