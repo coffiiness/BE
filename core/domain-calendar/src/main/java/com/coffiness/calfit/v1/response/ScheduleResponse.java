@@ -15,7 +15,8 @@ public record ScheduleResponse(
     String description,
     Long roomId,
     @JsonProperty("isAllDay") boolean isAllDay,
-    @JsonProperty("isBusy") boolean isBusy) {
+    @JsonProperty("isBusy") boolean isBusy,
+    Long interviewScheduleId) {
 
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -31,6 +32,7 @@ public record ScheduleResponse(
         info.description(),
         info.roomId(),
         info.isAllDay(),
-        info.isBusy());
+        info.isBusy(),
+        info.interviewScheduleId());
   }
 }

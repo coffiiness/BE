@@ -16,7 +16,8 @@ public record Schedule(
     Long roomId,
     Long reservationId,
     boolean isBusy,
-    String googleEventId) {
+    String googleEventId,
+    Long interviewScheduleId) {
 
   public Schedule {
     if (title == null || title.isBlank()) {
@@ -53,7 +54,8 @@ public record Schedule(
         this.roomId,
         this.reservationId,
         this.isBusy,
-        newGoogleEventId);
+        newGoogleEventId,
+        this.interviewScheduleId);
   }
 
   public Schedule updateDetails(
@@ -74,7 +76,8 @@ public record Schedule(
         newRoomId,
         newReservationId,
         newIsBusy,
-        this.googleEventId);
+        this.googleEventId,
+        this.interviewScheduleId);
   }
 
   public Schedule updateTime(
@@ -91,6 +94,7 @@ public record Schedule(
         this.roomId,
         this.reservationId,
         this.isBusy,
-        this.googleEventId);
+        this.googleEventId,
+        this.interviewScheduleId);
   }
 }
