@@ -2,6 +2,7 @@ package com.coffiness.calfit.core.api.controller.v1;
 
 import com.coffiness.calfit.api.v1.request.InterviewCreateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewAvailabilityResponse;
+import com.coffiness.calfit.api.v1.response.InterviewPendingStageResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.core.api.facade.interview.InterviewFacade;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -43,6 +44,19 @@ public class InterviewController {
         interviewFacade.getAvailability(userId, from, meetingRoomIds, interviewerIds, applicantIds);
 
     return ApiResponse.success(InterviewAvailabilityResponse.from(availability));
+  }
+
+  // 채용 공고의 면접 단계별 대기 지원자 목록을 조회
+  @GetMapping("/pending-applicants")
+  public ApiResponse<List<InterviewPendingStageResponse>> pendingApplicants(
+      @AuthenticationPrincipal SecurityUser user, @RequestParam Long recruitmentId) {
+
+    Long userId = user.userId();
+
+    return ApiResponse.success(
+        interviewFacade.getPendingInterviewStages(userId, recruitmentId).stream()
+            .map(InterviewPendingStageResponse::from)
+            .toList());
   }
 
   // 일정 생성 즉시 확정(CONFIRMED)

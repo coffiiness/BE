@@ -2,6 +2,7 @@ package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.InterviewCreateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewAvailabilityResponse;
+import com.coffiness.calfit.api.v1.response.InterviewPendingStageResponse;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -41,6 +42,27 @@ public record InterviewFixture(BaseFixture base) {
         token,
         tenantId,
         InterviewAvailabilityResponse.class);
+  }
+
+  // 채용 공고 기준 면접 단계별 대기 지원자 목록을 조회
+  public ApiResponse<List<InterviewPendingStageResponse>> getPendingApplicants(
+      String token, String tenantId, Long recruitmentId) {
+    String url =
+        String.format("/api/v1/interviews/pending-applicants?recruitmentId=%s", recruitmentId);
+    ApiResponse<InterviewPendingStageResponse[]> response =
+        exchangeWithTenant(
+            url, HttpMethod.GET, null, token, tenantId, InterviewPendingStageResponse[].class);
+
+    if (response == null
+        || response.getResult() == com.coffiness.calfit.core.support.response.ResultType.ERROR
+        || response.getData() == null) {
+      @SuppressWarnings("unchecked")
+      ApiResponse<List<InterviewPendingStageResponse>> casted =
+          (ApiResponse<List<InterviewPendingStageResponse>>) (ApiResponse<?>) response;
+      return casted;
+    }
+
+    return ApiResponse.success(List.of(response.getData()));
   }
 
   public ApiResponse<InterviewResponse> create(
