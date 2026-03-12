@@ -2,6 +2,7 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.InterviewStatus;
+import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.*;
@@ -130,6 +131,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
               // TODO : 현재 단계의 지원자 수 가져오기 추가 (0 대신)
               List<RecruitmentListInfo.StageSummaryInfo> stageInfos =
                   stageMap.getOrDefault(recruitmentId, List.of()).stream()
+                      .filter(stage -> stage.getStageType() != RecruitmentStageType.FAIL)
                       .sorted(Comparator.comparing(RecruitmentStageEntity::getStageStep))
                       .map(
                           s -> {
