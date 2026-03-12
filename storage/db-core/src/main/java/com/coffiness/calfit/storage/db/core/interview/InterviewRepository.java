@@ -23,6 +23,19 @@ public interface InterviewRepository {
       String applicantName,
       String description) {}
 
+  // 주간 면접 일정 조회 결과를 저장소 계층에서 전달
+  record WeeklyInterviewScheduleRow(
+      Long interviewScheduleId,
+      Long recruitmentId,
+      LocalDateTime startAt,
+      LocalDateTime endAt,
+      Long interviewerUserId,
+      String interviewerName,
+      String title,
+      String applicantName,
+      String description,
+      String location) {}
+
   boolean isHrMember(Long userId);
 
   int getMeetingRoomCapacity(Long meetingRoomId);
@@ -38,6 +51,10 @@ public interface InterviewRepository {
 
   List<InterviewScheduleCalendarRow> getSchedulesByRecruitmentId(
       Long recruitmentId, LocalDateTime from, LocalDateTime to);
+
+  // 주간 면접 일정 화면용 인터뷰 목록을 조회
+  List<WeeklyInterviewScheduleRow> getWeeklySchedules(
+      Long interviewerUserId, LocalDateTime from, LocalDateTime to);
 
   Long createConfirmedSchedule(
       Long userId,

@@ -66,7 +66,15 @@ public class GET_specs {
     RecruitmentDetailResponse data = response.getData();
     assertThat(data.id()).isEqualTo(recruitmentId);
     assertThat(data.title()).isEqualTo("시니어 백엔드 채용");
+    assertThat(data.contents()).isEqualTo("경력직 모집합니다");
     assertThat(data.careerType()).isEqualTo(CareerType.EXPERIENCED);
+    assertThat(data.targetCount()).isEqualTo(2);
+    assertThat(data.applicationTemplateId()).isEqualTo(1L);
+    assertThat(data.stages()).hasSize(4);
+    assertThat(data.stages().get(0).stageName()).isEqualTo("서류 전형");
+    assertThat(data.stages().get(0).stageType()).isEqualTo(RecruitmentStageType.DOCUMENT);
+    assertThat(data.stages().get(1).stageName()).isEqualTo("면접 전형");
+    assertThat(data.stages().get(1).stageType()).isEqualTo(RecruitmentStageType.INTERVIEW);
     assertThat(data.endDate()).isAfter(data.startDate());
   }
 }
