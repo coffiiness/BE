@@ -80,9 +80,7 @@ public class MeetingRoomController {
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDatetime) {
 
     List<MeetingRoomReservationResponse> result =
-        meetingRoomReservationFacade.getActiveReservations(fromDatetime, toDatetime).stream()
-            .map(MeetingRoomReservationResponse::from)
-            .toList();
+        meetingRoomReservationFacade.getActiveReservationResponses(fromDatetime, toDatetime);
 
     return ApiResponse.success(result);
   }
@@ -98,7 +96,7 @@ public class MeetingRoomController {
     MeetingRoomReservation reservation =
         meetingRoomReservationFacade.reserveMeetingRoom(userId, meetingRoomId, request);
 
-    return ApiResponse.success(MeetingRoomReservationResponse.from(reservation));
+    return ApiResponse.success(meetingRoomReservationFacade.toResponse(reservation));
   }
 
   /* 회의실 예약 취소 */

@@ -1,6 +1,10 @@
 package com.coffiness.calfit.core.api.facade.meetingRoom;
 
 import com.coffiness.calfit.api.v1.request.MeetingRoomReservationCreateRequest;
+import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
+import com.coffiness.calfit.domain.Schedule;
+import com.coffiness.calfit.domain.ScheduleDetailInfo;
+import com.coffiness.calfit.domain.ScheduleReader;
 import com.coffiness.calfit.domain.ScheduleService;
 import com.coffiness.calfit.domain.interview.InterviewService;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
@@ -25,6 +29,7 @@ public class MeetingRoomReservationFacade {
   private final MeetingRoomReservationService meetingRoomReservationService;
   private final InterviewService interviewService;
   private final ScheduleService scheduleService;
+  private final ScheduleReader scheduleReader;
   private final MeetingRoomReader meetingRoomReader;
   private final DomainEventPublisher domainEventPublisher;
 
@@ -69,6 +74,36 @@ public class MeetingRoomReservationFacade {
   public List<MeetingRoomReservation> getActiveReservations(
       LocalDateTime fromDatetime, LocalDateTime toDatetime) {
     return meetingRoomReservationService.listActiveReservations(fromDatetime, toDatetime);
+  }
+
+  @Transactional(readOnly = true)
+  public List<MeetingRoomReservationResponse> getActiveReservationResponses(
+      LocalDateTime fromDatetime, LocalDateTime toDatetime) {
+    return meetingRoomReservationService.listActiveReservations(fromDatetime, toDatetime).stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public MeetingRoomReservationResponse toResponse(MeetingRoomReservation reservation) {
+    List<Schedule> schedules = scheduleReader.findByReservationId(reservation.id());
+    if (schedules.isEmpty()) {
+      return MeetingRoomReservationResponse.from(reservation);
+    }
+
+    ScheduleDetailInfo scheduleDetail = scheduleReader.readDetail(schedules.get(0).id());
+    return new MeetingRoomReservationResponse(
+        reservation.id(),
+        reservation.meetingRoomId(),
+        reservation.userId(),
+        reservation.interviewScheduleId(),
+        scheduleDetail.title(),
+        scheduleDetail.description(),
+        scheduleDetail.ownerName(),
+        scheduleDetail.attendees(),
+        reservation.startDatetime(),
+        reservation.endDatetime(),
+        reservation.status());
   }
 
   @Transactional

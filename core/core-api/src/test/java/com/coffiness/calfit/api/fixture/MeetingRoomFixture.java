@@ -126,11 +126,24 @@ public record MeetingRoomFixture(BaseFixture base) {
       long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime) {
+    return reserve(
+        token, tenantId, meetingRoomId, "테스트 예약", null, startDatetime, endDatetime, List.of());
+  }
+
+  public ApiResponse<MeetingRoomReservationResponse> reserve(
+      String token,
+      String tenantId,
+      long meetingRoomId,
+      String title,
+      String description,
+      LocalDateTime startDatetime,
+      LocalDateTime endDatetime,
+      List<Long> participantUserIds) {
     return exchangeWithTenant(
         "/api/v1/meeting-rooms/" + meetingRoomId + "/reservations",
         HttpMethod.POST,
         new MeetingRoomReservationCreateRequest(
-            "테스트 예약", null, startDatetime, endDatetime, List.of()),
+            title, description, startDatetime, endDatetime, participantUserIds),
         token,
         tenantId,
         MeetingRoomReservationResponse.class);
