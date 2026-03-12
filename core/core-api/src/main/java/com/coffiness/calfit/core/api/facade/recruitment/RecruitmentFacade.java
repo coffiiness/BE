@@ -4,12 +4,14 @@ import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.interview.InterviewReader;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
+import com.coffiness.calfit.domain.interview.WeeklyInterviewScheduleItem;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentReader;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
@@ -54,6 +56,26 @@ public class RecruitmentFacade {
     LocalDateTime to = ym.atEndOfMonth().atTime(23, 59, 59, 999999);
 
     return interviewReader.getSchedulesByRecruitmentId(recruitmentId, from, to);
+  }
+
+  // 이번 주 기준으로 권한에 맞는 면접 일정을 조회
+  @Transactional(readOnly = true)
+  public List<WeeklyInterviewScheduleItem> getWeeklyInterviewSchedules(
+      long userId, LocalDate targetDate) {
+    String currentWorkspaceId = TenantContext.getTenantId();
+    Member member = memberReader.getMember(currentWorkspaceId, userId);
+
+    if (member == null) {
+      throw new IllegalArgumentException("워크스페이스 멤버가 아닙니다.");
+    }
+
+    LocalDate normalizedDate = targetDate != null ? targetDate : LocalDate.now();
+    int daysFromSunday = normalizedDate.getDayOfWeek().getValue() % 7;
+    LocalDateTime from = normalizedDate.minusDays(daysFromSunday).atStartOfDay();
+    LocalDateTime to = from.plusDays(7);
+
+    Long interviewerUserId = member.memberType() == MemberType.HR ? null : userId;
+    return interviewReader.getWeeklySchedules(interviewerUserId, from, to);
   }
 
   @Transactional
