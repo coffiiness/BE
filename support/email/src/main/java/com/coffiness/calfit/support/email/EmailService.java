@@ -24,6 +24,9 @@ public class EmailService {
 
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+  private static final DateTimeFormatter DATE_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
+  private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
   private static final String SIGNUP_VERIFICATION_SUBJECT =
       "[CalFit] \uC774\uBA54\uC77C \uC778\uC99D\uC744 \uC644\uB8CC\uD574 \uC8FC\uC138\uC694";
 
@@ -122,6 +125,18 @@ public class EmailService {
   }
 
   @Async
+  public void sendInterviewScheduleEmail(String from, InterviewScheduleEmailMessage message) {
+    Context context = new Context();
+    context.setVariable("applicantName", message.getApplicantName());
+    context.setVariable("dateText", formatDate(message.getScheduledAt()));
+    context.setVariable("timeText", formatTimeRange(message.getScheduledAt(), message.getEndAt()));
+    context.setVariable("location", message.getLocation());
+
+    String htmlContent = templateEngine.process("interview-schedule-email", context);
+    sendHtmlEmail(from, message.getApplicantEmail(), message.getSubject(), htmlContent);
+  }
+
+  @Async
   public void sendWorkspaceVerificationEmail(
       String from, WorkspaceVerificationEmailMessage message) {
     Context context = new Context();
@@ -150,5 +165,20 @@ public class EmailService {
 
   private String formatDateTime(LocalDateTime value) {
     return value == null ? "-" : value.format(DATE_TIME_FORMATTER);
+  }
+
+  private String formatDate(LocalDateTime value) {
+    return value == null ? "-" : value.format(DATE_FORMATTER);
+  }
+
+  private String formatTimeRange(LocalDateTime start, LocalDateTime end) {
+    if (start == null) {
+      return "-";
+    }
+    String startText = start.format(TIME_FORMATTER);
+    if (end == null) {
+      return startText;
+    }
+    return startText + " - " + end.format(TIME_FORMATTER);
   }
 }

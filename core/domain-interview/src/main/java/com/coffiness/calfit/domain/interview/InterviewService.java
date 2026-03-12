@@ -92,7 +92,8 @@ public class InterviewService {
             meetingRoomId,
             scheduledAt,
             durationMinutes,
-            interviewerIds));
+            interviewerIds,
+            applicantIds));
 
     return Interview.confirmed(
         scheduleId,
