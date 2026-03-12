@@ -210,7 +210,9 @@ public class ScheduleReaderImpl implements ScheduleReader {
                                         schedule.getTitle(),
                                         schedule.getStartTime(),
                                         schedule.getEndTime(),
-                                        schedule.isAllDay()))
+                                        schedule.isAllDay(),
+                                        schedule.getType(),
+                                        schedule.getInterviewScheduleId()))
                             .toList()))
             .toList();
 

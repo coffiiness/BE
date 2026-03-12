@@ -280,6 +280,17 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .toList();
     Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
 
+    Map<Long, String> recruitmentTitleMap =
+        resolveRecruitmentTitleMap(List.of(recruitmentId));
+
+    List<Long> recruitmentStageIds =
+        schedules.stream()
+            .map(InterviewScheduleEntity::getRecruitmentStageId)
+            .filter(id -> id != null && id > 0)
+            .distinct()
+            .toList();
+    Map<Long, String> stageNameMap = resolveStageNameMap(recruitmentStageIds);
+
     List<InterviewScheduleCalendarRow> result = new ArrayList<>();
     for (InterviewScheduleEntity schedule : schedules) {
       List<InterviewScheduleInterviewerEntity> interviewerMappings =
@@ -311,6 +322,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getEndTime(),
               interviewerUserId,
               interviewerName,
+              buildWeeklyScheduleTitle(
+                  recruitmentTitleMap.get(schedule.getRecruitmentId()),
+                  stageNameMap.get(schedule.getRecruitmentStageId())),
               applicantName,
               fallbackName(schedule.getMemo(), "")));
     }
@@ -414,6 +428,12 @@ public class InterviewRepositoryImpl implements InterviewRepository {
       List<InterviewScheduleApplicantEntity> applicantMappings =
           applicantsByScheduleId.getOrDefault(schedule.getId(), List.of());
 
+      String recruitmentTitle = recruitmentTitleMap.get(schedule.getRecruitmentId());
+      String stageName = stageNameMap.get(schedule.getRecruitmentStageId());
+      if (!hasText(recruitmentTitle) || !hasText(stageName)) {
+        continue;
+      }
+
       Long firstInterviewerUserId =
           interviewerMappings.isEmpty() ? null : interviewerMappings.get(0).getUserId();
 
@@ -439,9 +459,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getEndTime(),
               firstInterviewerUserId,
               interviewerName,
-              buildWeeklyScheduleTitle(
-                  recruitmentTitleMap.get(schedule.getRecruitmentId()),
-                  stageNameMap.get(schedule.getRecruitmentStageId())),
+              buildWeeklyScheduleTitle(recruitmentTitle, stageName),
               applicantName,
               fallbackName(schedule.getMemo(), ""),
               fallbackName(locationMap.get(schedule.getMeetingRoomId()), "")));

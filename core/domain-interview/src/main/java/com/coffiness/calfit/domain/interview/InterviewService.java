@@ -43,6 +43,7 @@ public class InterviewService {
     interviewValidator.validateHrMember(userId);
     interviewValidator.validateCreateInput(
         recruitmentId,
+        recruitmentStageId,
         round,
         meetingRoomId,
         interviewerIds,

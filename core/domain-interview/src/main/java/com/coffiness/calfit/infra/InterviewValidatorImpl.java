@@ -26,6 +26,7 @@ public class InterviewValidatorImpl implements InterviewValidator {
   @Override
   public void validateCreateInput(
       Long recruitmentId,
+      Long recruitmentStageId,
       InterviewRound round,
       Long meetingRoomId,
       List<Long> interviewerIds,
@@ -33,6 +34,7 @@ public class InterviewValidatorImpl implements InterviewValidator {
       LocalDateTime scheduledAt,
       Integer durationMinutes) {
     if (recruitmentId == null
+        || recruitmentStageId == null
         || round == null
         || meetingRoomId == null
         || interviewerIds == null

@@ -8,7 +8,7 @@ import java.util.List;
 
 public record InterviewCreateRequest(
     @NotNull Long recruitmentId,
-    Long recruitmentStageId,
+    @NotNull Long recruitmentStageId,
     @NotNull InterviewRound round,
     @NotEmpty List<Long> interviewerIds,
     @NotEmpty List<Long> applicantIds,
