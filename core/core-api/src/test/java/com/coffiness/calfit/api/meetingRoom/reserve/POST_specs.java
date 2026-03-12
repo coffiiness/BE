@@ -3,6 +3,7 @@ package com.coffiness.calfit.api.meetingRoom.reserve;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.InterviewFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
@@ -21,6 +22,7 @@ import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.v1.response.ScheduleResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -276,5 +278,62 @@ class POST_specs {
     assertThat(reservation.get().organizerName()).isEqualTo(organizer.name());
     assertThat(reservation.get().attendees()).contains(attendee1Name, attendee2Name);
     assertThat(reservation.get().title()).isEqualTo("참석자 확인용 예약");
+  }
+
+  @Test
+  void 수동_회의실_예약을_생성하면_주최자와_참석자_모두의_내_일정에서_조회할_수_있다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired CalendarFixture calendarFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String organizerToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    String attendeeEmail = userFixture.randomEmail();
+    String attendeePassword = userFixture.randomPassword();
+    String attendeeName = "회의 참석자";
+    Long attendeeUserId =
+        userFixture.signUp(attendeeEmail, attendeePassword, attendeeName).getData().id();
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    ApiResponse<InvitationResponse> attendeeInvitation =
+        memberFixture.createInvitation(
+            organizerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
+    memberFixture.acceptInvitation(attendeeInvitation.getData().token(), attendeeToken);
+
+    Long meetingRoomId =
+        meetingRoomFixture.create(organizerToken, tenantId, "일정 공유 회의실", 1, 6).getData().id();
+
+    LocalDateTime start = LocalDateTime.of(2030, 2, 10, 15, 0);
+    LocalDateTime end = LocalDateTime.of(2030, 2, 10, 16, 0);
+
+    ApiResponse<MeetingRoomReservationResponse> created =
+        meetingRoomFixture.reserve(
+            organizerToken,
+            tenantId,
+            meetingRoomId,
+            "수동 예약 일정",
+            "참석자에게도 보여야 하는 일정",
+            start,
+            end,
+            List.of(attendeeUserId));
+
+    assertThat(created.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<List<ScheduleResponse>> organizerSchedules =
+        calendarFixture.getSchedules(organizerToken, tenantId, "2030-02-10", "2030-02-10");
+    ApiResponse<List<ScheduleResponse>> attendeeSchedules =
+        calendarFixture.getSchedules(attendeeToken, tenantId, "2030-02-10", "2030-02-10");
+
+    assertThat(organizerSchedules.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(attendeeSchedules.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    assertThat(organizerSchedules.getData())
+        .extracting(ScheduleResponse::title)
+        .contains("수동 예약 일정");
+    assertThat(attendeeSchedules.getData())
+        .extracting(ScheduleResponse::title)
+        .contains("수동 예약 일정");
   }
 }
