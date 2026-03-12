@@ -40,6 +40,7 @@ public class ScheduleService {
             request.roomId(),
             reservationId,
             request.isBusy() != null ? request.isBusy() : true,
+            null,
             null);
 
     validateBusyScheduleConflicts(
@@ -79,6 +80,7 @@ public class ScheduleService {
             roomId,
             reservationId,
             true,
+            null,
             null);
 
     validateBusyScheduleConflicts(
@@ -135,6 +137,9 @@ public class ScheduleService {
     if (!schedule.userId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 수정할 권한이 없습니다.");
     }
+    if (schedule.interviewScheduleId() != null) {
+      throw new IllegalArgumentException("면접 일정으로 생성된 일정은 수정할 수 없습니다.");
+    }
 
     List<Long> previousAttendeeIds = scheduleReader.readAttendeeIds(scheduleId);
 
@@ -151,7 +156,8 @@ public class ScheduleService {
             request.roomId() != null ? request.roomId() : schedule.roomId(),
             reservationId,
             request.isBusy() != null ? request.isBusy() : schedule.isBusy(),
-            schedule.googleEventId());
+            schedule.googleEventId(),
+            schedule.interviewScheduleId());
 
     List<Long> updatedAttendeeIds =
         request.attendeeIds() != null ? request.attendeeIds() : previousAttendeeIds;
@@ -179,6 +185,9 @@ public class ScheduleService {
 
     if (!schedule.userId().equals(userId)) {
       throw new IllegalArgumentException("해당 일정을 삭제할 권한이 없습니다.");
+    }
+    if (schedule.interviewScheduleId() != null) {
+      throw new IllegalArgumentException("면접 일정으로 생성된 일정은 삭제할 수 없습니다.");
     }
 
     List<Long> attendeeIds = scheduleReader.readAttendeeIds(scheduleId);
@@ -246,7 +255,8 @@ public class ScheduleService {
               null,
               null,
               true,
-              request.googleEventId());
+              request.googleEventId(),
+              null);
 
       Schedule saved = scheduleStore.store(newSchedule, List.of());
       return saved.id();
@@ -269,7 +279,8 @@ public class ScheduleService {
             existingSchedule.roomId(),
             existingSchedule.reservationId(),
             existingSchedule.isBusy(),
-            existingSchedule.googleEventId());
+            existingSchedule.googleEventId(),
+            existingSchedule.interviewScheduleId());
 
     List<Long> attendeeIds = scheduleReader.readAttendeeIds(existingSchedule.id());
     scheduleStore.update(updatedSchedule, attendeeIds);
