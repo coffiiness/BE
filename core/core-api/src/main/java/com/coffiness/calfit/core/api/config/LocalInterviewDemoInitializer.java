@@ -26,6 +26,9 @@ import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageReposito
 import com.coffiness.calfit.storage.db.core.user.UserEntity;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -34,10 +37,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 
 /*
  * 로컬 H2 환경에서 면접 일정 테스트용 더미 데이터 생성 클래스
@@ -71,14 +70,8 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
   // 로컬 실행 시 필요한 면접 테스트 데이터를 한 번에 구성
   @Override
   public void run(ApplicationArguments args) {
-    UserEntity hrUser =
-        userRepository
-            .findByEmail(HR_EMAIL)
-            .orElse(null);
-    UserEntity memberUser =
-        userRepository
-            .findByEmail(MEMBER_EMAIL)
-            .orElse(null);
+    UserEntity hrUser = userRepository.findByEmail(HR_EMAIL).orElse(null);
+    UserEntity memberUser = userRepository.findByEmail(MEMBER_EMAIL).orElse(null);
 
     if (hrUser == null || memberUser == null) {
       log.info("[LocalInterviewDemoInitializer] 기본 로컬 계정이 없어 더미 생성을 건너뜁니다.");
@@ -185,8 +178,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         .orElseGet(
             () ->
                 applicantRepository.save(
-                    ApplicantEntity.create(
-                        email, passwordEncoder.encode("applicant1234!"), name)));
+                    ApplicantEntity.create(email, passwordEncoder.encode("applicant1234!"), name)));
   }
 
   // 테스트용 채용 공고와 첫 면접 단계를 준비
@@ -235,7 +227,9 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
                 });
 
     Long interviewStageId =
-        recruitmentStageRepository.findByRecruitmentIdOrderByStageStepAsc(recruitment.getId()).stream()
+        recruitmentStageRepository
+            .findByRecruitmentIdOrderByStageStepAsc(recruitment.getId())
+            .stream()
             .filter(stage -> stage.getStageType() == RecruitmentStageType.INTERVIEW)
             .map(RecruitmentStageEntity::getId)
             .findFirst()
@@ -286,10 +280,12 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
       LocalDateTime end,
       List<Long> attendeeIds) {
     boolean exists =
-        scheduleRepository.findOverlappingSchedules(
-                visibleUserId, start.minusMinutes(1), end.plusMinutes(1))
+        scheduleRepository
+            .findOverlappingSchedules(visibleUserId, start.minusMinutes(1), end.plusMinutes(1))
             .stream()
-            .anyMatch(schedule -> title.equals(schedule.getTitle()) && start.equals(schedule.getStartTime()));
+            .anyMatch(
+                schedule ->
+                    title.equals(schedule.getTitle()) && start.equals(schedule.getStartTime()));
 
     if (exists) {
       return;
@@ -299,15 +295,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         ownerUserId,
         null,
         new ScheduleCreateRequest(
-            title,
-            description,
-            ScheduleType.MEETING,
-            start,
-            end,
-            false,
-            null,
-            true,
-            attendeeIds));
+            title, description, ScheduleType.MEETING, start, end, false, null, true, attendeeIds));
   }
 
   // 이번 주와 다음 주 면접 더미를 구분해서 생성

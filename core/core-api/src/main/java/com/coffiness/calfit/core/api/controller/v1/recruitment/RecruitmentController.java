@@ -5,10 +5,12 @@ import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
+import com.coffiness.calfit.api.v1.response.WeeklyInterviewScheduleResponse;
 import com.coffiness.calfit.core.api.facade.recruitment.RecruitmentFacade;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
+import com.coffiness.calfit.domain.interview.WeeklyInterviewScheduleItem;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
@@ -17,23 +19,17 @@ import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -97,6 +93,22 @@ public class RecruitmentController {
 
     List<InterviewScheduleResponse> response =
         items.stream().map(InterviewScheduleResponse::from).toList();
+
+    return ApiResponse.success(response);
+  }
+
+  // 메인 채용 화면에서 쓸 이번 주 면접 일정을 내려줌
+  @GetMapping("/api/v1/recruitments/weekly-interview-schedules")
+  public ApiResponse<List<WeeklyInterviewScheduleResponse>> getWeeklyInterviewSchedules(
+      @AuthenticationPrincipal SecurityUser user,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    long userId = user.userId();
+
+    List<WeeklyInterviewScheduleItem> items =
+        recruitmentFacade.getWeeklyInterviewSchedules(userId, date);
+
+    List<WeeklyInterviewScheduleResponse> response =
+        items.stream().map(WeeklyInterviewScheduleResponse::from).toList();
 
     return ApiResponse.success(response);
   }

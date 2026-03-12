@@ -9,11 +9,10 @@ import com.coffiness.calfit.api.v1.response.WeeklyInterviewScheduleResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.core.env.Environment;
-import org.springframework.http.*;
-
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.core.env.Environment;
+import org.springframework.http.*;
 
 public record RecruitmentFixture(BaseFixture base) {
 

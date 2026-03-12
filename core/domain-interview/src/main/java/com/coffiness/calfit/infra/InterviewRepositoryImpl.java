@@ -1,38 +1,24 @@
 package com.coffiness.calfit.infra;
 
-import com.coffiness.calfit.core.enums.EntityStatus;
-import com.coffiness.calfit.core.enums.InterviewEventType;
-import com.coffiness.calfit.core.enums.InterviewStatus;
-import com.coffiness.calfit.core.enums.MeetingRoomStatus;
-import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.enums.*;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.applicant.ApplicantRepository;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
 import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
-import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantEntity;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleApplicantRepository;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryEntity;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleHistoryRepository;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerEntity;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleInterviewerRepository;
-import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
+import com.coffiness.calfit.storage.db.core.interview.*;
+import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomRepository;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEntity;
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
 import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -51,6 +37,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
   private final ScheduleRepository scheduleRepository;
   private final UserRepository userRepository;
   private final ApplicantRepository applicantRepository;
+  private final RecruitmentRepository recruitmentRepository;
+  private final RecruitmentStageRepository recruitmentStageRepository;
 
   @Override
   public boolean isHrMember(Long userId) {
@@ -325,6 +313,138 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     return result;
   }
 
+  // 권한 범위에 맞는 이번 주 면접 일정을 조회용 row로 조합
+  @Override
+  public List<WeeklyInterviewScheduleRow> getWeeklySchedules(
+      Long interviewerUserId, LocalDateTime from, LocalDateTime to) {
+    if (from == null || to == null || !from.isBefore(to)) {
+      return List.of();
+    }
+
+    String tenantId = requireTenantId();
+    List<InterviewScheduleEntity> schedules;
+    if (interviewerUserId == null) {
+      schedules =
+          interviewScheduleRepository
+              .findAllByTenantIdAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
+                  tenantId, from, to, InterviewStatus.CANCELLED);
+    } else {
+      List<Long> scheduleIds =
+          interviewerRepository
+              .findAllByTenantIdAndUserIdIn(tenantId, List.of(interviewerUserId))
+              .stream()
+              .map(InterviewScheduleInterviewerEntity::getInterviewScheduleId)
+              .distinct()
+              .toList();
+
+      if (scheduleIds.isEmpty()) {
+        return List.of();
+      }
+
+      schedules =
+          interviewScheduleRepository
+              .findAllByTenantIdAndIdInAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
+                  tenantId, scheduleIds, from, to, InterviewStatus.CANCELLED);
+    }
+
+    if (schedules.isEmpty()) {
+      return List.of();
+    }
+
+    List<Long> scheduleIds = schedules.stream().map(InterviewScheduleEntity::getId).toList();
+
+    Map<Long, List<InterviewScheduleInterviewerEntity>> interviewersByScheduleId =
+        interviewerRepository
+            .findAllByTenantIdAndInterviewScheduleIdIn(tenantId, scheduleIds)
+            .stream()
+            .collect(
+                Collectors.groupingBy(InterviewScheduleInterviewerEntity::getInterviewScheduleId));
+
+    Map<Long, List<InterviewScheduleApplicantEntity>> applicantsByScheduleId =
+        applicantMappingRepository
+            .findAllByTenantIdAndInterviewScheduleIdIn(tenantId, scheduleIds)
+            .stream()
+            .collect(
+                Collectors.groupingBy(InterviewScheduleApplicantEntity::getInterviewScheduleId));
+
+    List<Long> interviewerIds =
+        interviewersByScheduleId.values().stream()
+            .flatMap(List::stream)
+            .map(InterviewScheduleInterviewerEntity::getUserId)
+            .distinct()
+            .toList();
+    Map<Long, String> interviewerNameMap = resolveInterviewerNameMap(interviewerIds);
+
+    List<Long> applicantIds =
+        applicantsByScheduleId.values().stream()
+            .flatMap(List::stream)
+            .map(InterviewScheduleApplicantEntity::getApplicantId)
+            .distinct()
+            .toList();
+    Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
+
+    List<Long> recruitmentIds =
+        schedules.stream().map(InterviewScheduleEntity::getRecruitmentId).distinct().toList();
+    Map<Long, String> recruitmentTitleMap = resolveRecruitmentTitleMap(recruitmentIds);
+
+    List<Long> recruitmentStageIds =
+        schedules.stream()
+            .map(InterviewScheduleEntity::getRecruitmentStageId)
+            .filter(id -> id != null && id > 0)
+            .distinct()
+            .toList();
+    Map<Long, String> stageNameMap = resolveStageNameMap(recruitmentStageIds);
+
+    List<Long> meetingRoomIds =
+        schedules.stream()
+            .map(InterviewScheduleEntity::getMeetingRoomId)
+            .filter(id -> id != null && id > 0)
+            .distinct()
+            .toList();
+    Map<Long, String> locationMap = resolveMeetingRoomLocationMap(meetingRoomIds);
+
+    List<WeeklyInterviewScheduleRow> result = new ArrayList<>();
+    for (InterviewScheduleEntity schedule : schedules) {
+      List<InterviewScheduleInterviewerEntity> interviewerMappings =
+          interviewersByScheduleId.getOrDefault(schedule.getId(), List.of());
+      List<InterviewScheduleApplicantEntity> applicantMappings =
+          applicantsByScheduleId.getOrDefault(schedule.getId(), List.of());
+
+      Long firstInterviewerUserId =
+          interviewerMappings.isEmpty() ? null : interviewerMappings.get(0).getUserId();
+
+      String interviewerName =
+          interviewerMappings.stream()
+              .map(InterviewScheduleInterviewerEntity::getUserId)
+              .map(id -> fallbackName(interviewerNameMap.get(id), "면접관#" + id))
+              .distinct()
+              .collect(Collectors.joining(", "));
+
+      String applicantName =
+          applicantMappings.stream()
+              .map(InterviewScheduleApplicantEntity::getApplicantId)
+              .map(id -> fallbackName(applicantNameMap.get(id), "지원자#" + id))
+              .distinct()
+              .collect(Collectors.joining(", "));
+
+      result.add(
+          new WeeklyInterviewScheduleRow(
+              schedule.getId(),
+              schedule.getRecruitmentId(),
+              schedule.getScheduledAt(),
+              schedule.getEndTime(),
+              firstInterviewerUserId,
+              interviewerName,
+              buildWeeklyScheduleTitle(
+                  recruitmentTitleMap.get(schedule.getRecruitmentId()),
+                  stageNameMap.get(schedule.getRecruitmentStageId())),
+              applicantName,
+              fallbackName(schedule.getMemo(), ""),
+              fallbackName(locationMap.get(schedule.getMeetingRoomId()), "")));
+    }
+    return result;
+  }
+
   @Override
   public Long createConfirmedSchedule(
       Long userId,
@@ -582,6 +702,86 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               }
             });
     return resolved;
+  }
+
+  // 면접 일정 제목 구성에 필요한 공고명을 조회
+  private Map<Long, String> resolveRecruitmentTitleMap(List<Long> recruitmentIds) {
+    if (recruitmentIds == null || recruitmentIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved = new HashMap<>();
+    recruitmentRepository
+        .findAllById(recruitmentIds.stream().filter(id -> id != null && id > 0).distinct().toList())
+        .forEach(
+            recruitment -> {
+              if (recruitment.isActive() && hasText(recruitment.getTitle())) {
+                resolved.put(recruitment.getId(), recruitment.getTitle());
+              }
+            });
+    return resolved;
+  }
+
+  // 면접 일정 제목 구성에 필요한 단계명을 조회
+  private Map<Long, String> resolveStageNameMap(List<Long> recruitmentStageIds) {
+    if (recruitmentStageIds == null || recruitmentStageIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved = new HashMap<>();
+    recruitmentStageRepository
+        .findAllById(
+            recruitmentStageIds.stream().filter(id -> id != null && id > 0).distinct().toList())
+        .forEach(
+            stage -> {
+              if (stage.isActive() && hasText(stage.getStageName())) {
+                resolved.put(stage.getId(), stage.getStageName());
+              }
+            });
+    return resolved;
+  }
+
+  // 회의실 식별자를 화면 표시용 위치 문자열로 치환
+  private Map<Long, String> resolveMeetingRoomLocationMap(List<Long> meetingRoomIds) {
+    if (meetingRoomIds == null || meetingRoomIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> resolved = new HashMap<>();
+    meetingRoomRepository
+        .findAllById(meetingRoomIds.stream().filter(id -> id != null && id > 0).distinct().toList())
+        .forEach(
+            room -> {
+              if (room.isActive()) {
+                resolved.put(room.getId(), buildMeetingRoomLocation(room));
+              }
+            });
+    return resolved;
+  }
+
+  // 공고명과 단계명을 합쳐 면접 일정 제목을 생성
+  private String buildWeeklyScheduleTitle(String recruitmentTitle, String stageName) {
+    if (hasText(recruitmentTitle) && hasText(stageName)) {
+      return recruitmentTitle + " · " + stageName;
+    }
+    if (hasText(recruitmentTitle)) {
+      return recruitmentTitle;
+    }
+    if (hasText(stageName)) {
+      return stageName;
+    }
+    return "면접 일정";
+  }
+
+  // 회의실명과 층 정보를 합쳐 화면용 위치를 생성
+  private String buildMeetingRoomLocation(MeetingRoomEntity room) {
+    if (!hasText(room.getName())) {
+      return "";
+    }
+    if (room.getLocation() == null) {
+      return room.getName();
+    }
+    return room.getName() + " (" + room.getLocation() + "층)";
   }
 
   private String fallbackName(String value, String fallback) {

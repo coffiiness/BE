@@ -3,6 +3,7 @@ package com.coffiness.calfit.infra;
 import com.coffiness.calfit.domain.interview.InterviewAvailability;
 import com.coffiness.calfit.domain.interview.InterviewReader;
 import com.coffiness.calfit.domain.interview.InterviewScheduleCalendarItem;
+import com.coffiness.calfit.domain.interview.WeeklyInterviewScheduleItem;
 import com.coffiness.calfit.storage.db.core.interview.InterviewRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -73,6 +74,27 @@ public class InterviewReaderImpl implements InterviewReader {
                     "면접 일정",
                     row.applicantName(),
                     row.description()))
+        .toList();
+  }
+
+  // 저장소 조회 결과를 주간 면접 일정 전용 도메인 모델로 변환
+  @Override
+  public List<WeeklyInterviewScheduleItem> getWeeklySchedules(
+      Long interviewerUserId, LocalDateTime from, LocalDateTime to) {
+    return interviewRepository.getWeeklySchedules(interviewerUserId, from, to).stream()
+        .map(
+            row ->
+                new WeeklyInterviewScheduleItem(
+                    row.interviewScheduleId(),
+                    row.recruitmentId(),
+                    row.startAt(),
+                    row.endAt(),
+                    row.interviewerUserId(),
+                    row.interviewerName(),
+                    row.title(),
+                    row.applicantName(),
+                    row.description(),
+                    row.location()))
         .toList();
   }
 }
