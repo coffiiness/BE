@@ -501,7 +501,8 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
       Long applicantId,
       LocalDateTime scheduledAt,
       String memo) {
-    moveApplicationToStage(recruitment.recruitmentId(), applicantId, recruitment.firstInterviewStageId());
+    moveApplicationToStage(
+        recruitment.recruitmentId(), applicantId, recruitment.firstInterviewStageId());
 
     boolean exists =
         interviewScheduleRepository
@@ -532,7 +533,8 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
   }
 
   // 기존 지원서를 원하는 면접 단계로 이동시켜 대기 지원자 상태를 맞춤
-  private void moveApplicationToStage(Long recruitmentId, Long applicantId, Long recruitmentStageId) {
+  private void moveApplicationToStage(
+      Long recruitmentId, Long applicantId, Long recruitmentStageId) {
     applicationRepository.findByRecruitmentIdAndStatus(recruitmentId, EntityStatus.ACTIVE).stream()
         .filter(application -> applicantId.equals(application.getApplicantId()))
         .findFirst()

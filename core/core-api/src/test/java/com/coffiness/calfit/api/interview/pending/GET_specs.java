@@ -209,7 +209,9 @@ class GET_specs {
   private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
     TenantContext.setTenantId(tenantId);
     try {
-      return groupRepository.findByStatus(com.coffiness.calfit.core.enums.EntityStatus.ACTIVE).stream()
+      return groupRepository
+          .findByStatus(com.coffiness.calfit.core.enums.EntityStatus.ACTIVE)
+          .stream()
           .findFirst()
           .orElseGet(() -> groupRepository.save(GroupEntity.create("면접 대기 테스트 그룹", "#3B82F6")))
           .getId();

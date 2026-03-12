@@ -47,15 +47,11 @@ public record InterviewFixture(BaseFixture base) {
   // 채용 공고 기준 면접 단계별 대기 지원자 목록을 조회
   public ApiResponse<List<InterviewPendingStageResponse>> getPendingApplicants(
       String token, String tenantId, Long recruitmentId) {
-    String url = String.format("/api/v1/interviews/pending-applicants?recruitmentId=%s", recruitmentId);
+    String url =
+        String.format("/api/v1/interviews/pending-applicants?recruitmentId=%s", recruitmentId);
     ApiResponse<InterviewPendingStageResponse[]> response =
         exchangeWithTenant(
-            url,
-            HttpMethod.GET,
-            null,
-            token,
-            tenantId,
-            InterviewPendingStageResponse[].class);
+            url, HttpMethod.GET, null, token, tenantId, InterviewPendingStageResponse[].class);
 
     if (response == null
         || response.getResult() == com.coffiness.calfit.core.support.response.ResultType.ERROR
