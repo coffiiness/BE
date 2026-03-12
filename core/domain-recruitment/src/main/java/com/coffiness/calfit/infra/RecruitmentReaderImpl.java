@@ -1,22 +1,31 @@
 package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.InterviewStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.*;
 import com.coffiness.calfit.domain.user.UserInfo;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.group.GroupReader;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
+import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +35,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
   private final RecruitmentStageRepository recruitmentStageRepository;
   private final RecruitmentInterviewerRepository recruitmentInterviewerRepository;
   private final RecruitmentReferenceGroupRepository recruitmentReferenceGroupRepository;
+  private final ApplicationRepository applicationRepository;
+  private final InterviewScheduleRepository interviewScheduleRepository;
 
   private final UserReader userReader;
   private final GroupReader groupReader;
@@ -134,6 +145,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         recruitmentRepository
             .findByIdAndStatus(recruitmentId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
+    String tenantId = TenantContext.getTenantId();
 
     // Group Name 가져오기
     String groupName = "부서 미지정";
@@ -189,9 +201,11 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
     // D-Day 및 링크 URL
     int dDay =
         (int)
-            java.time.temporal.ChronoUnit.DAYS.between(
-                java.time.LocalDate.now(), entity.getEndDate().toLocalDate());
+            ChronoUnit.DAYS.between(LocalDate.now(), entity.getEndDate().toLocalDate());
+    // TODO : 공고 링크 연결
     String shareUrl = "https://careers.nexus.ai/jobs/" + recruitmentId;
+    int totalApplicants = countTotalApplicants(tenantId, recruitmentId);
+    int processingInterviewCount = countProcessingInterviewCount(tenantId, recruitmentId);
 
     return new RecruitmentDetailInfo(
         entity.getId(),
@@ -207,8 +221,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         entity.getMaxExperienceYears(),
         entity.getStartDate(),
         entity.getEndDate(),
-        0, // TODO: 지원자 모듈 완성 시 연동
-        0, // TODO: processingInterview
+        totalApplicants,
+        processingInterviewCount,
         dDay,
         shareUrl,
         entity.getRecruitmentStatus(),
@@ -303,5 +317,29 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                     e.getStartDate(),
                     e.getEndDate()))
         .toList();
+  }
+
+  // 채용 공고의 활성 지원자 수를 집계
+  private int countTotalApplicants(String tenantId, Long recruitmentId) {
+    return (int)
+        applicationRepository.countByTenantIdAndRecruitmentIdAndStatus(
+            tenantId, recruitmentId, EntityStatus.ACTIVE);
+  }
+
+  // 채용 공고의 진행 중 면접 수를 집계
+  private int countProcessingInterviewCount(String tenantId, Long recruitmentId) {
+    LocalDateTime now = LocalDateTime.now();
+    return (int)
+        interviewScheduleRepository
+            .findAllByTenantIdAndRecruitmentIdOrderByScheduledAtAsc(tenantId, recruitmentId).stream()
+            .filter(schedule -> isProcessingInterview(schedule, now))
+            .count();
+  }
+
+  // 취소되었거나 종료된 면접은 진행 중 집계에서 제외
+  private boolean isProcessingInterview(InterviewScheduleEntity schedule, LocalDateTime now) {
+    return schedule.getInterviewStatus() != InterviewStatus.CANCELLED
+        && schedule.getInterviewStatus() != InterviewStatus.COMPLETED
+        && schedule.getEndTime().isAfter(now);
   }
 }

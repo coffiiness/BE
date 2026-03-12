@@ -1,12 +1,13 @@
 package com.coffiness.calfit.storage.db.core.application;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 public interface ApplicationRepository extends JpaRepository<ApplicationEntity, Long> {
   boolean existsByApplicantIdAndRecruitmentId(Long applicantId, Long recruitmentId);
@@ -14,6 +15,10 @@ public interface ApplicationRepository extends JpaRepository<ApplicationEntity, 
   Optional<ApplicationEntity> findByIdAndStatus(Long id, EntityStatus status);
 
   List<ApplicationEntity> findByRecruitmentIdAndStatus(Long recruitmentId, EntityStatus status);
+
+  // 현재 tenant 기준으로 채용 공고의 활성 지원자 수를 카운팅
+  long countByTenantIdAndRecruitmentIdAndStatus(
+      String tenantId, Long recruitmentId, EntityStatus status);
 
   List<ApplicationEntity> findByRecruitmentIdAndRecruitmentProcessIdAndStatus(
       Long recruitmentId, Long recruitmentProcessId, EntityStatus status);
