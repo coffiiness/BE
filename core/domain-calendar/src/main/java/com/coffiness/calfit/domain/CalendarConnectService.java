@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain;
 
 import com.coffiness.calfit.core.enums.ScheduleType;
+import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult;
 import com.coffiness.calfit.model.GoogleCalendarSyncResult.SyncEventModel;
 import com.coffiness.calfit.model.GoogleCalendarWatchResult;
@@ -36,6 +37,8 @@ public class CalendarConnectService {
   private final ExternalCalendarReader externalCalendarReader;
   private final ExternalCalendarStore externalCalendarStore;
   private final ScheduleService scheduleService;
+  private final ScheduleReader scheduleReader;
+  private final ScheduleStore scheduleStore;
   private final GoogleChannelTokenService googleChannelTokenService;
 
   @Value(
@@ -62,6 +65,7 @@ public class CalendarConnectService {
             userId, workspaceCalendarId, exchangeResult);
 
     registerWatchChannel(externalCalendar, tenantId);
+    syncExistingSchedulesToGoogle(externalCalendar, userId);
     return googleEmail;
   }
 
@@ -225,6 +229,50 @@ public class CalendarConnectService {
             syncEvent.allDay());
 
     scheduleService.upsertScheduleByGoogleEventId(userId, request);
+  }
+
+  // 연동 직후 기존 CalFit 일정을 구글 캘린더로 한 번 백필
+  private void syncExistingSchedulesToGoogle(ExternalCalendar externalCalendar, Long userId) {
+    if (externalCalendar == null || userId == null) {
+      return;
+    }
+
+    if (!hasText(externalCalendar.calendarId())) {
+      return;
+    }
+
+    String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
+
+    for (Schedule schedule : scheduleReader.readAllOwnedSchedules(userId)) {
+      if (hasText(schedule.googleEventId())) {
+        continue;
+      }
+
+      try {
+        syncExistingSchedule(accessToken, externalCalendar.calendarId(), schedule);
+      } catch (RuntimeException e) {
+        log.warn("기존 일정 구글 백필에 실패했습니다. scheduleId={}, userId={}", schedule.id(), userId, e);
+      }
+    }
+  }
+
+  // 기존 일정 1건을 구글 이벤트로 생성하고 googleEventId를 저장
+  private void syncExistingSchedule(String accessToken, String calendarId, Schedule schedule) {
+    GoogleCalendarClientResult created =
+        googleCalendarPort.createEvent(
+            accessToken,
+            calendarId,
+            schedule.title(),
+            schedule.description(),
+            schedule.startTime().atZone(ZoneId.systemDefault()),
+            schedule.endTime().atZone(ZoneId.systemDefault()),
+            schedule.isAllDay());
+
+    if (created == null || !created.status() || !hasText(created.googleEventId())) {
+      return;
+    }
+
+    scheduleStore.updateGoogleEventId(schedule.id(), created.googleEventId());
   }
 
   // idToken payload 에서 사용자 email 값을 추출

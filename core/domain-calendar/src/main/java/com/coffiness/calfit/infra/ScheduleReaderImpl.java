@@ -91,6 +91,20 @@ public class ScheduleReaderImpl implements ScheduleReader {
         .orElse(null);
   }
 
+  // 사용자가 소유한 활성 일정 전체를 조회
+  @Override
+  public List<Schedule> readAllOwnedSchedules(Long userId) {
+    if (userId == null) {
+      return List.of();
+    }
+
+    return scheduleRepository
+        .findAllByUserIdAndStatusOrderByStartTimeAsc(userId, EntityStatus.ACTIVE)
+        .stream()
+        .map(this::toDomain)
+        .toList();
+  }
+
   @Override
   public List<Schedule> findByReservationId(Long reservationId) {
     if (reservationId == null) {

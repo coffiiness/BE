@@ -73,6 +73,9 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Long> 
 
   boolean existsByGoogleEventIdAndStatus(String googleEventId, EntityStatus status);
 
+  List<ScheduleEntity> findAllByUserIdAndStatusOrderByStartTimeAsc(
+      Long userId, EntityStatus status);
+
   List<ScheduleEntity> findAllByReservationIdAndStatus(Long reservationId, EntityStatus status);
 
   List<ScheduleEntity> findAllByInterviewScheduleIdAndStatus(
