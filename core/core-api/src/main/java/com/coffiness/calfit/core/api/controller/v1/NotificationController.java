@@ -9,8 +9,10 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.notification.NotificationCategory;
 import com.coffiness.calfit.domain.notification.NotificationPage;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import jakarta.servlet.http.HttpServletResponse;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,7 +34,11 @@ public class NotificationController {
 
   @CrossOrigin
   @GetMapping("/stream")
-  public SseEmitter stream(@AuthenticationPrincipal SecurityUser user) {
+  public SseEmitter stream(
+      @AuthenticationPrincipal SecurityUser user, HttpServletResponse response) {
+    response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+    response.setHeader(HttpHeaders.CONNECTION, "keep-alive");
+    response.setHeader("X-Accel-Buffering", "no");
     return notificationSseFacade.subscribe(currentTenantId(), user.userId());
   }
 

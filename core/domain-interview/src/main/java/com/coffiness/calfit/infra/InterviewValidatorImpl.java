@@ -22,7 +22,7 @@ public class InterviewValidatorImpl implements InterviewValidator {
   @Override
   public void validateHrMember(Long userId) {
     if (!interviewReader.isHrMember(userId)) {
-      throw new CoreException(ErrorType.UNAUTHORIZED);
+      throw new CoreException(ErrorType.FORBIDDEN);
     }
   }
 
