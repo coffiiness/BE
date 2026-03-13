@@ -76,7 +76,8 @@ public class InterviewReaderImpl implements InterviewReader {
                     row.interviewerName(),
                     row.title(),
                     row.applicantName(),
-                    row.description()))
+                    row.description(),
+                    row.location()))
         .toList();
   }
 

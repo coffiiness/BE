@@ -294,6 +294,13 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .distinct()
             .toList();
     Map<Long, String> stageNameMap = resolveStageNameMap(recruitmentStageIds);
+    List<Long> meetingRoomIds =
+        schedules.stream()
+            .map(InterviewScheduleEntity::getMeetingRoomId)
+            .filter(id -> id != null && id > 0)
+            .distinct()
+            .toList();
+    Map<Long, String> locationMap = resolveMeetingRoomLocationMap(meetingRoomIds);
 
     List<InterviewScheduleCalendarRow> result = new ArrayList<>();
     for (InterviewScheduleEntity schedule : schedules) {
@@ -331,7 +338,8 @@ public class InterviewRepositoryImpl implements InterviewRepository {
                   recruitmentTitleMap.get(schedule.getRecruitmentId()),
                   stageNameMap.get(schedule.getRecruitmentStageId())),
               applicantName,
-              fallbackName(schedule.getMemo(), "")));
+              fallbackName(schedule.getMemo(), ""),
+              fallbackName(locationMap.get(schedule.getMeetingRoomId()), "")));
     }
     return result;
   }

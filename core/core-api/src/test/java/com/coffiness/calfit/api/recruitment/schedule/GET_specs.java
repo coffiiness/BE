@@ -5,20 +5,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.InterviewFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.RecruitmentFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
-import com.coffiness.calfit.api.fixture.WorkspaceFixture;
+import com.coffiness.calfit.api.support.InterviewApplicantTestHelper;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.InterviewResponse;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
-import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.enums.CareerType;
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
+import com.coffiness.calfit.storage.db.core.user.GroupEntity;
+import com.coffiness.calfit.storage.db.core.user.GroupRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -31,16 +38,23 @@ public class GET_specs {
 
   @Test
   void 채용공고의_월별_면접_일정_조회에_성공한다(
+      @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
-      @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
       @Autowired MeetingRoomFixture meetingRoomFixture,
-      @Autowired InterviewFixture interviewFixture) {
+      @Autowired InterviewFixture interviewFixture,
+      @Autowired ApplicationRepository applicationRepository,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
 
     // Arrange
-    String token = userFixture.createUserAndGetToken();
-    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
-    String tenantId = workspace.workspaceId();
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    String recruitmentTitle = "2026년 상반기 백엔드 신입 모집";
+    Long interviewerId = userFixture.me(token).getData().id();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
 
     LocalDateTime now = LocalDateTime.now();
 
@@ -52,27 +66,40 @@ public class GET_specs {
 
     RecruitmentCreateRequest request =
         new RecruitmentCreateRequest(
-            "2026년 상반기 백엔드 신입 모집",
+            recruitmentTitle,
             3,
-            1L,
+            applicationTemplateId,
             "구합니다. 개발자",
-            now.plusDays(1),
+            now.minusDays(1),
             now.plusDays(4),
             CareerType.NEW,
             null,
             null,
-            1L,
-            List.of(1L, 2L),
-            List.of(101L, 102L),
+            leadGroupId,
+            List.of(),
+            List.of(interviewerId),
             stages);
 
-    recruitmentFixture.createRecruitment(token, tenantId, request);
+    ApiResponse<Void> createRecruitmentResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request);
+    assertThat(createRecruitmentResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
-    Long recruitmentId =
-        recruitmentFixture.getRecruitmentList(token, tenantId).getData().get(0).id();
     RecruitmentListResponse recruitment =
-        recruitmentFixture.getRecruitmentList(token, tenantId).getData().get(0);
+        recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()
+            .filter(item -> recruitmentTitle.equals(item.title()))
+            .findFirst()
+            .orElseThrow();
+    Long recruitmentId = recruitment.id();
     Long meetingRoomId = meetingRoomFixture.create(token, tenantId, "A회의실", 3, 6).getData().id();
+    InterviewApplicantTestHelper.createPendingApplication(
+        tenantId,
+        applicationRepository,
+        recruitmentId,
+        recruitment.stages().get(1).id(),
+        applicationTemplateId,
+        201L,
+        "지원자#201",
+        "applicant201@coffiness.com");
 
     ApiResponse<InterviewResponse> createInterviewResponse =
         interviewFixture.create(
@@ -81,7 +108,7 @@ public class GET_specs {
             recruitmentId,
             recruitment.stages().get(1).id(),
             InterviewRound.FIRST,
-            List.of(101L),
+            List.of(interviewerId),
             List.of(201L),
             meetingRoomId,
             LocalDateTime.of(2026, 3, 18, 13, 0),
@@ -102,5 +129,32 @@ public class GET_specs {
     assertThat(response.getData().get(0).title()).isEqualTo("2026년 상반기 백엔드 신입 모집 · 면접 전형");
     assertThat(response.getData().get(0).applicantName()).isEqualTo("지원자#201");
     assertThat(response.getData().get(0).meetingRoomId()).isEqualTo(meetingRoomId);
+    assertThat(response.getData().get(0).location()).isEqualTo("A회의실 (3층)");
+  }
+
+  // 현재 tenant에서 사용할 채용 담당 그룹 ID를 조회
+  private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
+          .findFirst()
+          .orElseGet(() -> groupRepository.save(GroupEntity.create("면접 일정 테스트 그룹", "#3B82F6")))
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
+  }
+
+  // 현재 tenant에서 사용할 지원서 템플릿을 생성
+  private Long createApplicationTemplate(
+      String tenantId, ApplicationTemplateRepository applicationTemplateRepository) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return applicationTemplateRepository
+          .save(ApplicationTemplateEntity.create("면접 일정 테스트 템플릿", "{}", true))
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
   }
 }

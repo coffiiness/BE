@@ -12,7 +12,8 @@ public record InterviewScheduleResponse(
     String interviewerName,
     String title,
     String applicantName,
-    String description) {
+    String description,
+    String location) {
 
   public static InterviewScheduleResponse from(InterviewScheduleCalendarItem item) {
     return new InterviewScheduleResponse(
@@ -24,6 +25,7 @@ public record InterviewScheduleResponse(
         item.interviewerName(),
         item.title(),
         item.applicantName(),
-        item.description());
+        item.description(),
+        item.location());
   }
 }

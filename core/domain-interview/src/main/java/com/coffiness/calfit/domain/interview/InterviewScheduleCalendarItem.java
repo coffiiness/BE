@@ -11,4 +11,5 @@ public record InterviewScheduleCalendarItem(
     String interviewerName,
     String title,
     String applicantName,
-    String description) {}
+    String description,
+    String location) {}
