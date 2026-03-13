@@ -57,6 +57,8 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
 
   private static final String HR_EMAIL = "hr@coffiiness.com";
   private static final String MEMBER_EMAIL = "member@coffiiness.com";
+  private static final List<String> DEFAULT_MEETING_ROOM_FACILITIES = List.of("WiFi");
+  private static final String DEFAULT_MEETING_ROOM_COLOR = "#10B981";
 
   private final UserRepository userRepository;
   private final MemberRepository memberRepository;
@@ -167,7 +169,18 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
     return meetingRoomRepository
         .findByTenantIdAndName(tenantId, name)
         .map(MeetingRoomEntity::getId)
-        .orElseGet(() -> meetingRoomService.create(name, location, capacity, ownerUserId).id());
+        .orElseGet(
+            () ->
+                meetingRoomService
+                    .create(
+                        name,
+                        location,
+                        capacity,
+                        "로컬 면접 더미 데이터용 회의실",
+                        DEFAULT_MEETING_ROOM_FACILITIES,
+                        DEFAULT_MEETING_ROOM_COLOR,
+                        ownerUserId)
+                    .id());
   }
 
   // 주간 면접 더미에 사용할 지원자 목록을 보장

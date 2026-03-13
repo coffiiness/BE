@@ -13,6 +13,7 @@ public record InterviewCreatedEvent(
     LocalDateTime scheduledAt,
     Integer durationMinutes,
     List<Long> interviewerUserIds,
+    List<Long> applicantIds,
     long occurredAt)
     implements DomainEvent {
 
@@ -24,7 +25,8 @@ public record InterviewCreatedEvent(
       Long meetingRoomId,
       LocalDateTime scheduledAt,
       Integer durationMinutes,
-      List<Long> interviewerUserIds) {
+      List<Long> interviewerUserIds,
+      List<Long> applicantIds) {
     return new InterviewCreatedEvent(
         tenantId,
         interviewScheduleId,
@@ -34,6 +36,7 @@ public record InterviewCreatedEvent(
         scheduledAt,
         durationMinutes,
         interviewerUserIds == null ? List.of() : List.copyOf(interviewerUserIds),
+        applicantIds == null ? List.of() : List.copyOf(applicantIds),
         System.currentTimeMillis());
   }
 }

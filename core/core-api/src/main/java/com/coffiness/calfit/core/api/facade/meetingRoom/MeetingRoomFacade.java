@@ -18,7 +18,13 @@ public class MeetingRoomFacade {
   @Transactional
   public MeetingRoom createMeetingRoom(Long userId, MeetingRoomCreateRequest request) {
     return meetingRoomService.create(
-        request.name(), request.location(), request.capacity(), userId);
+        request.name(),
+        request.location(),
+        request.capacity(),
+        request.description(),
+        request.facilities(),
+        request.color(),
+        userId);
   }
 
   @Transactional(readOnly = true)
@@ -29,7 +35,15 @@ public class MeetingRoomFacade {
   @Transactional
   public MeetingRoom updateMeetingRoom(
       Long userId, Long meetingRoomId, MeetingRoomUpdateRequest request) {
-    return meetingRoomService.update(meetingRoomId, request.name(), request.capacity(), userId);
+    return meetingRoomService.update(
+        meetingRoomId,
+        request.name(),
+        request.location(),
+        request.capacity(),
+        request.description(),
+        request.facilities(),
+        request.color(),
+        userId);
   }
 
   @Transactional

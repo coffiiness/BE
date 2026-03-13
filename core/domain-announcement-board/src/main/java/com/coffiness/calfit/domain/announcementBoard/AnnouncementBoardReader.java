@@ -10,6 +10,4 @@ public interface AnnouncementBoardReader {
   List<AnnouncementBoard> getAnnouncementBoards();
 
   Optional<AnnouncementBoard> findActiveBoard(Long announcementBoardId);
-
-  Optional<AnnouncementBoard> findActiveBoardByTitle(String title);
 }

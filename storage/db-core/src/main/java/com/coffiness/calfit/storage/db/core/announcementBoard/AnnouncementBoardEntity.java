@@ -4,7 +4,6 @@ import com.coffiness.calfit.storage.db.core.TenantBaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,9 +11,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(
-    name = "announcement_boards",
-    uniqueConstraints = {@UniqueConstraint(columnNames = {"tenant_id", "title"})})
+@Table(name = "announcement_boards")
 @SQLDelete(
     sql =
         "UPDATE announcement_boards SET status = 'DELETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?")

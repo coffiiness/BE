@@ -118,6 +118,29 @@ class PUT_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
 
+  @Test
+  void 다른_공지사항과_같은_제목으로도_수정할_수_있다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired AnnouncementBoardFixture announcementBoardFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    String duplicatedTitle = "같은 제목";
+
+    createBoardAndGetId(announcementBoardFixture, token, tenantId, duplicatedTitle, "내용 A", false);
+    long targetBoardId =
+        createBoardAndGetId(announcementBoardFixture, token, tenantId, "다른 제목", "내용 B", true);
+
+    ApiResponse<AnnouncementBoardResponse> response =
+        announcementBoardFixture.update(
+            token, tenantId, targetBoardId, duplicatedTitle, "수정된 내용", false);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isNotNull();
+    assertThat(response.getData().id()).isEqualTo(targetBoardId);
+    assertThat(response.getData().title()).isEqualTo(duplicatedTitle);
+  }
+
   private long createBoardAndGetId(
       AnnouncementBoardFixture announcementBoardFixture,
       String token,

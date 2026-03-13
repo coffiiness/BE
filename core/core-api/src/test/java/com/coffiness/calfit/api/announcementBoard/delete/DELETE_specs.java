@@ -93,6 +93,29 @@ class DELETE_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
 
+  @Test
+  void 삭제한_공지사항과_같은_제목으로_다시_생성할_수_있다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired AnnouncementBoardFixture announcementBoardFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    String title = "재사용 제목";
+
+    long boardId =
+        createBoardAndGetId(announcementBoardFixture, token, tenantId, title, "내용 A", false);
+
+    ApiResponse<Void> deleteResponse = announcementBoardFixture.delete(token, tenantId, boardId);
+    ApiResponse<AnnouncementBoardResponse> recreateResponse =
+        announcementBoardFixture.create(token, tenantId, title, "내용 B", true);
+
+    assertThat(deleteResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(recreateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(recreateResponse.getData()).isNotNull();
+    assertThat(recreateResponse.getData().id()).isNotEqualTo(boardId);
+    assertThat(recreateResponse.getData().title()).isEqualTo(title);
+  }
+
   private long createBoardAndGetId(
       AnnouncementBoardFixture announcementBoardFixture,
       String token,

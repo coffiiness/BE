@@ -44,6 +44,8 @@ public class DataInitializer implements ApplicationRunner {
 
   private static final String MEMBER_EMAIL = "member@coffiiness.com";
   private static final String MEMBER_PASSWORD = "member1234!";
+  private static final List<String> DEFAULT_MEETING_ROOM_FACILITIES = List.of("WiFi");
+  private static final String DEFAULT_MEETING_ROOM_COLOR = "#10B981";
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
@@ -105,9 +107,30 @@ public class DataInitializer implements ApplicationRunner {
   }
 
   private void initMeetingRooms(User hrUser) {
-    meetingRoomService.create("대회의실", 3, 10, hrUser.id());
-    meetingRoomService.create("소회의실 A", 2, 4, hrUser.id());
-    meetingRoomService.create("소회의실 B", 2, 4, hrUser.id());
+    meetingRoomService.create(
+        "대회의실",
+        3,
+        10,
+        "면접과 팀 미팅용 대회의실",
+        DEFAULT_MEETING_ROOM_FACILITIES,
+        DEFAULT_MEETING_ROOM_COLOR,
+        hrUser.id());
+    meetingRoomService.create(
+        "소회의실 A",
+        2,
+        4,
+        "소규모 미팅용 회의실",
+        DEFAULT_MEETING_ROOM_FACILITIES,
+        DEFAULT_MEETING_ROOM_COLOR,
+        hrUser.id());
+    meetingRoomService.create(
+        "소회의실 B",
+        2,
+        4,
+        "소규모 미팅용 회의실",
+        DEFAULT_MEETING_ROOM_FACILITIES,
+        DEFAULT_MEETING_ROOM_COLOR,
+        hrUser.id());
     log.info("[DataInitializer] 회의실 생성 완료");
   }
 

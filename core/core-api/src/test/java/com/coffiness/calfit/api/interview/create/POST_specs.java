@@ -1,6 +1,9 @@
 package com.coffiness.calfit.api.interview.create;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.*;
@@ -19,18 +22,23 @@ import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
 import com.coffiness.calfit.storage.db.core.user.GroupRepository;
+import com.coffiness.calfit.support.email.EmailService;
+import com.coffiness.calfit.support.email.InterviewScheduleEmailMessage;
 import com.coffiness.calfit.v1.response.ScheduleDetailResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.annotation.DirtiesContext;
 
 @CalfitApiTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @DisplayName("POST /api/v1/interviews")
 class POST_specs {
+
+  @MockBean private EmailService emailService;
 
   @Test
   void 토큰이_없으면_생성에_실패한다(
@@ -256,6 +264,77 @@ class POST_specs {
             "중복 면접");
 
     assertThat(secondResponse.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 면접_일정이_생성되면_지원자에게_날짜_시간_위치_안내_메일을_보낸다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired InterviewFixture interviewFixture,
+      @Autowired ApplicationRepository applicationRepository,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    InterviewerContext interviewer =
+        inviteInterviewer(memberFixture, userFixture, hrToken, tenantId, "숨겨져야 할 면접관");
+
+    Long meetingRoomId = meetingRoomFixture.create(hrToken, tenantId, "면접실 B", 3, 6).getData().id();
+
+    RecruitmentContext recruitment =
+        createRecruitment(
+            recruitmentFixture,
+            groupRepository,
+            applicationTemplateRepository,
+            hrToken,
+            tenantId,
+            "플랫폼 채용 공고",
+            List.of(interviewer.userId()),
+            LocalDateTime.of(2030, 3, 1, 9, 0),
+            LocalDateTime.of(2030, 3, 31, 18, 0));
+
+    InterviewApplicantTestHelper.createPendingApplication(
+        tenantId,
+        applicationRepository,
+        recruitment.recruitmentId(),
+        recruitment.stageId(),
+        recruitment.applicationTemplateId(),
+        303L,
+        "메일 지원자",
+        "applicant303@test.com");
+
+    ApiResponse<InterviewResponse> response =
+        interviewFixture.create(
+            hrToken,
+            tenantId,
+            recruitment.recruitmentId(),
+            recruitment.stageId(),
+            InterviewRound.FIRST,
+            List.of(interviewer.userId()),
+            List.of(303L),
+            meetingRoomId,
+            LocalDateTime.of(2030, 3, 14, 16, 0),
+            90,
+            "면접 메일 테스트");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    verify(emailService, timeout(3000))
+        .sendInterviewScheduleEmail(
+            anyString(),
+            org.mockito.ArgumentMatchers.argThat(
+                (InterviewScheduleEmailMessage message) ->
+                    message != null
+                        && "applicant303@test.com".equals(message.getApplicantEmail())
+                        && "메일 지원자".equals(message.getApplicantName())
+                        && "면접실 B".equals(message.getLocation())
+                        && message.getScheduledAt().equals(LocalDateTime.of(2030, 3, 14, 16, 0))
+                        && message.getEndAt().equals(LocalDateTime.of(2030, 3, 14, 17, 30))
+                        && !message.getLocation().contains("숨겨져야 할 면접관")));
   }
 
   // 테스트용 면접관 사용자를 생성하고 워크스페이스에 초대

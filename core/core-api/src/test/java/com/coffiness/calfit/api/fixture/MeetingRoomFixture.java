@@ -27,7 +27,7 @@ public record MeetingRoomFixture(BaseFixture base) {
 
     return base.post(
         "/api/v1/meeting-rooms",
-        new MeetingRoomCreateRequest(name, location, capacity),
+        new MeetingRoomCreateRequest(name, location, capacity, "", List.of("WiFi"), "#10b981"),
         token,
         MeetingRoomResponse.class);
   }
@@ -37,28 +37,70 @@ public record MeetingRoomFixture(BaseFixture base) {
     return exchangeWithTenant(
         "/api/v1/meeting-rooms",
         HttpMethod.POST,
-        new MeetingRoomCreateRequest(name, location, capacity),
+        new MeetingRoomCreateRequest(name, location, capacity, "", List.of("WiFi"), "#10b981"),
+        token,
+        tenantId,
+        MeetingRoomResponse.class);
+  }
+
+  public ApiResponse<MeetingRoomResponse> create(
+      String token,
+      String tenantId,
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color) {
+    return exchangeWithTenant(
+        "/api/v1/meeting-rooms",
+        HttpMethod.POST,
+        new MeetingRoomCreateRequest(name, location, capacity, description, facilities, color),
         token,
         tenantId,
         MeetingRoomResponse.class);
   }
 
   public ApiResponse<MeetingRoomResponse> update(
-      String token, long meetingRoomId, String name, Integer capacity) {
+      String token, long meetingRoomId, String name, Integer location, Integer capacity) {
     return base.put(
         "/api/v1/meeting-rooms/{meetingRoomId}",
-        new MeetingRoomUpdateRequest(name, capacity),
+        new MeetingRoomUpdateRequest(name, location, capacity, "", List.of("WiFi"), "#10b981"),
         token,
         MeetingRoomResponse.class,
         meetingRoomId);
   }
 
   public ApiResponse<MeetingRoomResponse> update(
-      String token, String tenantId, long meetingRoomId, String name, Integer capacity) {
+      String token,
+      String tenantId,
+      long meetingRoomId,
+      String name,
+      Integer location,
+      Integer capacity) {
     return exchangeWithTenant(
         "/api/v1/meeting-rooms/" + meetingRoomId,
         HttpMethod.PUT,
-        new MeetingRoomUpdateRequest(name, capacity),
+        new MeetingRoomUpdateRequest(name, location, capacity, "", List.of("WiFi"), "#10b981"),
+        token,
+        tenantId,
+        MeetingRoomResponse.class);
+  }
+
+  public ApiResponse<MeetingRoomResponse> update(
+      String token,
+      String tenantId,
+      long meetingRoomId,
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color) {
+    return exchangeWithTenant(
+        "/api/v1/meeting-rooms/" + meetingRoomId,
+        HttpMethod.PUT,
+        new MeetingRoomUpdateRequest(name, location, capacity, description, facilities, color),
         token,
         tenantId,
         MeetingRoomResponse.class);
@@ -84,11 +126,24 @@ public record MeetingRoomFixture(BaseFixture base) {
       long meetingRoomId,
       LocalDateTime startDatetime,
       LocalDateTime endDatetime) {
+    return reserve(
+        token, tenantId, meetingRoomId, "테스트 예약", null, startDatetime, endDatetime, List.of());
+  }
+
+  public ApiResponse<MeetingRoomReservationResponse> reserve(
+      String token,
+      String tenantId,
+      long meetingRoomId,
+      String title,
+      String description,
+      LocalDateTime startDatetime,
+      LocalDateTime endDatetime,
+      List<Long> participantUserIds) {
     return exchangeWithTenant(
         "/api/v1/meeting-rooms/" + meetingRoomId + "/reservations",
         HttpMethod.POST,
         new MeetingRoomReservationCreateRequest(
-            "테스트 예약", null, startDatetime, endDatetime, List.of()),
+            title, description, startDatetime, endDatetime, participantUserIds),
         token,
         tenantId,
         MeetingRoomReservationResponse.class);

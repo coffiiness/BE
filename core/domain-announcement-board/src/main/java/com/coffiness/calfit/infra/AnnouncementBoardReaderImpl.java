@@ -32,13 +32,6 @@ public class AnnouncementBoardReaderImpl implements AnnouncementBoardReader {
         .map(this::toAnnouncementBoard);
   }
 
-  @Override
-  public Optional<AnnouncementBoard> findActiveBoardByTitle(String title) {
-    return announcementBoardRepository
-        .findByTitleAndStatus(title, EntityStatus.ACTIVE)
-        .map(this::toAnnouncementBoard);
-  }
-
   private AnnouncementBoard toAnnouncementBoard(AnnouncementBoardEntity entity) {
     return new AnnouncementBoard(
         entity.getId(),

@@ -15,6 +15,8 @@ import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationEn
 import com.coffiness.calfit.storage.db.core.meetingRoom.MeetingRoomReservationRepository;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,12 +31,27 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
   private final MeetingRoomRepository meetingRoomRepository;
   private final MeetingRoomReservationRepository reservationRepository;
   private final MeetingRoomHistoryRepository historyRepository;
+  private final ObjectMapper objectMapper;
 
   @Override
-  public MeetingRoom create(String name, Integer location, Integer capacity, Long userId) {
+  public MeetingRoom create(
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color,
+      Long userId) {
     requireTenantId();
     MeetingRoomEntity entity =
-        MeetingRoomEntity.builder().name(name).location(location).capacity(capacity).build();
+        MeetingRoomEntity.builder()
+            .name(name)
+            .location(location)
+            .capacity(capacity)
+            .description(description)
+            .facilities(writeFacilities(facilities))
+            .color(color)
+            .build();
     try {
       MeetingRoomEntity saved = meetingRoomRepository.save(entity);
       appendHistory(
@@ -43,26 +60,56 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
           userId,
           MeetingRoomActionType.CREATED_ROOM,
           buildRoomDetailJson(saved));
-      return new MeetingRoom(saved.getId(), saved.getName(), saved.getCapacity());
+      return new MeetingRoom(
+          saved.getId(),
+          saved.getName(),
+          saved.getLocation(),
+          saved.getCapacity(),
+          saved.getDescription(),
+          facilities,
+          saved.getColor());
     } catch (DataIntegrityViolationException e) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
   }
 
   @Override
-  public MeetingRoom update(Long meetingRoomId, String name, Integer capacity, Long userId) {
+  public MeetingRoom update(
+      Long meetingRoomId,
+      String name,
+      Integer location,
+      Integer capacity,
+      String description,
+      List<String> facilities,
+      String color,
+      Long userId) {
     MeetingRoomEntity entity =
         meetingRoomRepository
             .findByIdAndStatus(meetingRoomId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-    entity.update(name, capacity);
+    entity.update(name, location, capacity, description, writeFacilities(facilities), color);
     appendHistory(
         entity.getId(),
         null,
         userId,
         MeetingRoomActionType.UPDATED_ROOM,
         buildRoomDetailJson(entity));
-    return new MeetingRoom(entity.getId(), entity.getName(), entity.getCapacity());
+    return new MeetingRoom(
+        entity.getId(),
+        entity.getName(),
+        entity.getLocation(),
+        entity.getCapacity(),
+        entity.getDescription(),
+        facilities,
+        entity.getColor());
+  }
+
+  private String writeFacilities(List<String> facilities) {
+    try {
+      return objectMapper.writeValueAsString(facilities == null ? List.of() : facilities);
+    } catch (JsonProcessingException exception) {
+      throw new CoreException(ErrorType.DEFAULT_ERROR);
+    }
   }
 
   @Override
@@ -71,13 +118,9 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
         meetingRoomRepository
             .findByIdAndStatus(meetingRoomId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-    entity.deleted();
-    appendHistory(
-        entity.getId(),
-        null,
-        userId,
-        MeetingRoomActionType.DELETED_ROOM,
-        buildRoomDetailJson(entity));
+    String roomDetailJson = buildRoomDetailJson(entity);
+    entity.archiveForDelete();
+    appendHistory(entity.getId(), null, userId, MeetingRoomActionType.DELETED_ROOM, roomDetailJson);
   }
 
   @Override
@@ -127,6 +170,12 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
         buildReservationDetailJson(
             meetingRoomRepository.findById(meetingRoomId).orElse(null), entity));
     return toReservation(entity);
+  }
+
+  @Override
+  public int syncReservationStatuses() {
+    String tenantId = requireTenantId();
+    return syncReservationStatuses(tenantId);
   }
 
   private void appendHistory(
@@ -187,15 +236,18 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
     return value.replace("\\", "\\\\").replace("\"", "\\\"");
   }
 
-  private void syncReservationStatuses(String tenantId) {
+  private int syncReservationStatuses(String tenantId) {
     LocalDateTime now = LocalDateTime.now();
-    reservationRepository.bulkUpdateToExpired(
-        tenantId,
-        new ArrayList<>(List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE)),
-        MeetingRoomStatus.EXPIRED,
-        now);
-    reservationRepository.bulkUpdateToActive(
-        tenantId, MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE, now);
+    int expiredCount =
+        reservationRepository.bulkUpdateToExpired(
+            tenantId,
+            new ArrayList<>(List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE)),
+            MeetingRoomStatus.EXPIRED,
+            now);
+    int activeCount =
+        reservationRepository.bulkUpdateToActive(
+            tenantId, MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE, now);
+    return expiredCount + activeCount;
   }
 
   private MeetingRoomReservation toReservation(MeetingRoomReservationEntity entity) {

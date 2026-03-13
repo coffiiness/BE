@@ -8,6 +8,7 @@ import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, "회의실 B", 10);
+        meetingRoomFixture.update(token, meetingRoomId, "회의실 B", 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -42,7 +43,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(null, meetingRoomId, "회의실 B", 10);
+        meetingRoomFixture.update(null, meetingRoomId, "회의실 B", 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -58,7 +59,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(tokenB, meetingRoomId, "회의실 B", 10);
+        meetingRoomFixture.update(tokenB, meetingRoomId, "회의실 B", 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -72,7 +73,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, 99999L, "회의실 B", 10);
+        meetingRoomFixture.update(token, 99999L, "회의실 B", 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -87,7 +88,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, null, 10);
+        meetingRoomFixture.update(token, meetingRoomId, null, 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -102,7 +103,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, "A", 10);
+        meetingRoomFixture.update(token, meetingRoomId, "A", 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -117,7 +118,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, "a".repeat(51), 10);
+        meetingRoomFixture.update(token, meetingRoomId, "a".repeat(51), 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -132,7 +133,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, "회의실 B", null);
+        meetingRoomFixture.update(token, meetingRoomId, "회의실 B", 18, null);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -147,7 +148,7 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, "회의실 B", 0);
+        meetingRoomFixture.update(token, meetingRoomId, "회의실 B", 18, 0);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
@@ -163,10 +164,36 @@ public class PUT_specs {
 
     // Act
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.update(token, meetingRoomId, "회의실 A", 10);
+        meetingRoomFixture.update(token, meetingRoomId, "회의실 A", 18, 10);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+  }
+
+  @Test
+  void 설명과_시설_색상도_수정할_수_있다(
+      @Autowired UserFixture userFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+    String token = userFixture.createUserAndGetToken();
+    long meetingRoomId = createMeetingRoomAndGetId(meetingRoomFixture, token, "회의실 A", 1, 5);
+
+    ApiResponse<MeetingRoomResponse> response =
+        meetingRoomFixture.update(
+            token,
+            null,
+            meetingRoomId,
+            "회의실 B",
+            18,
+            10,
+            "설명 수정",
+            List.of("WiFi", "프로젝터"),
+            "#ef4444");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isNotNull();
+    assertThat(response.getData().location()).isEqualTo(18);
+    assertThat(response.getData().description()).isEqualTo("설명 수정");
+    assertThat(response.getData().facilities()).containsExactly("WiFi", "프로젝터");
+    assertThat(response.getData().color()).isEqualTo("#ef4444");
   }
 
   private long createMeetingRoomAndGetId(

@@ -23,10 +23,6 @@ public class AnnouncementBoardValidatorImpl implements AnnouncementBoardValidato
   public void validateCreateRequest(String title, String content, Boolean pinned, Long userId) {
     validateCommonFields(title, content, pinned);
     validateHrMember(userId);
-
-    if (announcementBoardReader.findActiveBoardByTitle(title).isPresent()) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR);
-    }
   }
 
   @Override
@@ -34,16 +30,7 @@ public class AnnouncementBoardValidatorImpl implements AnnouncementBoardValidato
       Long announcementBoardId, String title, String content, Boolean pinned, Long userId) {
     validateCommonFields(title, content, pinned);
     validateHrMember(userId);
-    AnnouncementBoard currentBoard = requireActiveBoard(announcementBoardId);
-
-    announcementBoardReader
-        .findActiveBoardByTitle(title)
-        .ifPresent(
-            duplicated -> {
-              if (!duplicated.id().equals(currentBoard.id())) {
-                throw new CoreException(ErrorType.VALIDATION_ERROR);
-              }
-            });
+    requireActiveBoard(announcementBoardId);
   }
 
   @Override
