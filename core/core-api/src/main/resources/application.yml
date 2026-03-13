@@ -47,7 +47,7 @@ calendar:
   google-sync:
     scheduler-fixed-delay-ms: 300000
     scheduler-initial-delay-ms: 120000
-    watch-callback-url: ${CALENDAR_GOOGLE_WATCH_CALLBACK_URL:https://calfit.co.kr/api/v1/calendars/google/notifications}
+    watch-callback-url: ${CALENDAR_GOOGLE_WATCH_CALLBACK_URL:https://api.calfit.co.kr/api/v1/calendars/google/notifications}
     watch-ttl-seconds: ${CALENDAR_GOOGLE_WATCH_TTL_SECONDS:604800}
     watch-token-secret: ${CALENDAR_GOOGLE_WATCH_TOKEN_SECRET:calfit-google-watch-secret}
 
