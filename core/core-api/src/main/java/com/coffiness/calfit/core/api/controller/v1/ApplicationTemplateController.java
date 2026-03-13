@@ -2,7 +2,11 @@ package com.coffiness.calfit.core.api.controller.v1;
 
 import com.coffiness.calfit.api.v1.response.ApplicationTemplateListResponse;
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.domain.workspace.member.Member;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
@@ -41,6 +45,7 @@ public class ApplicationTemplateController {
   private final ApplicationTemplateRepository applicationTemplateRepository;
   private final RecruitmentRepository recruitmentRepository;
   private final ObjectMapper objectMapper;
+  private final MemberReader memberReader;
 
   @GetMapping("/api/v1/application-templates")
   public ApiResponse<List<ApplicationTemplateListResponse>> getApplicationTemplates() {
@@ -198,8 +203,18 @@ public class ApplicationTemplateController {
     if (user == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
-    if ("APPLICANT".equalsIgnoreCase(user.role())) {
+
+    String tenantId = TenantContext.getTenantId();
+    if (tenantId == null || tenantId.isBlank()) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    Member member = memberReader.getMember(tenantId, user.userId());
+    if (member == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if (member.memberType() != MemberType.HR) {
+      throw new CoreException(ErrorType.FORBIDDEN);
     }
   }
 

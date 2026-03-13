@@ -11,7 +11,8 @@ public interface MeetingRoomValidator {
       Integer capacity,
       String description,
       List<String> facilities,
-      String color);
+      String color,
+      Long userId);
 
   void validateUpdateInput(
       Long meetingRoomId,
@@ -20,7 +21,8 @@ public interface MeetingRoomValidator {
       Integer capacity,
       String description,
       List<String> facilities,
-      String color);
+      String color,
+      Long userId);
 
   void validateDeleteRequest(Long meetingRoomId, Long userId);
 

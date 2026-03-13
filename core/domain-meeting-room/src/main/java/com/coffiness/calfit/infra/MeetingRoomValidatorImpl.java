@@ -6,6 +6,7 @@ import com.coffiness.calfit.core.enums.MeetingRoomStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoom;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomValidator;
 import com.coffiness.calfit.domain.user.UserReader;
 import com.coffiness.calfit.domain.workspace.member.Member;
@@ -43,8 +44,10 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       Integer capacity,
       String description,
       List<String> facilities,
-      String color) {
-    requireTenantId();
+      String color,
+      Long userId) {
+    String tenantId = requireTenantId();
+    validateHrMember(tenantId, userId);
     if (name == null
         || name.isBlank()
         || location == null
@@ -72,8 +75,10 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
       Integer capacity,
       String description,
       List<String> facilities,
-      String color) {
-    requireTenantId();
+      String color,
+      Long userId) {
+    String tenantId = requireTenantId();
+    validateHrMember(tenantId, userId);
     if (meetingRoomId == null
         || name == null
         || name.isBlank()
@@ -101,10 +106,7 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (userId == null || meetingRoomId == null) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
-    Member member = memberReader.getMember(tenantId, userId);
-    if (member == null || member.memberType() != MemberType.HR) {
-      throw new CoreException(ErrorType.UNAUTHORIZED);
-    }
+    validateHrMember(tenantId, userId);
     meetingRoomReader.getMeetingRoom(meetingRoomId);
     validateRoomHasNoFutureUsages(tenantId, meetingRoomId);
   }
@@ -248,7 +250,26 @@ public class MeetingRoomValidatorImpl implements MeetingRoomValidator {
     if (!userReader.exists(userId)) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
-    meetingRoomReader.getActiveReservation(meetingRoomId, reservationId);
+    MeetingRoomReservation reservation =
+        meetingRoomReader.getActiveReservation(meetingRoomId, reservationId);
+    if (!userId.equals(reservation.userId()) || reservation.interviewScheduleId() != null) {
+      throw new CoreException(ErrorType.FORBIDDEN);
+    }
+  }
+
+  private Member validateHrMember(String tenantId, Long userId) {
+    if (userId == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+
+    Member member = memberReader.getMember(tenantId, userId);
+    if (member == null) {
+      throw new CoreException(ErrorType.UNAUTHORIZED);
+    }
+    if (member.memberType() != MemberType.HR) {
+      throw new CoreException(ErrorType.FORBIDDEN);
+    }
+    return member;
   }
 
   private String requireTenantId() {

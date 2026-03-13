@@ -70,7 +70,7 @@ public class AnnouncementBoardValidatorImpl implements AnnouncementBoardValidato
 
     Member member = memberReader.getMember(tenantId, userId);
     if (member == null || member.memberType() != MemberType.HR) {
-      throw new CoreException(ErrorType.UNAUTHORIZED);
+      throw new CoreException(ErrorType.FORBIDDEN);
     }
 
     return member;
