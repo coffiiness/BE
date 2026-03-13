@@ -26,8 +26,14 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   List<MemberEntity> findByGroupIdAndStatus(Long groupId, EntityStatus status);
 
-  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  // 읽기 전용 멤버 검증에서 사용하는 잠금 없는 조회
   List<MemberEntity> findAllByTenantIdAndUserIdIn(String tenantId, List<Long> userIds);
+
+  // 쓰기 시점 정합성 확인이 필요할 때 사용하는 잠금 조회
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT m FROM MemberEntity m WHERE m.tenantId = :tenantId AND m.userId IN :userIds")
+  List<MemberEntity> findAllByTenantIdAndUserIdInForUpdate(
+      @Param("tenantId") String tenantId, @Param("userIds") List<Long> userIds);
 
   @Query(
       "SELECT m.groupId, COUNT(m) FROM MemberEntity m"
