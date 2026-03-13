@@ -18,11 +18,14 @@ import com.coffiness.calfit.api.v1.response.MeetingRoomReservationResponse;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
 import com.coffiness.calfit.api.v1.response.UserResponse;
 import com.coffiness.calfit.core.enums.CareerType;
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.InterviewRound;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleEntity;
+import com.coffiness.calfit.storage.db.core.calendar.ScheduleRepository;
 import com.coffiness.calfit.v1.response.ScheduleResponse;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -339,5 +342,47 @@ class POST_specs {
     assertThat(attendeeSchedules.getData())
         .extracting(ScheduleResponse::title)
         .contains("수동 예약 일정");
+  }
+
+  @Test
+  void 연결된_일정이_없어도_회의실_예약_목록_조회는_실패하지_않는다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired ScheduleRepository scheduleRepository) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    Long meetingRoomId =
+        meetingRoomFixture.create(token, tenantId, "복구 테스트 회의실", 1, 6).getData().id();
+
+    LocalDateTime start = LocalDateTime.of(2030, 4, 10, 10, 0);
+    LocalDateTime end = LocalDateTime.of(2030, 4, 10, 11, 0);
+
+    ApiResponse<MeetingRoomReservationResponse> created =
+        meetingRoomFixture.reserve(
+            token, tenantId, meetingRoomId, "복구 테스트 예약", "설명", start, end, List.of());
+
+    assertThat(created.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    List<ScheduleEntity> schedules =
+        scheduleRepository.findAllByReservationIdAndStatus(
+            created.getData().id(), EntityStatus.ACTIVE);
+    assertThat(schedules).isNotEmpty();
+    schedules.forEach(ScheduleEntity::deleted);
+    scheduleRepository.saveAll(schedules);
+
+    ApiResponse<MeetingRoomReservationResponse[]> reservations =
+        meetingRoomFixture.listReservations(token, tenantId, start.minusHours(1), end.plusHours(1));
+
+    assertThat(reservations.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    Optional<MeetingRoomReservationResponse> reservation =
+        List.of(reservations.getData()).stream()
+            .filter(item -> created.getData().id().equals(item.id()))
+            .findFirst();
+
+    assertThat(reservation).isPresent();
+    assertThat(reservation.get().title()).isEqualTo("회의실 예약");
   }
 }

@@ -19,12 +19,17 @@ public record MeetingRoomReservationResponse(
     MeetingRoomStatus status) {
 
   public static MeetingRoomReservationResponse from(MeetingRoomReservation reservation) {
+    return fromFallback(reservation);
+  }
+
+  public static MeetingRoomReservationResponse fromFallback(MeetingRoomReservation reservation) {
+    String fallbackTitle = reservation.interviewScheduleId() != null ? "면접 일정" : "회의실 예약";
     return new MeetingRoomReservationResponse(
         reservation.id(),
         reservation.meetingRoomId(),
         reservation.userId(),
         reservation.interviewScheduleId(),
-        null,
+        fallbackTitle,
         null,
         null,
         List.of(),
