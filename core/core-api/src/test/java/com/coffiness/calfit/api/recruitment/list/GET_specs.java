@@ -9,9 +9,13 @@ import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.support.InterviewApplicantTestHelper;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
+import com.coffiness.calfit.api.v1.response.InvitationResponse;
+import com.coffiness.calfit.api.v1.response.LoginResponse;
+import com.coffiness.calfit.api.v1.response.MemberResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
@@ -108,6 +112,85 @@ public class GET_specs {
     assertThat(response.getData())
         .extracting(RecruitmentListResponse::title)
         .contains("시니어 백엔드 채용", "신입 프론트엔드 채용");
+  }
+
+  @Test
+  void 채용공고_목록은_담당조직원_참조조직원_등록면접관에게만_노출된다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    Long leadGroupId =
+        memberFixture.createGroup("담당 조직", "#14B8A6", hrToken, tenantId).getData().id();
+    Long referenceGroupId =
+        memberFixture.createGroup("참조 조직", "#3B82F6", hrToken, tenantId).getData().id();
+    Long unrelatedGroupId =
+        memberFixture.createGroup("무관 조직", "#F59E0B", hrToken, tenantId).getData().id();
+
+    MemberAccessContext leadMember =
+        createWorkspaceMember(memberFixture, userFixture, context, "lead-member", null);
+    MemberAccessContext referenceMember =
+        createWorkspaceMember(memberFixture, userFixture, context, "reference-member", null);
+    MemberAccessContext interviewerMember =
+        createWorkspaceMember(
+            memberFixture, userFixture, context, "interviewer-member", unrelatedGroupId);
+    MemberAccessContext unrelatedMember =
+        createWorkspaceMember(
+            memberFixture, userFixture, context, "unrelated-member", unrelatedGroupId);
+
+    memberFixture.assignGroup(leadMember.memberId(), leadGroupId, hrToken, tenantId);
+    memberFixture.assignGroup(referenceMember.memberId(), referenceGroupId, hrToken, tenantId);
+
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+
+    RecruitmentCreateRequest request =
+        new RecruitmentCreateRequest(
+            "접근 범위 확인용 채용",
+            2,
+            applicationTemplateId,
+            "노출 대상 확인",
+            LocalDateTime.now(),
+            LocalDateTime.now().plusDays(30),
+            CareerType.EXPERIENCED,
+            3,
+            7,
+            leadGroupId,
+            List.of(referenceGroupId),
+            List.of(interviewerMember.userId()),
+            List.of(
+                new RecruitmentStageRequest("서류 전형", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 2),
+                new RecruitmentStageRequest("최종 합격", RecruitmentStageType.PASS, 3)));
+
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(hrToken, tenantId, request);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    assertThat(recruitmentFixture.getRecruitmentList(hrToken, tenantId).getData())
+        .extracting(RecruitmentListResponse::title)
+        .contains("접근 범위 확인용 채용");
+
+    assertThat(recruitmentFixture.getRecruitmentList(leadMember.token(), tenantId).getData())
+        .extracting(RecruitmentListResponse::title)
+        .contains("접근 범위 확인용 채용");
+
+    assertThat(recruitmentFixture.getRecruitmentList(referenceMember.token(), tenantId).getData())
+        .extracting(RecruitmentListResponse::title)
+        .contains("접근 범위 확인용 채용");
+
+    assertThat(recruitmentFixture.getRecruitmentList(interviewerMember.token(), tenantId).getData())
+        .extracting(RecruitmentListResponse::title)
+        .contains("접근 범위 확인용 채용");
+
+    assertThat(recruitmentFixture.getRecruitmentList(unrelatedMember.token(), tenantId).getData())
+        .extracting(RecruitmentListResponse::title)
+        .doesNotContain("접근 범위 확인용 채용");
   }
 
   @Test
@@ -359,4 +442,33 @@ public class GET_specs {
       TenantContext.clear();
     }
   }
+
+  private MemberAccessContext createWorkspaceMember(
+      MemberFixture memberFixture,
+      UserFixture userFixture,
+      MemberFixture.WorkspaceContext context,
+      String emailPrefix,
+      Long groupId) {
+    String email = emailPrefix + "-" + userFixture.randomEmail();
+    String password = userFixture.randomPassword();
+    userFixture.signUp(email, password, userFixture.randomName());
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(
+            context.hrToken(), context.workspaceId(), email, MemberType.INTERVIEWER);
+
+    ApiResponse<LoginResponse> loginResponse = userFixture.login(email, password);
+    String token = loginResponse.getData().accessToken();
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), token);
+
+    MemberResponse member = memberFixture.getMyMember(token, context.workspaceId()).getData();
+    if (groupId != null) {
+      memberFixture.assignGroup(member.id(), groupId, context.hrToken(), context.workspaceId());
+      member = memberFixture.getMyMember(token, context.workspaceId()).getData();
+    }
+
+    return new MemberAccessContext(token, member.userId(), member.id());
+  }
+
+  private record MemberAccessContext(String token, Long userId, Long memberId) {}
 }

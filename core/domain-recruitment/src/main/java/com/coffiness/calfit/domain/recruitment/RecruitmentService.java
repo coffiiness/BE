@@ -3,9 +3,13 @@ package com.coffiness.calfit.domain.recruitment;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
+import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
+import com.coffiness.calfit.domain.workspace.member.Member;
+import com.coffiness.calfit.domain.workspace.member.MemberReader;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,6 +28,7 @@ public class RecruitmentService {
   private final RecruitmentStore recruitmentStore;
   private final RecruitmentHistoryAppender recruitmentHistoryAppender;
   private final RecruitmentReader recruitmentReader;
+  private final MemberReader memberReader;
 
   public Long createRecruitment(long userId, RecruitmentCreateRequest request) {
 
@@ -68,8 +73,13 @@ public class RecruitmentService {
   @Transactional(readOnly = true)
   public List<RecruitmentListInfo> getRecruitmentList(
       long userId, RecruitmentStatus recruitmentStatus, Pageable pageable) {
-
-    return recruitmentReader.readList(recruitmentStatus, pageable);
+    Member member = getRequiredMember(userId);
+    return recruitmentReader.readList(
+        userId,
+        member.groupId(),
+        member.memberType() == MemberType.HR,
+        recruitmentStatus,
+        pageable);
   }
 
   @Transactional(readOnly = true)
@@ -227,6 +237,12 @@ public class RecruitmentService {
           "면접관 설정 수정",
           afterRecruitment);
     }
+  }
+
+  // 현재 워크스페이스 기준으로 목록 조회에 사용할 멤버 정보를 가져옴
+  private Member getRequiredMember(long userId) {
+    String workspaceId = TenantContext.getTenantId();
+    return memberReader.getMember(workspaceId, userId);
   }
 
   private RecruitmentStatus resolveStatusAtCreation(
