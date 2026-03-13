@@ -24,9 +24,7 @@ public class ApiControllerAdvice {
       MethodArgumentNotValidException e, HttpServletRequest request) {
     log.info("ValidationException : {}", e.getMessage());
     return buildErrorResponse(
-        request,
-        ErrorType.VALIDATION_ERROR,
-        ApiResponse.error(ErrorType.VALIDATION_ERROR));
+        request, ErrorType.VALIDATION_ERROR, ApiResponse.error(ErrorType.VALIDATION_ERROR));
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
