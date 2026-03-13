@@ -17,6 +17,7 @@ import com.coffiness.calfit.storage.db.core.recruitment.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -128,22 +129,10 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                       ? groupNameMap.getOrDefault(entity.getLeadGroupId(), "부서 미지정")
                       : "부서 미지정";
 
-              // TODO : 현재 단계의 지원자 수 가져오기 추가 (0 대신)
               List<RecruitmentListInfo.StageSummaryInfo> stageInfos =
-                  stageMap.getOrDefault(recruitmentId, List.of()).stream()
-                      .filter(stage -> stage.getStageType() != RecruitmentStageType.FAIL)
-                      .sorted(Comparator.comparing(RecruitmentStageEntity::getStageStep))
-                      .map(
-                          s -> {
-                            int applicantCount =
-                                applicantCountMapByRecruitment
-                                    .getOrDefault(recruitmentId, Map.of())
-                                    .getOrDefault(s.getId(), 0);
-
-                            return new RecruitmentListInfo.StageSummaryInfo(
-                                s.getId(), s.getStageName(), applicantCount);
-                          })
-                      .toList();
+                  buildStageSummaries(
+                      stageMap.getOrDefault(recruitmentId, List.of()),
+                      applicantCountMapByRecruitment.getOrDefault(recruitmentId, Map.of()));
 
               List<RecruitmentListInfo.AssigneeSummaryInfo> assigneeInfos =
                   interviewerMap.getOrDefault(recruitmentId, List.of()).stream()
@@ -171,6 +160,47 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   assigneeInfos);
             })
         .toList();
+  }
+
+  // 목록 화면용 단계 정보를 만들고 최종 합격 단계를 항상 마지막에 보정
+  private List<RecruitmentListInfo.StageSummaryInfo> buildStageSummaries(
+      List<RecruitmentStageEntity> stages, Map<Long, Integer> applicantCountMap) {
+    List<RecruitmentStageEntity> visibleStages =
+        stages.stream()
+            .filter(stage -> stage.getStageType() != RecruitmentStageType.FAIL)
+            .sorted(Comparator.comparing(RecruitmentStageEntity::getStageStep))
+            .toList();
+
+    List<RecruitmentListInfo.StageSummaryInfo> stageInfos = new ArrayList<>();
+    RecruitmentStageEntity passStage = null;
+
+    for (RecruitmentStageEntity stage : visibleStages) {
+      int applicantCount = applicantCountMap.getOrDefault(stage.getId(), 0);
+      if (stage.getStageType() == RecruitmentStageType.PASS) {
+        if (passStage == null) {
+          passStage = stage;
+        }
+        continue;
+      }
+      stageInfos.add(
+          new RecruitmentListInfo.StageSummaryInfo(
+              stage.getId(), stage.getStageName(), applicantCount));
+    }
+
+    stageInfos.add(buildPassStageSummary(passStage, applicantCountMap));
+    return stageInfos;
+  }
+
+  // 최종 합격 단계가 없으면 목록 마지막에 기본 단계를 추가
+  private RecruitmentListInfo.StageSummaryInfo buildPassStageSummary(
+      RecruitmentStageEntity passStage, Map<Long, Integer> applicantCountMap) {
+    if (passStage == null) {
+      return new RecruitmentListInfo.StageSummaryInfo(null, "최종 합격", 0);
+    }
+
+    int applicantCount = applicantCountMap.getOrDefault(passStage.getId(), 0);
+    return new RecruitmentListInfo.StageSummaryInfo(
+        passStage.getId(), passStage.getStageName(), applicantCount);
   }
 
   @Override

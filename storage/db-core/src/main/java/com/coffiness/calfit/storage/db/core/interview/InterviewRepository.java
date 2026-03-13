@@ -23,7 +23,8 @@ public interface InterviewRepository {
       String interviewerName,
       String title,
       String applicantName,
-      String description) {}
+      String description,
+      String location) {}
 
   record PendingInterviewApplicantRow(
       Long applicationId, Long applicantId, String name, String email) {}
