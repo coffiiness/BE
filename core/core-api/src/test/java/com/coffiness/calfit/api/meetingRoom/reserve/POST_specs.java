@@ -7,6 +7,7 @@ import com.coffiness.calfit.api.fixture.CalendarFixture;
 import com.coffiness.calfit.api.fixture.InterviewFixture;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.fixture.NotificationFixture;
 import com.coffiness.calfit.api.fixture.RecruitmentFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
@@ -38,7 +39,9 @@ class POST_specs {
 
   @Test
   void 정상_요청시_회의실_예약이_생성된다(
-      @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
+      @Autowired MemberFixture memberFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired NotificationFixture notificationFixture) {
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String token = context.hrToken();
     String tenantId = context.workspaceId();
@@ -56,6 +59,7 @@ class POST_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData()).isNotNull();
     assertThat(response.getData().meetingRoomId()).isEqualTo(meetingRoomId);
+    assertThat(notificationFixture.unreadCount(token, tenantId).getData().unreadCount()).isOne();
   }
 
   @Test

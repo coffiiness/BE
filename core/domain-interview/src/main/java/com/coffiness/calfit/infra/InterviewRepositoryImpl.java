@@ -324,6 +324,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getId(),
               schedule.getScheduledAt(),
               schedule.getEndTime(),
+              schedule.getMeetingRoomId(),
               interviewerUserId,
               interviewerName,
               buildWeeklyScheduleTitle(
