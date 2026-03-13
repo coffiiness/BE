@@ -19,9 +19,11 @@ import com.coffiness.calfit.support.event.DomainEventPublisher;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MeetingRoomReservationFacade {
@@ -86,24 +88,48 @@ public class MeetingRoomReservationFacade {
 
   @Transactional(readOnly = true)
   public MeetingRoomReservationResponse toResponse(MeetingRoomReservation reservation) {
-    List<Schedule> schedules = scheduleReader.findByReservationId(reservation.id());
-    if (schedules.isEmpty()) {
-      return MeetingRoomReservationResponse.from(reservation);
+    List<Schedule> schedules;
+    try {
+      schedules = scheduleReader.findByReservationId(reservation.id());
+    } catch (RuntimeException exception) {
+      log.warn(
+          "Failed to load schedules for meeting room reservation. reservationId={}, meetingRoomId={}, interviewScheduleId={}",
+          reservation.id(),
+          reservation.meetingRoomId(),
+          reservation.interviewScheduleId(),
+          exception);
+      return MeetingRoomReservationResponse.fromFallback(reservation);
     }
 
-    ScheduleDetailInfo scheduleDetail = scheduleReader.readDetail(schedules.get(0).id());
-    return new MeetingRoomReservationResponse(
-        reservation.id(),
-        reservation.meetingRoomId(),
-        reservation.userId(),
-        reservation.interviewScheduleId(),
-        scheduleDetail.title(),
-        scheduleDetail.description(),
-        scheduleDetail.ownerName(),
-        scheduleDetail.attendees(),
-        reservation.startDatetime(),
-        reservation.endDatetime(),
-        reservation.status());
+    if (schedules.isEmpty()) {
+      return MeetingRoomReservationResponse.fromFallback(reservation);
+    }
+
+    Schedule representativeSchedule = selectRepresentativeSchedule(reservation, schedules);
+    try {
+      ScheduleDetailInfo scheduleDetail = scheduleReader.readDetail(representativeSchedule.id());
+      return new MeetingRoomReservationResponse(
+          reservation.id(),
+          reservation.meetingRoomId(),
+          reservation.userId(),
+          reservation.interviewScheduleId(),
+          scheduleDetail.title(),
+          scheduleDetail.description(),
+          scheduleDetail.ownerName(),
+          scheduleDetail.attendees(),
+          reservation.startDatetime(),
+          reservation.endDatetime(),
+          reservation.status());
+    } catch (RuntimeException exception) {
+      log.warn(
+          "Failed to build meeting room reservation response. reservationId={}, meetingRoomId={}, interviewScheduleId={}, scheduleId={}",
+          reservation.id(),
+          reservation.meetingRoomId(),
+          reservation.interviewScheduleId(),
+          representativeSchedule.id(),
+          exception);
+      return MeetingRoomReservationResponse.fromFallback(reservation);
+    }
   }
 
   @Transactional
@@ -127,5 +153,14 @@ public class MeetingRoomReservationFacade {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
     return tenantId;
+  }
+
+  private Schedule selectRepresentativeSchedule(
+      MeetingRoomReservation reservation, List<Schedule> schedules) {
+    return schedules.stream()
+        .filter(schedule -> schedule.roomId() != null)
+        .filter(schedule -> schedule.roomId().equals(reservation.meetingRoomId()))
+        .findFirst()
+        .orElse(schedules.get(0));
   }
 }
