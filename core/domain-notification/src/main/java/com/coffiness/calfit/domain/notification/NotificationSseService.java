@@ -48,6 +48,22 @@ public class NotificationSseService {
     }
   }
 
+  // 같은 워크스페이스에 접속 중인 사용자들에게 실시간 이벤트를 전파
+  public void sendWorkspaceEvent(String tenantId, String eventName, Object payload) {
+    String tenantPrefix = tenantId + ":";
+
+    emitters.forEach(
+        (key, userEmitters) -> {
+          if (!key.startsWith(tenantPrefix)) {
+            return;
+          }
+
+          for (SseEmitter emitter : userEmitters) {
+            send(key, emitter, eventName, payload);
+          }
+        });
+  }
+
   @Scheduled(fixedRate = HEARTBEAT_INTERVAL_MILLIS)
   public void sendHeartbeat() {
     emitters.forEach(
