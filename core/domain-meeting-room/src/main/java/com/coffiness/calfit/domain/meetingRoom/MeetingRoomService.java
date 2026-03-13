@@ -24,7 +24,7 @@ public class MeetingRoomService {
       String color,
       Long userId) {
     meetingRoomValidator.validateCreateInput(
-        name, location, capacity, description, facilities, color);
+        name, location, capacity, description, facilities, color, userId);
     return meetingRoomStore.create(
         name, location, capacity, description, facilities, color, userId);
   }
@@ -41,7 +41,7 @@ public class MeetingRoomService {
       String color,
       Long userId) {
     meetingRoomValidator.validateUpdateInput(
-        id, name, location, capacity, description, facilities, color);
+        id, name, location, capacity, description, facilities, color, userId);
     return meetingRoomStore.update(
         id, name, location, capacity, description, facilities, color, userId);
   }
