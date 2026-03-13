@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 public class NotificationSseService {
   private static final long DEFAULT_TIMEOUT_MILLIS = 30L * 60L * 1000L;
-  private static final long HEARTBEAT_INTERVAL_MILLIS = 25L * 1000L;
+  private static final long HEARTBEAT_INTERVAL_MILLIS = 10L * 1000L;
 
   private final Map<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
