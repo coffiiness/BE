@@ -16,7 +16,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -54,7 +53,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   public long countOverlappingReservations(
       Long meetingRoomId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
     String tenantId = requireTenantId();
-    syncReservationStatuses(tenantId);
     return reservationRepository
         .countByTenantIdAndMeetingRoomIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
             tenantId,
@@ -68,7 +66,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   public long countOverlappingReservationsByUser(
       Long userId, LocalDateTime startDatetime, LocalDateTime endDatetime) {
     String tenantId = requireTenantId();
-    syncReservationStatuses(tenantId);
     return reservationRepository
         .countByTenantIdAndUserIdAndReservationStatusInAndStartDatetimeBeforeAndEndDatetimeAfter(
             tenantId,
@@ -81,7 +78,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
   @Override
   public MeetingRoomReservation getActiveReservation(Long meetingRoomId, Long reservationId) {
     String tenantId = requireTenantId();
-    syncReservationStatuses(tenantId);
     MeetingRoomReservationEntity entity =
         reservationRepository
             .findByTenantIdAndIdAndMeetingRoomIdAndReservationStatusIn(
@@ -100,7 +96,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
     if (fromDatetime == null || toDatetime == null || !fromDatetime.isBefore(toDatetime)) {
       throw new CoreException(ErrorType.VALIDATION_ERROR);
     }
-    syncReservationStatuses(tenantId);
 
     List<Long> meetingRoomIds =
         meetingRoomRepository.findAllByStatusOrderByNameAsc(EntityStatus.ACTIVE).stream()
@@ -120,17 +115,6 @@ public class MeetingRoomReaderImpl implements MeetingRoomReader {
         .stream()
         .map(this::toReservation)
         .toList();
-  }
-
-  private void syncReservationStatuses(String tenantId) {
-    LocalDateTime now = LocalDateTime.now();
-    reservationRepository.bulkUpdateToExpired(
-        tenantId,
-        new ArrayList<>(List.of(MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE)),
-        MeetingRoomStatus.EXPIRED,
-        now);
-    reservationRepository.bulkUpdateToActive(
-        tenantId, MeetingRoomStatus.RESERVED, MeetingRoomStatus.ACTIVE, now);
   }
 
   private MeetingRoom toMeetingRoom(MeetingRoomEntity entity) {
