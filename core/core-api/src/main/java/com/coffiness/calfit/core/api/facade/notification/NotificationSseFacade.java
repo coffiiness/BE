@@ -14,4 +14,9 @@ public class NotificationSseFacade {
   public SseEmitter subscribe(String tenantId, Long userId) {
     return notificationSseService.subscribe(tenantId, userId);
   }
+
+  // 같은 워크스페이스의 구독자들에게 실시간 이벤트를 전송
+  public void sendWorkspaceEvent(String tenantId, String eventName, Object payload) {
+    notificationSseService.sendWorkspaceEvent(tenantId, eventName, payload);
+  }
 }
