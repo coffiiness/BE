@@ -1,5 +1,7 @@
 package com.coffiness.calfit.api.recruitment.publish;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture.WorkspaceContext;
@@ -16,14 +18,11 @@ import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
 import com.coffiness.calfit.storage.db.core.user.GroupRepository;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @CalfitApiTest
 @DisplayName("PATCH /api/v1/recruitments/{recruitmentId}/publish")
@@ -87,8 +86,7 @@ public class PATCH_specs {
             recruitmentFixture,
             hrToken,
             tenantId,
-            createDraftRequest(
-                templateId, leadGroupId, hrUserId, LocalDateTime.now().plusDays(2)));
+            createDraftRequest(templateId, leadGroupId, hrUserId, LocalDateTime.now().plusDays(2)));
 
     ApiResponse<RecruitmentDetailResponse> response =
         recruitmentFixture.publishRecruitment(interviewer.token(), tenantId, recruitmentId);
@@ -166,7 +164,8 @@ public class PATCH_specs {
       String token,
       String tenantId,
       RecruitmentCreateRequest request) {
-    ApiResponse<Void> createResponse = recruitmentFixture.createRecruitment(token, tenantId, request);
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request);
     assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     return recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()

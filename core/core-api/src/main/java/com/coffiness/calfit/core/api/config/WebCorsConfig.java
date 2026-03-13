@@ -20,7 +20,7 @@ public class WebCorsConfig extends WebMvcConfig {
     registry
         .addMapping("/api/**")
         .allowedOrigins(origins)
-        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         .allowedHeaders("*")
         .allowCredentials(true);
   }

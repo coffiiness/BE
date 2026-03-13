@@ -133,6 +133,16 @@ public class RecruitmentController {
     return ApiResponse.success(RecruitmentDetailResponse.from(info));
   }
 
+  // DRAFT 공고를 즉시 게시하는 API
+  @PatchMapping("/api/v1/recruitments/{recruitmentId}/publish")
+  public ApiResponse<RecruitmentDetailResponse> publishRecruitment(
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long recruitmentId) {
+    long userId = user.userId();
+    RecruitmentDetailInfo info = recruitmentFacade.publishRecruitment(userId, recruitmentId);
+
+    return ApiResponse.success(RecruitmentDetailResponse.from(info));
+  }
+
   @DeleteMapping("/api/v1/recruitments/{recruitmentId}")
   public ApiResponse<Long> deleteRecruitment(
       @AuthenticationPrincipal SecurityUser user, @PathVariable Long recruitmentId) {

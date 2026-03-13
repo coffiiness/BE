@@ -133,6 +133,32 @@ public class RecruitmentService {
     return savedRecruitment;
   }
 
+  // DRAFT 공고를 즉시 게시하고 실제 시작 시각도 현재로 반영
+  public Recruitment publishRecruitmentNow(long memberId, Long recruitmentId) {
+    return publishRecruitmentNow(memberId, recruitmentId, LocalDateTime.now());
+  }
+
+  // 테스트와 스케줄링 검증을 위해 기준 시각을 주입받는 게시 전환 로직
+  public Recruitment publishRecruitmentNow(
+      long memberId, Long recruitmentId, LocalDateTime currentTime) {
+    Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+    if (recruitment == null) {
+      throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
+    }
+
+    Recruitment publishedRecruitment = recruitment.publishNow(currentTime);
+    Recruitment savedRecruitment = recruitmentStore.update(publishedRecruitment);
+
+    recruitmentHistoryAppender.append(
+        savedRecruitment.id(),
+        memberId,
+        RecruitmentActionType.RECRUITMENT_OPENED,
+        "채용 공고 즉시 게시",
+        savedRecruitment);
+
+    return savedRecruitment;
+  }
+
   public void assertCanAccess(long memberId, Long recruitmentId) {
     RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
 

@@ -97,6 +97,9 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
         recruitment.maxExperienceYears(),
         recruitment.leadGroupId());
 
+    // 부모 엔티티 변경을 먼저 flush해서 상태/일시 변경이 DB에 확정되도록 한다.
+    recruitmentRepository.saveAndFlush(entity);
+
     insertChildren(recruitment.id(), recruitment);
 
     return recruitment;

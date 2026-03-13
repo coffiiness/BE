@@ -43,7 +43,6 @@ public class RecruitmentFacade {
     return recruitmentService.createRecruitment(userId, request);
   }
 
-  @Transactional(readOnly = true)
   public List<InterviewScheduleCalendarItem> getInterviewSchedule(
       long userId, Long recruitmentId, String yearMonth) {
     Member member = getRequiredMember(userId);
@@ -81,7 +80,6 @@ public class RecruitmentFacade {
     return interviewReader.getWeeklySchedules(interviewerUserId, from, to);
   }
 
-  @Transactional
   public RecruitmentDetailInfo updateRecruitment(
       long userId, Long recruitmentId, RecruitmentUpdateRequest request) {
     Member member = getRequiredMember(userId);
@@ -94,7 +92,6 @@ public class RecruitmentFacade {
   }
 
   // 게시된 공고도 면접관 목록은 별도로 수정할 수 있게 처리
-  @Transactional
   public RecruitmentDetailInfo updateRecruitmentInterviewers(
       long userId, Long recruitmentId, RecruitmentInterviewersUpdateRequest request) {
     Member member = getRequiredMember(userId);
@@ -106,12 +103,21 @@ public class RecruitmentFacade {
     return recruitmentReader.readDetail(recruitmentId);
   }
 
+  // HR만 DRAFT 공고를 즉시 게시할 수 있게 처리
+  public RecruitmentDetailInfo publishRecruitment(long userId, Long recruitmentId) {
+    Member member = getRequiredMember(userId);
+    validateHrMember(member, "채용 담당자만 채용 공고를 게시할 수 있습니다.");
+
+    recruitmentService.publishRecruitmentNow(userId, recruitmentId);
+
+    return recruitmentReader.readDetail(recruitmentId);
+  }
+
   public void deleteRecruitment(long userId, Long recruitmentId) {
     Member member = getRequiredMember(userId);
     validateHrMember(member, "채용 담당자만 채용 공고를 삭제할 수 있습니다.");
 
     // TODO : 지원자나 진행중인 면접이 있을 경우의 검증 로직 (지원자 모듈, 면접 모듈)
-
     recruitmentService.deleteRecruitment(userId, recruitmentId);
   }
 
