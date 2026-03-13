@@ -22,6 +22,93 @@ public interface RecruitmentRepository extends JpaRepository<RecruitmentEntity, 
   Page<RecruitmentEntity> findByRecruitmentStatusAndStatus(
       RecruitmentStatus recruitmentStatus, EntityStatus status, Pageable pageable);
 
+  @Query(
+      """
+      SELECT r.id
+      FROM RecruitmentEntity r
+      WHERE r.status = :entityStatus
+        AND (
+          (:groupId IS NOT NULL AND r.leadGroupId = :groupId)
+          OR EXISTS (
+            SELECT 1
+            FROM RecruitmentInterviewerEntity ri
+            WHERE ri.recruitmentId = r.id
+              AND ri.userId = :userId
+          )
+          OR (
+            :groupId IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM RecruitmentReferenceGroupEntity rg
+              WHERE rg.recruitmentId = r.id
+                AND rg.groupId = :groupId
+            )
+          )
+        )
+      """)
+  List<Long> findAccessibleIdsByUserIdAndGroupIdAndStatus(
+      @Param("userId") Long userId,
+      @Param("groupId") Long groupId,
+      @Param("entityStatus") EntityStatus entityStatus);
+
+  @Query(
+      value =
+          """
+          SELECT r
+          FROM RecruitmentEntity r
+          WHERE r.status = :entityStatus
+            AND (:recruitmentStatus IS NULL OR r.recruitmentStatus = :recruitmentStatus)
+            AND (
+              (:groupId IS NOT NULL AND r.leadGroupId = :groupId)
+              OR EXISTS (
+                SELECT 1
+                FROM RecruitmentInterviewerEntity ri
+                WHERE ri.recruitmentId = r.id
+                  AND ri.userId = :userId
+              )
+              OR (
+                :groupId IS NOT NULL
+                AND EXISTS (
+                  SELECT 1
+                  FROM RecruitmentReferenceGroupEntity rg
+                  WHERE rg.recruitmentId = r.id
+                    AND rg.groupId = :groupId
+                )
+              )
+            )
+          """,
+      countQuery =
+          """
+          SELECT COUNT(r)
+          FROM RecruitmentEntity r
+          WHERE r.status = :entityStatus
+            AND (:recruitmentStatus IS NULL OR r.recruitmentStatus = :recruitmentStatus)
+            AND (
+              (:groupId IS NOT NULL AND r.leadGroupId = :groupId)
+              OR EXISTS (
+                SELECT 1
+                FROM RecruitmentInterviewerEntity ri
+                WHERE ri.recruitmentId = r.id
+                  AND ri.userId = :userId
+              )
+              OR (
+                :groupId IS NOT NULL
+                AND EXISTS (
+                  SELECT 1
+                  FROM RecruitmentReferenceGroupEntity rg
+                  WHERE rg.recruitmentId = r.id
+                    AND rg.groupId = :groupId
+                )
+              )
+            )
+          """)
+  Page<RecruitmentEntity> findAccessibleByUserIdAndGroupIdAndStatus(
+      @Param("userId") Long userId,
+      @Param("groupId") Long groupId,
+      @Param("recruitmentStatus") RecruitmentStatus recruitmentStatus,
+      @Param("entityStatus") EntityStatus entityStatus,
+      Pageable pageable);
+
   Optional<RecruitmentEntity> findByIdAndStatus(Long id, EntityStatus status);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)

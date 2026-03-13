@@ -59,6 +59,22 @@ public interface InterviewScheduleRepository extends JpaRepository<InterviewSche
   @Query(
       "SELECT e FROM InterviewScheduleEntity e "
           + "WHERE e.tenantId = :tenantId "
+          + "AND e.recruitmentId IN :recruitmentIds "
+          + "AND e.scheduledAt >= :from "
+          + "AND e.scheduledAt < :to "
+          + "AND e.interviewStatus <> :status "
+          + "ORDER BY e.scheduledAt ASC")
+  List<InterviewScheduleEntity>
+      findAllByTenantIdAndRecruitmentIdInAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
+          @Param("tenantId") String tenantId,
+          @Param("recruitmentIds") List<Long> recruitmentIds,
+          @Param("from") LocalDateTime from,
+          @Param("to") LocalDateTime to,
+          @Param("status") InterviewStatus status);
+
+  @Query(
+      "SELECT e FROM InterviewScheduleEntity e "
+          + "WHERE e.tenantId = :tenantId "
           + "AND e.id IN :ids "
           + "AND e.scheduledAt >= :from "
           + "AND e.scheduledAt < :to "
