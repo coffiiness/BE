@@ -7,6 +7,7 @@ import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
+import com.coffiness.calfit.api.v1.response.MemberResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.api.v1.response.WeeklyInterviewScheduleResponse;
 import com.coffiness.calfit.core.enums.*;
@@ -53,6 +54,8 @@ class GET_specs {
             hrToken,
             tenantId,
             "상반기 백엔드 채용",
+            1L,
+            List.of(1L, 2L),
             List.of(interviewer.userId()),
             LocalDateTime.of(2030, 3, 1, 9, 0),
             LocalDateTime.of(2030, 3, 31, 18, 0));
@@ -124,6 +127,8 @@ class GET_specs {
             hrToken,
             tenantId,
             "상반기 프론트 채용",
+            1L,
+            List.of(1L, 2L),
             List.of(interviewerA.userId(), interviewerB.userId()),
             LocalDateTime.of(2030, 3, 1, 9, 0),
             LocalDateTime.of(2030, 3, 31, 18, 0));
@@ -193,6 +198,8 @@ class GET_specs {
             hrToken,
             tenantId,
             "상반기 QA 채용",
+            1L,
+            List.of(1L, 2L),
             List.of(interviewer.userId()),
             LocalDateTime.of(2030, 3, 1, 9, 0),
             LocalDateTime.of(2030, 3, 31, 18, 0));
@@ -230,6 +237,66 @@ class GET_specs {
     assertThat(response.getData()).hasSize(1);
     assertThat(response.getData().get(0).title()).isEqualTo("상반기 QA 채용 · 실무 면접");
     assertThat(response.getData().get(0).description()).isEqualTo("정상 면접");
+  }
+
+  @Test
+  void 권한이_없는_멤버는_이번주_면접_일정을_조회해도_0건이다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture,
+      @Autowired InterviewFixture interviewFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    Long leadGroupId =
+        memberFixture.createGroup("담당 조직", "#14B8A6", hrToken, tenantId).getData().id();
+    Long unrelatedGroupId =
+        memberFixture.createGroup("무관 조직", "#F59E0B", hrToken, tenantId).getData().id();
+
+    InterviewerContext interviewer =
+        inviteInterviewer(memberFixture, userFixture, hrToken, tenantId, "면접관 A");
+    MemberAccessContext unrelatedMember =
+        createWorkspaceMember(memberFixture, userFixture, context, "weekly-unrelated");
+
+    memberFixture.assignGroup(unrelatedMember.memberId(), unrelatedGroupId, hrToken, tenantId);
+
+    Long meetingRoomId = meetingRoomFixture.create(hrToken, tenantId, "D회의실", 5, 8).getData().id();
+
+    RecruitmentContext recruitment =
+        createRecruitment(
+            recruitmentFixture,
+            hrToken,
+            tenantId,
+            "접근 권한 확인용 채용",
+            leadGroupId,
+            List.of(),
+            List.of(interviewer.userId()),
+            LocalDateTime.of(2030, 3, 1, 9, 0),
+            LocalDateTime.of(2030, 3, 31, 18, 0));
+
+    ApiResponse<?> interviewResponse =
+        interviewFixture.create(
+            hrToken,
+            tenantId,
+            recruitment.recruitmentId(),
+            recruitment.stageId(),
+            InterviewRound.FIRST,
+            List.of(interviewer.userId()),
+            List.of(501L),
+            meetingRoomId,
+            LocalDateTime.of(2030, 3, 13, 15, 0),
+            60,
+            "권한 확인용 면접");
+    assertThat(interviewResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<List<WeeklyInterviewScheduleResponse>> response =
+        recruitmentFixture.getWeeklyInterviewSchedules(
+            unrelatedMember.token(), tenantId, LocalDate.of(2030, 3, 13));
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isEmpty();
   }
 
   // 단계 정보가 없는 면접 레코드를 현재 tenant에 직접 저장
@@ -288,6 +355,8 @@ class GET_specs {
       String token,
       String tenantId,
       String title,
+      Long leadGroupId,
+      List<Long> referenceGroupIds,
       List<Long> interviewerIds,
       LocalDateTime startDate,
       LocalDateTime endDate) {
@@ -302,8 +371,8 @@ class GET_specs {
             CareerType.NEW,
             null,
             null,
-            1L,
-            List.of(1L, 2L),
+            leadGroupId,
+            referenceGroupIds,
             interviewerIds,
             List.of(new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 1)));
 
@@ -321,7 +390,28 @@ class GET_specs {
     return new RecruitmentContext(recruitment.id(), stageId);
   }
 
+  // 테스트용 일반 멤버 사용자를 생성하고 워크스페이스에 초대
+  private MemberAccessContext createWorkspaceMember(
+      MemberFixture memberFixture,
+      UserFixture userFixture,
+      MemberFixture.WorkspaceContext context,
+      String emailPrefix) {
+    String email = emailPrefix + "-" + userFixture.randomEmail();
+    String password = userFixture.randomPassword();
+    Long userId = userFixture.signUp(email, password, userFixture.randomName()).getData().id();
+    String token = userFixture.login(email, password).getData().accessToken();
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(
+            context.hrToken(), context.workspaceId(), email, MemberType.INTERVIEWER);
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), token);
+    MemberResponse memberResponse = memberFixture.getMyMember(token, context.workspaceId()).getData();
+    return new MemberAccessContext(token, userId, memberResponse.id());
+  }
+
   private record InterviewerContext(Long userId, String token) {}
 
   private record RecruitmentContext(Long recruitmentId, Long stageId) {}
+
+  private record MemberAccessContext(String token, Long userId, Long memberId) {}
 }
