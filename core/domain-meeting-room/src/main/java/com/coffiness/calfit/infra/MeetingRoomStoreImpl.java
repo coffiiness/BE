@@ -118,13 +118,9 @@ public class MeetingRoomStoreImpl implements MeetingRoomStore {
         meetingRoomRepository
             .findByIdAndStatus(meetingRoomId, EntityStatus.ACTIVE)
             .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-    entity.deleted();
-    appendHistory(
-        entity.getId(),
-        null,
-        userId,
-        MeetingRoomActionType.DELETED_ROOM,
-        buildRoomDetailJson(entity));
+    String roomDetailJson = buildRoomDetailJson(entity);
+    entity.archiveForDelete();
+    appendHistory(entity.getId(), null, userId, MeetingRoomActionType.DELETED_ROOM, roomDetailJson);
   }
 
   @Override

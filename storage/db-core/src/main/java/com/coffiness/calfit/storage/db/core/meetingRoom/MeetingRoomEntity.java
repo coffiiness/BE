@@ -71,4 +71,9 @@ public class MeetingRoomEntity extends TenantBaseEntity {
     this.facilities = facilities;
     this.color = color;
   }
+
+  public void archiveForDelete() {
+    this.name = this.name + "__deleted__" + System.currentTimeMillis();
+    deleted();
+  }
 }
