@@ -118,6 +118,7 @@ class POST_specs {
       @Autowired MeetingRoomFixture meetingRoomFixture,
       @Autowired InterviewFixture interviewFixture,
       @Autowired CalendarFixture calendarFixture,
+      @Autowired NotificationFixture notificationFixture,
       @Autowired ApplicationRepository applicationRepository,
       @Autowired GroupRepository groupRepository,
       @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
@@ -190,6 +191,11 @@ class POST_specs {
     assertThat(detailResponse.getData().applicantName()).isEqualTo("지원자#101");
     assertThat(detailResponse.getData().interviewScheduleId())
         .isEqualTo(createResponse.getData().id());
+
+    assertThat(notificationFixture.unreadCount(hrToken, tenantId).getData().unreadCount()).isOne();
+    assertThat(
+            notificationFixture.unreadCount(interviewer.token(), tenantId).getData().unreadCount())
+        .isOne();
   }
 
   @Test

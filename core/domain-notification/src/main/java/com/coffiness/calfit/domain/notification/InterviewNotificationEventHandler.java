@@ -3,6 +3,7 @@ package com.coffiness.calfit.domain.notification;
 import com.coffiness.calfit.domain.interview.event.InterviewCreatedEvent;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -27,7 +28,7 @@ public class InterviewNotificationEventHandler {
 
       NotificationMessage message = notificationTemplateFactory.buildInterviewCreated(event);
       List<NotificationCreateCommand> commands =
-          event.interviewerUserIds().stream()
+          Stream.concat(Stream.of(event.actorUserId()), event.interviewerUserIds().stream())
               .filter(userId -> userId != null)
               .distinct()
               .map(

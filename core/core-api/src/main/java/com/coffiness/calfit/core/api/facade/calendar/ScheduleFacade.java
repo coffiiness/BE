@@ -4,11 +4,14 @@ import com.coffiness.calfit.domain.ScheduleAvailability;
 import com.coffiness.calfit.domain.ScheduleDetailInfo;
 import com.coffiness.calfit.domain.ScheduleInfo;
 import com.coffiness.calfit.domain.ScheduleService;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReader;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservation;
+import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationCreatedEvent;
 import com.coffiness.calfit.domain.meetingRoom.MeetingRoomReservationService;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.support.event.DomainEventPublisher;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
 import com.coffiness.calfit.v1.request.ScheduleUpdateRequest;
@@ -30,6 +33,8 @@ public class ScheduleFacade {
   private final MemberReader memberReader;
   private final ScheduleService scheduleService;
   private final MeetingRoomReservationService meetingRoomReservationService;
+  private final MeetingRoomReader meetingRoomReader;
+  private final DomainEventPublisher domainEventPublisher;
 
   private Member validateAndGetMember(long userId) {
     String currentWorkspaceId = currentWorkspaceId();
@@ -66,6 +71,14 @@ public class ScheduleFacade {
               normalizedRequest.endTime(),
               List.of());
       reservationId = reservation.id();
+      publishMeetingRoomReservationCreated(
+          userId,
+          reservation.id(),
+          normalizedRequest.roomId(),
+          normalizedRequest.title(),
+          normalizedRequest.startTime(),
+          normalizedRequest.endTime(),
+          attendeeIds);
     }
 
     scheduleService.createSchedule(userId, reservationId, normalizedRequest);
@@ -166,6 +179,16 @@ public class ScheduleFacade {
           meetingRoomReservationService.reserve(
               userId, targetRoomId, startTime, endTime, List.of());
       newReservationId = reservation.id();
+      publishMeetingRoomReservationCreated(
+          userId,
+          reservation.id(),
+          targetRoomId,
+          normalizedRequest.title() != null
+              ? normalizedRequest.title()
+              : scheduleDetailInfo.title(),
+          startTime,
+          endTime,
+          attendeeIds != null ? attendeeIds : scheduleDetailInfo.attendeeIds());
     }
 
     return scheduleService.updateSchedule(userId, scheduleId, newReservationId, normalizedRequest);
@@ -227,5 +250,30 @@ public class ScheduleFacade {
       throw new IllegalArgumentException("워크스페이스 ID가 필요합니다.");
     }
     return tenantId;
+  }
+
+  private void publishMeetingRoomReservationCreated(
+      long userId,
+      Long reservationId,
+      Long roomId,
+      String title,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      List<Long> attendeeIds) {
+    if (reservationId == null || roomId == null || startTime == null || endTime == null) {
+      return;
+    }
+
+    domainEventPublisher.publish(
+        MeetingRoomReservationCreatedEvent.of(
+            currentWorkspaceId(),
+            reservationId,
+            userId,
+            roomId,
+            meetingRoomReader.getMeetingRoom(roomId).name(),
+            title,
+            startTime,
+            endTime,
+            attendeeIds));
   }
 }

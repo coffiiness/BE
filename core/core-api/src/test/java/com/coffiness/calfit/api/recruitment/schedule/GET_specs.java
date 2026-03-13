@@ -101,5 +101,6 @@ public class GET_specs {
     assertThat(response.getData()).hasSize(1);
     assertThat(response.getData().get(0).title()).isEqualTo("2026년 상반기 백엔드 신입 모집 · 면접 전형");
     assertThat(response.getData().get(0).applicantName()).isEqualTo("지원자#201");
+    assertThat(response.getData().get(0).meetingRoomId()).isEqualTo(meetingRoomId);
   }
 }

@@ -71,6 +71,7 @@ public class InterviewReaderImpl implements InterviewReader {
                     row.interviewScheduleId(),
                     row.startAt(),
                     row.endAt(),
+                    row.meetingRoomId(),
                     row.interviewerUserId(),
                     row.interviewerName(),
                     row.title(),
