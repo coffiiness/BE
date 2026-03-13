@@ -7,6 +7,7 @@ public enum ErrorType {
   VALIDATION_ERROR(HttpStatus.BAD_REQUEST, ErrorCode.E400, "Invalid request.", LogLevel.INFO),
   BAD_REQUEST(HttpStatus.BAD_REQUEST, ErrorCode.E400, "Bad request.", LogLevel.INFO),
   UNAUTHORIZED(HttpStatus.UNAUTHORIZED, ErrorCode.E401, "Unauthorized.", LogLevel.INFO),
+  FORBIDDEN(HttpStatus.FORBIDDEN, ErrorCode.E403, "Forbidden.", LogLevel.INFO),
   NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.E404, "Resource not found.", LogLevel.INFO),
   DEFAULT_ERROR(
       HttpStatus.INTERNAL_SERVER_ERROR,
