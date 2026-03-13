@@ -80,10 +80,11 @@ public class DataInitializer implements ApplicationRunner {
     TenantContext.setTenantId(workspace.workspaceId());
     try {
       initMembers(adminEntity.getId(), hrUser, member);
-      GroupInfo devGroup = initGroups();
+      InitialGroups groups = initGroups();
+      initMemberGroups(adminEntity.getId(), hrUser.id(), member.id(), groups);
       initMeetingRooms(hrUser);
       initAnnouncements(hrUser);
-      initRecruitments(hrUser, member, devGroup);
+      initRecruitments(hrUser, member, groups.devGroup());
     } finally {
       TenantContext.clear();
     }
@@ -98,12 +99,26 @@ public class DataInitializer implements ApplicationRunner {
     log.info("[DataInitializer] 멤버 등록 완료");
   }
 
-  private GroupInfo initGroups() {
+  private InitialGroups initGroups() {
     GroupInfo devGroup = groupService.createGroup("개발팀", "#3B82F6");
-    groupService.createGroup("인사팀", "#10B981");
+    GroupInfo hrGroup = groupService.createGroup("인사팀", "#10B981");
     groupService.createGroup("마케팅팀", "#F59E0B");
     log.info("[DataInitializer] 그룹 생성 완료");
-    return devGroup;
+    return new InitialGroups(devGroup, hrGroup);
+  }
+
+  // 로컬 기본 멤버를 조직 구조에 맞는 그룹에 배정
+  private void initMemberGroups(
+      Long adminUserId, Long hrUserId, Long interviewerUserId, InitialGroups groups) {
+    assignMemberGroup(adminUserId, groups.hrGroup().id());
+    assignMemberGroup(hrUserId, groups.hrGroup().id());
+    assignMemberGroup(interviewerUserId, groups.devGroup().id());
+    log.info("[DataInitializer] 멤버 그룹 배정 완료");
+  }
+
+  // userId 기준으로 워크스페이스 멤버를 찾아 그룹을 배정
+  private void assignMemberGroup(Long userId, Long groupId) {
+    memberService.assignGroup(memberService.getMember(userId).id(), groupId);
   }
 
   private void initMeetingRooms(User hrUser) {
@@ -186,4 +201,6 @@ public class DataInitializer implements ApplicationRunner {
 
     log.info("[DataInitializer] 채용 공고 생성 완료");
   }
+
+  private record InitialGroups(GroupInfo devGroup, GroupInfo hrGroup) {}
 }

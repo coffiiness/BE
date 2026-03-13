@@ -10,6 +10,7 @@ public record MemberResponse(
     String name,
     LocalDateTime createdAt,
     LocalDateTime recentAt,
+    Long groupId,
     String group,
     MemberType memberType) {
 
@@ -20,6 +21,7 @@ public record MemberResponse(
         info.name(),
         info.createdAt(),
         info.recentAt(),
+        info.groupId(),
         info.group(),
         info.memberType());
   }

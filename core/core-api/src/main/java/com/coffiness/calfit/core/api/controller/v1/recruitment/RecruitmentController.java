@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.controller.v1.recruitment;
 
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
+import com.coffiness.calfit.api.v1.request.RecruitmentInterviewersUpdateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
 import com.coffiness.calfit.api.v1.response.InterviewScheduleResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
@@ -14,9 +15,6 @@ import com.coffiness.calfit.domain.interview.WeeklyInterviewScheduleItem;
 import com.coffiness.calfit.domain.recruitment.RecruitmentDetailInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentListInfo;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
-import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
-import com.coffiness.calfit.support.error.CoreException;
-import com.coffiness.calfit.support.error.ErrorType;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -38,7 +36,6 @@ public class RecruitmentController {
 
   private final RecruitmentService recruitmentService;
   private final RecruitmentFacade recruitmentFacade;
-  private final ApplicationTemplateRepository applicationTemplateRepository;
 
   @ResponseStatus(HttpStatus.CREATED)
   @PostMapping("/api/v1/recruitments")
@@ -47,9 +44,7 @@ public class RecruitmentController {
       @Valid @RequestBody RecruitmentCreateRequest request) {
 
     long userId = user.userId();
-    validateTemplateInUse(request.applicationTemplateId());
-
-    Long recruitmentId = recruitmentService.createRecruitment(userId, request);
+    Long recruitmentId = recruitmentFacade.createRecruitment(userId, request);
 
     return ApiResponse.success(recruitmentId);
   }
@@ -119,10 +114,31 @@ public class RecruitmentController {
       @PathVariable Long recruitmentId,
       @Valid @RequestBody RecruitmentUpdateRequest request) {
     long userId = user.userId();
-    validateTemplateInUse(request.applicationTemplateId());
-
     RecruitmentDetailInfo info =
         recruitmentFacade.updateRecruitment(userId, recruitmentId, request);
+
+    return ApiResponse.success(RecruitmentDetailResponse.from(info));
+  }
+
+  // 게시 이후에도 면접관만 따로 수정할 수 있는 API
+  @PatchMapping("/api/v1/recruitments/{recruitmentId}/interviewers")
+  public ApiResponse<RecruitmentDetailResponse> updateRecruitmentInterviewers(
+      @AuthenticationPrincipal SecurityUser user,
+      @PathVariable Long recruitmentId,
+      @Valid @RequestBody RecruitmentInterviewersUpdateRequest request) {
+    long userId = user.userId();
+    RecruitmentDetailInfo info =
+        recruitmentFacade.updateRecruitmentInterviewers(userId, recruitmentId, request);
+
+    return ApiResponse.success(RecruitmentDetailResponse.from(info));
+  }
+
+  // DRAFT 공고를 즉시 게시하는 API
+  @PatchMapping("/api/v1/recruitments/{recruitmentId}/publish")
+  public ApiResponse<RecruitmentDetailResponse> publishRecruitment(
+      @AuthenticationPrincipal SecurityUser user, @PathVariable Long recruitmentId) {
+    long userId = user.userId();
+    RecruitmentDetailInfo info = recruitmentFacade.publishRecruitment(userId, recruitmentId);
 
     return ApiResponse.success(RecruitmentDetailResponse.from(info));
   }
@@ -134,16 +150,5 @@ public class RecruitmentController {
     recruitmentFacade.deleteRecruitment(userId, recruitmentId);
 
     return ApiResponse.success(recruitmentId);
-  }
-
-  private void validateTemplateInUse(Long templateId) {
-    var template =
-        applicationTemplateRepository
-            .findActiveById(templateId)
-            .orElseThrow(() -> new CoreException(ErrorType.NOT_FOUND));
-
-    if (!template.isInUse()) {
-      throw new CoreException(ErrorType.VALIDATION_ERROR);
-    }
   }
 }

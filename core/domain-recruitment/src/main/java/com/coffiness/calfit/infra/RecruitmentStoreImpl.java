@@ -97,7 +97,27 @@ public class RecruitmentStoreImpl implements RecruitmentStore {
         recruitment.maxExperienceYears(),
         recruitment.leadGroupId());
 
+    // 부모 엔티티 변경을 먼저 flush해서 상태/일시 변경이 DB에 확정되도록 한다.
+    recruitmentRepository.saveAndFlush(entity);
+
     insertChildren(recruitment.id(), recruitment);
+
+    return recruitment;
+  }
+
+  @Override
+  // 채용 공고 기본 정보는 건드리지 않고 면접관 연결만 갱신
+  public Recruitment updateInterviewers(Recruitment recruitment) {
+    if (recruitment.id() == null) {
+      throw new IllegalArgumentException("수정할 채용 공고 ID가 없습니다.");
+    }
+
+    recruitmentRepository
+        .findByIdAndStatus(recruitment.id(), EntityStatus.ACTIVE)
+        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채용 공고입니다."));
+
+    recruitmentInterviewerRepository.deleteAllByRecruitmentId(recruitment.id());
+    batchInsertInterviewers(recruitment.id(), recruitment, resolveTenantId());
 
     return recruitment;
   }

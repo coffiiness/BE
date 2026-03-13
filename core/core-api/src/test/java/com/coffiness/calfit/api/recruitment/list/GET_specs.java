@@ -219,6 +219,108 @@ public class GET_specs {
             });
   }
 
+  @Test
+  void 채용공고_목록에서는_불합격_단계가_노출되지_않는다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+
+    // Arrange
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    Long interviewerId = userFixture.me(token).getData().id();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+
+    RecruitmentCreateRequest request =
+        new RecruitmentCreateRequest(
+            "불합격 단계 비노출 확인용 채용",
+            2,
+            applicationTemplateId,
+            "목록 전형 단계 확인",
+            LocalDateTime.now(),
+            LocalDateTime.now().plusDays(30),
+            CareerType.EXPERIENCED,
+            3,
+            7,
+            leadGroupId,
+            List.of(),
+            List.of(interviewerId),
+            List.of(
+                new RecruitmentStageRequest("서류 심사", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 2),
+                new RecruitmentStageRequest("최종 면접", RecruitmentStageType.INTERVIEW, 3)));
+
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    // Act
+    RecruitmentListResponse response =
+        recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()
+            .filter(item -> item.title().equals("불합격 단계 비노출 확인용 채용"))
+            .findFirst()
+            .orElseThrow();
+
+    // Assert
+    assertThat(response.stages()).extracting(stage -> stage.stageName()).doesNotContain("불합격");
+  }
+
+  @Test
+  void 채용공고_목록_조회시_담당_조직과_참조_조직_ID가_정확히_반환된다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+
+    // Arrange
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String token = context.hrToken();
+    String tenantId = context.workspaceId();
+    Long interviewerId = userFixture.me(token).getData().id();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    List<Long> referenceGroupIds = createReferenceGroupIds(tenantId, groupRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+
+    RecruitmentCreateRequest request =
+        new RecruitmentCreateRequest(
+            "조직 매핑 확인용 채용",
+            2,
+            applicationTemplateId,
+            "경력직 모집합니다",
+            LocalDateTime.now(),
+            LocalDateTime.now().plusDays(30),
+            CareerType.EXPERIENCED,
+            3,
+            7,
+            leadGroupId,
+            referenceGroupIds,
+            List.of(interviewerId),
+            List.of(
+                new RecruitmentStageRequest("서류 전형", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 2),
+                new RecruitmentStageRequest("최종 합격", RecruitmentStageType.PASS, 3)));
+
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    // Act
+    RecruitmentListResponse response =
+        recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()
+            .filter(item -> item.title().equals("조직 매핑 확인용 채용"))
+            .findFirst()
+            .orElseThrow();
+
+    // Assert
+    assertThat(response.leadGroupId()).isEqualTo(leadGroupId);
+    assertThat(response.referenceGroupIds()).containsExactlyInAnyOrderElementsOf(referenceGroupIds);
+  }
+
   // 현재 tenant에서 사용할 채용 담당 그룹 ID를 조회
   private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
     TenantContext.setTenantId(tenantId);
@@ -227,6 +329,18 @@ public class GET_specs {
           .findFirst()
           .orElseGet(() -> groupRepository.save(GroupEntity.create("목록 조회 테스트 그룹", "#3B82F6")))
           .getId();
+    } finally {
+      TenantContext.clear();
+    }
+  }
+
+  // 현재 tenant에서 참조 조직 테스트용 그룹 ID를 생성
+  private List<Long> createReferenceGroupIds(String tenantId, GroupRepository groupRepository) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      GroupEntity first = groupRepository.save(GroupEntity.create("목록 참조 조직 A", "#10B981"));
+      GroupEntity second = groupRepository.save(GroupEntity.create("목록 참조 조직 B", "#F59E0B"));
+      return List.of(first.getId(), second.getId());
     } finally {
       TenantContext.clear();
     }

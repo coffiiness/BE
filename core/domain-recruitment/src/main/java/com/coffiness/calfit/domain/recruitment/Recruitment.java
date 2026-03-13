@@ -3,6 +3,7 @@ package com.coffiness.calfit.domain.recruitment;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public record Recruitment(
@@ -109,6 +110,70 @@ public record Recruitment(
         newStatus,
         this.targetCount,
         this.startDate,
+        this.endDate,
+        this.applicationTemplateId,
+        this.careerType,
+        this.minExperienceYears,
+        this.maxExperienceYears,
+        this.leadGroupId,
+        this.referenceGroupIds,
+        this.interviewerIds,
+        this.stages);
+  }
+
+  // 채용 공고의 면접관 목록만 별도로 교체
+  public Recruitment updateInterviewers(List<Long> newInterviewerIds) {
+    if (newInterviewerIds == null || newInterviewerIds.isEmpty()) {
+      throw new IllegalArgumentException("면접관은 최소 1명 이상이어야 합니다.");
+    }
+
+    return new Recruitment(
+        this.id,
+        this.creatorId,
+        this.title,
+        this.contents,
+        this.recruitmentStatus,
+        this.targetCount,
+        this.startDate,
+        this.endDate,
+        this.applicationTemplateId,
+        this.careerType,
+        this.minExperienceYears,
+        this.maxExperienceYears,
+        this.leadGroupId,
+        this.referenceGroupIds,
+        List.copyOf(new ArrayList<>(newInterviewerIds)),
+        this.stages);
+  }
+
+  // DRAFT 공고를 현재 시각 기준으로 즉시 게시 상태로 전환
+  public Recruitment publishNow(LocalDateTime currentTime) {
+    if (currentTime == null) {
+      throw new IllegalArgumentException("현재 시간이 필요합니다.");
+    }
+    if (this.recruitmentStatus == RecruitmentStatus.OPEN) {
+      throw new IllegalArgumentException("이미 게시된 채용 공고입니다.");
+    }
+    if (this.recruitmentStatus == RecruitmentStatus.CLOSED) {
+      throw new IllegalArgumentException("마감된 채용 공고는 게시할 수 없습니다.");
+    }
+    if (this.endDate != null && !this.endDate.isAfter(currentTime)) {
+      throw new IllegalArgumentException("이미 마감 시각이 지난 채용 공고는 게시할 수 없습니다.");
+    }
+
+    LocalDateTime publishedStartDate =
+        this.startDate != null && !this.startDate.isAfter(currentTime)
+            ? this.startDate
+            : currentTime;
+
+    return new Recruitment(
+        this.id,
+        this.creatorId,
+        this.title,
+        this.contents,
+        RecruitmentStatus.OPEN,
+        this.targetCount,
+        publishedStartDate,
         this.endDate,
         this.applicationTemplateId,
         this.careerType,

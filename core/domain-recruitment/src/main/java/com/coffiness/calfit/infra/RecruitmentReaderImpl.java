@@ -2,6 +2,7 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.InterviewStatus;
+import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.domain.interview.InterviewerInfo;
 import com.coffiness.calfit.domain.recruitment.*;
@@ -65,6 +66,16 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
         recruitmentStageRepository.findByRecruitmentIdIn(recruitmentIds).stream()
             .collect(Collectors.groupingBy(RecruitmentStageEntity::getRecruitmentId));
 
+    // 공고별 참조 조직
+    Map<Long, List<Long>> referenceGroupMap =
+        recruitmentReferenceGroupRepository.findByRecruitmentIdIn(recruitmentIds).stream()
+            .filter(referenceGroup -> referenceGroup.getGroupId() != null)
+            .collect(
+                Collectors.groupingBy(
+                    RecruitmentReferenceGroupEntity::getRecruitmentId,
+                    Collectors.mapping(
+                        RecruitmentReferenceGroupEntity::getGroupId, Collectors.toList())));
+
     // 단계별 지원자 수
     Map<Long, Map<Long, Integer>> applicantCountMapByRecruitment =
         applicationRepository
@@ -120,6 +131,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
               // TODO : 현재 단계의 지원자 수 가져오기 추가 (0 대신)
               List<RecruitmentListInfo.StageSummaryInfo> stageInfos =
                   stageMap.getOrDefault(recruitmentId, List.of()).stream()
+                      .filter(stage -> stage.getStageType() != RecruitmentStageType.FAIL)
                       .sorted(Comparator.comparing(RecruitmentStageEntity::getStageStep))
                       .map(
                           s -> {
@@ -147,6 +159,8 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   recruitmentId,
                   entity.getTitle(),
                   groupName,
+                  entity.getLeadGroupId(),
+                  referenceGroupMap.getOrDefault(recruitmentId, List.of()),
                   entity.getCareerType(),
                   entity.getMinExperienceYears(),
                   entity.getMaxExperienceYears(),

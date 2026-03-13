@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture.WorkspaceContext;
+import com.coffiness.calfit.api.v1.response.GroupResponse;
 import com.coffiness.calfit.api.v1.response.MemberResponse;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -73,6 +74,28 @@ public class GET_specs {
     assertThat(member.id()).isNotNull();
     assertThat(member.name()).isNotBlank();
     assertThat(member.memberType()).isEqualTo(MemberType.HR);
+  }
+
+  @Test
+  void group에_배정된_멤버는_groupId와_group명이_함께_반환된다(@Autowired MemberFixture fixture) {
+    // Arrange
+    WorkspaceContext ctx = fixture.setupWorkspace();
+    MemberResponse myMember = fixture.getMyMember(ctx.hrToken(), ctx.workspaceId()).getData();
+    GroupResponse group =
+        fixture.createGroup("개발팀", "#3B82F6", ctx.hrToken(), ctx.workspaceId()).getData();
+    fixture.assignGroup(myMember.id(), group.id(), ctx.hrToken(), ctx.workspaceId());
+
+    // Act
+    ApiResponse<MemberResponse[]> response = fixture.getMembers(ctx.hrToken(), ctx.workspaceId());
+    MemberResponse member =
+        java.util.Arrays.stream(response.getData())
+            .filter(item -> item.id().equals(myMember.id()))
+            .findFirst()
+            .orElseThrow();
+
+    // Assert
+    assertThat(member.groupId()).isEqualTo(group.id());
+    assertThat(member.group()).isEqualTo(group.name());
   }
 
   @Test

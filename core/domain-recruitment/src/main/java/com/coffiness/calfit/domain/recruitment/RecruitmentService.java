@@ -7,7 +7,9 @@ import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -115,6 +117,48 @@ public class RecruitmentService {
     return savedRecruitment;
   }
 
+  // 게시 여부와 무관하게 채용 공고의 면접관 목록만 별도로 수정
+  public Recruitment updateRecruitmentInterviewers(
+      long memberId, Long recruitmentId, List<Long> interviewerIds) {
+    Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+    if (recruitment == null) {
+      throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
+    }
+
+    Recruitment updatedRecruitment = recruitment.updateInterviewers(interviewerIds);
+    Recruitment savedRecruitment = recruitmentStore.updateInterviewers(updatedRecruitment);
+
+    appendInterviewerHistory(memberId, recruitment, updatedRecruitment);
+
+    return savedRecruitment;
+  }
+
+  // DRAFT 공고를 즉시 게시하고 실제 시작 시각도 현재로 반영
+  public Recruitment publishRecruitmentNow(long memberId, Long recruitmentId) {
+    return publishRecruitmentNow(memberId, recruitmentId, LocalDateTime.now());
+  }
+
+  // 테스트와 스케줄링 검증을 위해 기준 시각을 주입받는 게시 전환 로직
+  public Recruitment publishRecruitmentNow(
+      long memberId, Long recruitmentId, LocalDateTime currentTime) {
+    Recruitment recruitment = recruitmentReader.readById(recruitmentId);
+    if (recruitment == null) {
+      throw new IllegalArgumentException("존재하지 않는 채용 공고입니다.");
+    }
+
+    Recruitment publishedRecruitment = recruitment.publishNow(currentTime);
+    Recruitment savedRecruitment = recruitmentStore.update(publishedRecruitment);
+
+    recruitmentHistoryAppender.append(
+        savedRecruitment.id(),
+        memberId,
+        RecruitmentActionType.RECRUITMENT_OPENED,
+        "채용 공고 즉시 게시",
+        savedRecruitment);
+
+    return savedRecruitment;
+  }
+
   public void assertCanAccess(long memberId, Long recruitmentId) {
     RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
 
@@ -154,6 +198,35 @@ public class RecruitmentService {
 
   public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule() {
     return updateRecruitmentStatusBySchedule(LocalDateTime.now());
+  }
+
+  // 면접관 추가/해제 이력을 변경 내용에 맞춰 남김
+  private void appendInterviewerHistory(
+      long memberId, Recruitment beforeRecruitment, Recruitment afterRecruitment) {
+    Set<Long> beforeIds = new LinkedHashSet<>(beforeRecruitment.interviewerIds());
+    Set<Long> afterIds = new LinkedHashSet<>(afterRecruitment.interviewerIds());
+
+    Set<Long> addedIds = new LinkedHashSet<>(afterIds);
+    addedIds.removeAll(beforeIds);
+    if (!addedIds.isEmpty()) {
+      recruitmentHistoryAppender.append(
+          afterRecruitment.id(),
+          memberId,
+          RecruitmentActionType.INTERVIEWER_ADDED,
+          "면접관 설정 수정",
+          afterRecruitment);
+    }
+
+    Set<Long> removedIds = new LinkedHashSet<>(beforeIds);
+    removedIds.removeAll(afterIds);
+    if (!removedIds.isEmpty()) {
+      recruitmentHistoryAppender.append(
+          afterRecruitment.id(),
+          memberId,
+          RecruitmentActionType.INTERVIEWER_REMOVED,
+          "면접관 설정 수정",
+          afterRecruitment);
+    }
   }
 
   private RecruitmentStatus resolveStatusAtCreation(

@@ -9,5 +9,6 @@ public record MemberInfo(
     String name,
     LocalDateTime createdAt,
     LocalDateTime recentAt,
+    Long groupId,
     String group,
     MemberType memberType) {}

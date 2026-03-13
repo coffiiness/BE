@@ -12,6 +12,8 @@ public record RecruitmentListResponse(
     Long id,
     String title,
     String leadGroupName, // 부서명
+    Long leadGroupId,
+    List<Long> referenceGroupIds,
     CareerType careerType,
     Integer minExperienceYears,
     Integer maxExperienceYears,
@@ -27,6 +29,8 @@ public record RecruitmentListResponse(
         info.id(),
         info.title(),
         info.leadGroupName(),
+        info.leadGroupId(),
+        info.referenceGroupIds(),
         info.careerType(),
         info.minExperienceYears(),
         info.maxExperienceYears(),
