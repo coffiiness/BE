@@ -134,11 +134,9 @@ public class GET_specs {
         memberFixture.createGroup("무관 조직", "#F59E0B", hrToken, tenantId).getData().id();
 
     MemberAccessContext leadMember =
-        createWorkspaceMember(
-            memberFixture, userFixture, context, "lead-member", null);
+        createWorkspaceMember(memberFixture, userFixture, context, "lead-member", null);
     MemberAccessContext referenceMember =
-        createWorkspaceMember(
-            memberFixture, userFixture, context, "reference-member", null);
+        createWorkspaceMember(memberFixture, userFixture, context, "reference-member", null);
     MemberAccessContext interviewerMember =
         createWorkspaceMember(
             memberFixture, userFixture, context, "interviewer-member", unrelatedGroupId);
@@ -182,13 +180,11 @@ public class GET_specs {
         .extracting(RecruitmentListResponse::title)
         .contains("접근 범위 확인용 채용");
 
-    assertThat(
-            recruitmentFixture.getRecruitmentList(referenceMember.token(), tenantId).getData())
+    assertThat(recruitmentFixture.getRecruitmentList(referenceMember.token(), tenantId).getData())
         .extracting(RecruitmentListResponse::title)
         .contains("접근 범위 확인용 채용");
 
-    assertThat(
-            recruitmentFixture.getRecruitmentList(interviewerMember.token(), tenantId).getData())
+    assertThat(recruitmentFixture.getRecruitmentList(interviewerMember.token(), tenantId).getData())
         .extracting(RecruitmentListResponse::title)
         .contains("접근 범위 확인용 채용");
 

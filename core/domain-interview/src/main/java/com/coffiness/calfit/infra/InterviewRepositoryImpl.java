@@ -403,38 +403,30 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     return result;
   }
 
-  // 권한 범위에 맞는 이번 주 면접 일정을 조회용 row로 조합
+  // 접근 가능한 채용 공고 기준으로 이번 주 면접 일정을 조회용 row로 조합
   @Override
   public List<WeeklyInterviewScheduleRow> getWeeklySchedules(
-      Long interviewerUserId, LocalDateTime from, LocalDateTime to) {
+      List<Long> recruitmentIds, LocalDateTime from, LocalDateTime to) {
     if (from == null || to == null || !from.isBefore(to)) {
       return List.of();
     }
 
     String tenantId = requireTenantId();
     List<InterviewScheduleEntity> schedules;
-    if (interviewerUserId == null) {
+    if (recruitmentIds == null) {
       schedules =
           interviewScheduleRepository
               .findAllByTenantIdAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
                   tenantId, from, to, InterviewStatus.CANCELLED);
     } else {
-      List<Long> scheduleIds =
-          interviewerRepository
-              .findAllByTenantIdAndUserIdIn(tenantId, List.of(interviewerUserId))
-              .stream()
-              .map(InterviewScheduleInterviewerEntity::getInterviewScheduleId)
-              .distinct()
-              .toList();
-
-      if (scheduleIds.isEmpty()) {
+      if (recruitmentIds.isEmpty()) {
         return List.of();
       }
 
       schedules =
           interviewScheduleRepository
-              .findAllByTenantIdAndIdInAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
-                  tenantId, scheduleIds, from, to, InterviewStatus.CANCELLED);
+              .findAllByTenantIdAndRecruitmentIdInAndScheduledAtGreaterThanEqualAndScheduledAtLessThanAndInterviewStatusNotOrderByScheduledAtAsc(
+                  tenantId, recruitmentIds, from, to, InterviewStatus.CANCELLED);
     }
 
     if (schedules.isEmpty()) {
@@ -473,9 +465,9 @@ public class InterviewRepositoryImpl implements InterviewRepository {
             .toList();
     Map<Long, String> applicantNameMap = resolveApplicantNameMap(tenantId, applicantIds);
 
-    List<Long> recruitmentIds =
+    List<Long> scheduleRecruitmentIds =
         schedules.stream().map(InterviewScheduleEntity::getRecruitmentId).distinct().toList();
-    Map<Long, String> recruitmentTitleMap = resolveRecruitmentTitleMap(recruitmentIds);
+    Map<Long, String> recruitmentTitleMap = resolveRecruitmentTitleMap(scheduleRecruitmentIds);
 
     List<Long> recruitmentStageIds =
         schedules.stream()

@@ -76,8 +76,17 @@ public class RecruitmentFacade {
     LocalDateTime from = normalizedDate.minusDays(daysFromSunday).atStartOfDay();
     LocalDateTime to = from.plusDays(7);
 
-    Long interviewerUserId = member.memberType() == MemberType.HR ? null : userId;
-    return interviewReader.getWeeklySchedules(interviewerUserId, from, to);
+    if (member.memberType() == MemberType.HR) {
+      return interviewReader.getWeeklySchedules(null, from, to);
+    }
+
+    List<Long> accessibleRecruitmentIds =
+        recruitmentReader.readAccessibleRecruitmentIds(userId, member.groupId());
+    if (accessibleRecruitmentIds.isEmpty()) {
+      return List.of();
+    }
+
+    return interviewReader.getWeeklySchedules(accessibleRecruitmentIds, from, to);
   }
 
   public RecruitmentDetailInfo updateRecruitment(

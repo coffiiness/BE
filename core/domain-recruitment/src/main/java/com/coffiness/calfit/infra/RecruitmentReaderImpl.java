@@ -44,16 +44,16 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
   @Override
   public List<RecruitmentListInfo> readList(
-      RecruitmentStatus recruitmentStatus, Pageable pageable) {
-    Page<RecruitmentEntity> recruitments;
-
-    if (recruitmentStatus == null) {
-      recruitments = recruitmentRepository.findByStatus(EntityStatus.ACTIVE, pageable);
-    } else {
-      recruitments =
-          recruitmentRepository.findByRecruitmentStatusAndStatus(
-              recruitmentStatus, EntityStatus.ACTIVE, pageable);
-    }
+      Long userId,
+      Long groupId,
+      boolean hrMember,
+      RecruitmentStatus recruitmentStatus,
+      Pageable pageable) {
+    Page<RecruitmentEntity> recruitments =
+        hrMember
+            ? readAllRecruitments(recruitmentStatus, pageable)
+            : recruitmentRepository.findAccessibleByUserIdAndGroupIdAndStatus(
+                userId, groupId, recruitmentStatus, EntityStatus.ACTIVE, pageable);
 
     if (recruitments.isEmpty()) {
       return List.of();
@@ -138,9 +138,10 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   interviewerMap.getOrDefault(recruitmentId, List.of()).stream()
                       .map(
                           i -> {
-                            Long userId = i.getUserId();
-                            String name = userNameMap.getOrDefault(userId, "알 수 없는 사용자");
-                            return new RecruitmentListInfo.AssigneeSummaryInfo(userId, name);
+                            Long interviewerUserId = i.getUserId();
+                            String name = userNameMap.getOrDefault(interviewerUserId, "알 수 없는 사용자");
+                            return new RecruitmentListInfo.AssigneeSummaryInfo(
+                                interviewerUserId, name);
                           })
                       .toList();
 
@@ -160,6 +161,22 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
                   assigneeInfos);
             })
         .toList();
+  }
+
+  @Override
+  public List<Long> readAccessibleRecruitmentIds(Long userId, Long groupId) {
+    return recruitmentRepository.findAccessibleIdsByUserIdAndGroupIdAndStatus(
+        userId, groupId, EntityStatus.ACTIVE);
+  }
+
+  // HR 목록 조회는 기존처럼 워크스페이스 전체 채용 공고를 반환한다.
+  private Page<RecruitmentEntity> readAllRecruitments(
+      RecruitmentStatus recruitmentStatus, Pageable pageable) {
+    if (recruitmentStatus == null) {
+      return recruitmentRepository.findByStatus(EntityStatus.ACTIVE, pageable);
+    }
+    return recruitmentRepository.findByRecruitmentStatusAndStatus(
+        recruitmentStatus, EntityStatus.ACTIVE, pageable);
   }
 
   // 목록 화면용 단계 정보를 만들고 최종 합격 단계를 항상 마지막에 보정

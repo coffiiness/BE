@@ -106,8 +106,8 @@ public class InterviewReaderImpl implements InterviewReader {
   // 저장소 조회 결과를 주간 면접 일정 전용 도메인 모델로 변환
   @Override
   public List<WeeklyInterviewScheduleItem> getWeeklySchedules(
-      Long interviewerUserId, LocalDateTime from, LocalDateTime to) {
-    return interviewRepository.getWeeklySchedules(interviewerUserId, from, to).stream()
+      List<Long> recruitmentIds, LocalDateTime from, LocalDateTime to) {
+    return interviewRepository.getWeeklySchedules(recruitmentIds, from, to).stream()
         .map(
             row ->
                 new WeeklyInterviewScheduleItem(

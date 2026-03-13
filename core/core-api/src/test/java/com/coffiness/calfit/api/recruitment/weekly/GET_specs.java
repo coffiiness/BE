@@ -405,7 +405,8 @@ class GET_specs {
         memberFixture.createInvitation(
             context.hrToken(), context.workspaceId(), email, MemberType.INTERVIEWER);
     memberFixture.acceptInvitation(invitationResponse.getData().token(), token);
-    MemberResponse memberResponse = memberFixture.getMyMember(token, context.workspaceId()).getData();
+    MemberResponse memberResponse =
+        memberFixture.getMyMember(token, context.workspaceId()).getData();
     return new MemberAccessContext(token, userId, memberResponse.id());
   }
 

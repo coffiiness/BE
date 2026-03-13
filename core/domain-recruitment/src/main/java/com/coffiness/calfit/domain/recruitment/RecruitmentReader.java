@@ -9,7 +9,15 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RecruitmentReader {
 
-  List<RecruitmentListInfo> readList(RecruitmentStatus recruitmentStatus, Pageable pageable);
+  List<RecruitmentListInfo> readList(
+      Long userId,
+      Long groupId,
+      boolean hrMember,
+      RecruitmentStatus recruitmentStatus,
+      Pageable pageable);
+
+  // 목록/주간 면접 권한 판별에 사용할 접근 가능 공고 ID를 조회
+  List<Long> readAccessibleRecruitmentIds(Long userId, Long groupId);
 
   RecruitmentDetailInfo readDetail(Long recruitmentId);
 
