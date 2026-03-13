@@ -267,6 +267,7 @@ public class GET_specs {
 
     // Assert
     assertThat(response.stages()).extracting(stage -> stage.stageName()).doesNotContain("불합격");
+    assertThat(response.stages()).extracting(stage -> stage.stageName()).endsWith("최종 합격");
   }
 
   @Test
