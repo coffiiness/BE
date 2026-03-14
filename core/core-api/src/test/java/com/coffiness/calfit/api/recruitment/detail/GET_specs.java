@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -258,7 +259,9 @@ public class GET_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
     assertThat(response.getError().getCode()).isEqualTo("E400");
-    assertThat(((java.util.Map<?, ?>) response.getError().getData()))
+    @SuppressWarnings("unchecked")
+    Map<String, Object> errorData = (Map<String, Object>) response.getError().getData();
+    assertThat(errorData)
         .containsEntry("message", "해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
