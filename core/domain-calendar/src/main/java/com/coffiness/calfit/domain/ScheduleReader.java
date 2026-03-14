@@ -2,6 +2,7 @@ package com.coffiness.calfit.domain;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public interface ScheduleReader {
 
@@ -21,6 +22,8 @@ public interface ScheduleReader {
   Schedule readByGoogleEventId(String googleEventId);
 
   List<Schedule> readAllOwnedSchedules(Long userId);
+
+  Map<Long, String> readLocationsByRoomIds(List<Long> roomIds);
 
   List<Schedule> findByReservationId(Long reservationId);
 

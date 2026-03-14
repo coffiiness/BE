@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.CalendarFixture;
+import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.fixture.WorkspaceFixture;
@@ -123,5 +124,46 @@ public class GET_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData()).isNotNull();
     assertThat(response.getData()).extracting(ScheduleResponse::title).contains("참석자 공유 일정");
+  }
+
+  @Test
+  @DisplayName("회의실이 지정된 일정은 목록 조회 시 장소 정보를 함께 반환한다")
+  void returns_location_in_schedule_list(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired CalendarFixture calendarFixture,
+      @Autowired MeetingRoomFixture meetingRoomFixture) {
+
+    String token = userFixture.createUserAndGetToken();
+    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
+    String tenantId = workspace.workspaceId();
+
+    Long roomId = meetingRoomFixture.create(token, tenantId, "소회의실 A", 3, 6).getData().id();
+
+    LocalDateTime now = LocalDateTime.now();
+    ScheduleCreateRequest createRequest =
+        new ScheduleCreateRequest(
+            "회의실 일정",
+            "장소 포함 응답 확인",
+            ScheduleType.MEETING,
+            now.plusDays(1),
+            now.plusDays(1).plusHours(1),
+            false,
+            roomId,
+            false,
+            null);
+
+    ApiResponse<Void> createResponse =
+        calendarFixture.createSchedule(token, tenantId, createRequest);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    String startDate = now.toLocalDate().minusDays(1).toString();
+    String endDate = now.toLocalDate().plusDays(7).toString();
+    ApiResponse<List<ScheduleResponse>> response =
+        calendarFixture.getSchedules(token, tenantId, startDate, endDate);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isNotNull();
+    assertThat(response.getData()).extracting(ScheduleResponse::location).contains("소회의실 A");
   }
 }

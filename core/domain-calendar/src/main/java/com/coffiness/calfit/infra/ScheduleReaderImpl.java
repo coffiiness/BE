@@ -106,6 +106,25 @@ public class ScheduleReaderImpl implements ScheduleReader {
   }
 
   @Override
+  public Map<Long, String> readLocationsByRoomIds(List<Long> roomIds) {
+    if (roomIds == null || roomIds.isEmpty()) {
+      return Map.of();
+    }
+
+    List<Long> targetRoomIds =
+        roomIds.stream().filter(Objects::nonNull).filter(roomId -> roomId > 0).distinct().toList();
+
+    if (targetRoomIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return meetingRoomRepository.findAllById(targetRoomIds).stream()
+        .collect(
+            Collectors.toMap(
+                MeetingRoomEntity::getId, MeetingRoomEntity::getName, (left, right) -> left));
+  }
+
+  @Override
   public List<Schedule> findByReservationId(Long reservationId) {
     if (reservationId == null) {
       return List.of();

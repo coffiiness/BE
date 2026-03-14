@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,8 +99,23 @@ public class ScheduleService {
       long userId, LocalDateTime startDate, LocalDateTime endDate) {
 
     List<Schedule> schedules = scheduleReader.findOverlappingSchedules(userId, startDate, endDate);
+    List<Long> roomIds =
+        schedules.stream()
+            .map(Schedule::roomId)
+            .filter(java.util.Objects::nonNull)
+            .distinct()
+            .toList();
+    Map<Long, String> locationsByRoomId = scheduleReader.readLocationsByRoomIds(roomIds);
 
-    return schedules.stream().map(ScheduleInfo::from).toList();
+    return schedules.stream()
+        .map(
+            schedule ->
+                ScheduleInfo.of(
+                    schedule,
+                    schedule.roomId() == null
+                        ? ""
+                        : locationsByRoomId.getOrDefault(schedule.roomId(), "알 수 없는 장소")))
+        .toList();
   }
 
   // 선택한 참석자들의 일정 현황을 조회
