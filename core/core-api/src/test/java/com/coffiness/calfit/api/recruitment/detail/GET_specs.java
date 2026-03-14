@@ -257,8 +257,9 @@ public class GET_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
-    assertThat(response.getError().getCode()).isEqualTo("E403");
-    assertThat(response.getError().getCustomCode()).isEqualTo("RECRUITMENT_FORBIDDEN");
+    assertThat(response.getError().getCode()).isEqualTo("E400");
+    assertThat(((java.util.Map<?, ?>) response.getError().getData()))
+        .containsEntry("message", "해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
   // 테스트용 면접관 사용자를 생성하고 워크스페이스에 초대
