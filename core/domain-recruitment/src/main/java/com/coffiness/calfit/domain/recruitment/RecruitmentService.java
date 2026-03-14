@@ -3,20 +3,15 @@ package com.coffiness.calfit.domain.recruitment;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentUpdateRequest;
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberReader;
-import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +23,6 @@ public class RecruitmentService {
   private final RecruitmentStore recruitmentStore;
   private final RecruitmentHistoryAppender recruitmentHistoryAppender;
   private final RecruitmentReader recruitmentReader;
-  private final MemberReader memberReader;
 
   public Long createRecruitment(long userId, RecruitmentCreateRequest request) {
 
@@ -68,23 +62,6 @@ public class RecruitmentService {
         saveRecruitment);
 
     return saveRecruitment.id();
-  }
-
-  @Transactional(readOnly = true)
-  public List<RecruitmentListInfo> getRecruitmentList(
-      long userId, RecruitmentStatus recruitmentStatus, Pageable pageable) {
-    Member member = getRequiredMember(userId);
-    return recruitmentReader.readList(
-        userId,
-        member.groupId(),
-        member.memberType() == MemberType.HR,
-        recruitmentStatus,
-        pageable);
-  }
-
-  @Transactional(readOnly = true)
-  public RecruitmentDetailInfo getRecruitmentDetail(long userId, Long recruitmentId) {
-    return recruitmentReader.readDetail(recruitmentId);
   }
 
   public Recruitment updateRecruitment(
@@ -169,20 +146,6 @@ public class RecruitmentService {
     return savedRecruitment;
   }
 
-  public void assertCanAccess(long memberId, Long recruitmentId) {
-    RecruitmentDetailInfo recruitment = recruitmentReader.readDetail(recruitmentId);
-
-    boolean isInterviewer =
-        recruitment.interviewers().stream()
-            .anyMatch(interviewer -> interviewer.userId().equals(memberId));
-
-    if (isInterviewer) {
-      return;
-    }
-
-    throw new IllegalArgumentException("해당 채용 공고에 접근할 권한이 없습니다.");
-  }
-
   public void deleteRecruitment(Long memberId, Long recruitmentId) {
     Recruitment recruitment = recruitmentReader.readById(recruitmentId);
     if (recruitment == null) {
@@ -237,12 +200,6 @@ public class RecruitmentService {
           "면접관 설정 수정",
           afterRecruitment);
     }
-  }
-
-  // 현재 워크스페이스 기준으로 목록 조회에 사용할 멤버 정보를 가져옴
-  private Member getRequiredMember(long userId) {
-    String workspaceId = TenantContext.getTenantId();
-    return memberReader.getMember(workspaceId, userId);
   }
 
   private RecruitmentStatus resolveStatusAtCreation(
