@@ -11,6 +11,7 @@ import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
 import com.coffiness.calfit.core.api.scheduler.recruitment.RecruitmentStatusScheduler;
+import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
@@ -18,6 +19,8 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.domain.recruitment.RecruitmentService;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +38,8 @@ public class SCHEDULER_specs {
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
-      @Autowired RecruitmentStatusScheduler recruitmentStatusScheduler) {
+      @Autowired RecruitmentStatusScheduler recruitmentStatusScheduler,
+      @Autowired RecruitmentHistoryRepository recruitmentHistoryRepository) {
 
     String token = userFixture.createUserAndGetToken();
     WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
@@ -49,6 +53,13 @@ public class SCHEDULER_specs {
         token, tenantId, createRequest(openTargetTitle, now.minusMinutes(10), now.plusDays(2)));
     recruitmentFixture.createRecruitment(
         token, tenantId, createRequest(draftTargetTitle, now.plusDays(1), now.plusDays(3)));
+
+    Long openTargetId =
+        recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()
+            .filter(item -> item.title().equals(openTargetTitle))
+            .findFirst()
+            .orElseThrow()
+            .id();
 
     recruitmentStatusScheduler.updateRecruitmentStatuses();
 
@@ -64,6 +75,27 @@ public class SCHEDULER_specs {
 
     assertThat(statusByTitle.get(openTargetTitle)).isEqualTo(RecruitmentStatus.OPEN);
     assertThat(statusByTitle.get(draftTargetTitle)).isEqualTo(RecruitmentStatus.DRAFT);
+
+    TenantContext.setTenantId(tenantId);
+    try {
+      List<RecruitmentHistoryEntity> histories =
+          recruitmentHistoryRepository.findByRecruitmentIdOrderByCreatedAtAsc(openTargetId);
+
+      assertThat(histories)
+          .extracting(RecruitmentHistoryEntity::getRecruitmentActionType)
+          .contains(RecruitmentActionType.RECRUITMENT_OPENED);
+      assertThat(histories)
+          .filteredOn(
+              history ->
+                  history.getRecruitmentActionType() == RecruitmentActionType.RECRUITMENT_OPENED)
+          .allSatisfy(
+              history -> {
+                assertThat(history.getActorId()).isEqualTo(0L);
+                assertThat(history.getReason()).isEqualTo("채용 공고 자동 게시");
+              });
+    } finally {
+      TenantContext.clear();
+    }
   }
 
   @Test
@@ -71,7 +103,8 @@ public class SCHEDULER_specs {
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
-      @Autowired RecruitmentStatusScheduler recruitmentStatusScheduler) {
+      @Autowired RecruitmentStatusScheduler recruitmentStatusScheduler,
+      @Autowired RecruitmentHistoryRepository recruitmentHistoryRepository) {
 
     String token = userFixture.createUserAndGetToken();
     WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
@@ -82,6 +115,13 @@ public class SCHEDULER_specs {
 
     recruitmentFixture.createRecruitment(
         token, tenantId, createRequest(closedTargetTitle, now.minusDays(2), now.minusMinutes(1)));
+
+    Long closedTargetId =
+        recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()
+            .filter(item -> item.title().equals(closedTargetTitle))
+            .findFirst()
+            .orElseThrow()
+            .id();
 
     recruitmentStatusScheduler.updateRecruitmentStatuses();
 
@@ -98,6 +138,27 @@ public class SCHEDULER_specs {
             .orElseThrow();
 
     assertThat(closedStatus).isEqualTo(RecruitmentStatus.CLOSED);
+
+    TenantContext.setTenantId(tenantId);
+    try {
+      List<RecruitmentHistoryEntity> histories =
+          recruitmentHistoryRepository.findByRecruitmentIdOrderByCreatedAtAsc(closedTargetId);
+
+      assertThat(histories)
+          .extracting(RecruitmentHistoryEntity::getRecruitmentActionType)
+          .contains(RecruitmentActionType.RECRUITMENT_CLOSED);
+      assertThat(histories)
+          .filteredOn(
+              history ->
+                  history.getRecruitmentActionType() == RecruitmentActionType.RECRUITMENT_CLOSED)
+          .allSatisfy(
+              history -> {
+                assertThat(history.getActorId()).isEqualTo(0L);
+                assertThat(history.getReason()).isEqualTo("채용 공고 자동 마감");
+              });
+    } finally {
+      TenantContext.clear();
+    }
   }
 
   @Test
