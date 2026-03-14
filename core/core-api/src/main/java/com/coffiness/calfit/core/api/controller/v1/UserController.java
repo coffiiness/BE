@@ -9,6 +9,8 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.domain.user.EmailVerificationService;
 import com.coffiness.calfit.domain.user.User;
 import com.coffiness.calfit.domain.user.UserService;
+import com.coffiness.calfit.domain.workspace.Workspace;
+import com.coffiness.calfit.domain.workspace.WorkspaceReader;
 import com.coffiness.calfit.support.email.EmailPageService;
 import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
   private final UserService userService;
+  private final WorkspaceReader workspaceReader;
   private final EmailVerificationService emailVerificationService;
   private final EmailProperties emailProperties;
   private final EmailPageService emailPageService;
@@ -81,7 +84,9 @@ public class UserController {
   public ApiResponse<UserWorkspaceResponse> getMyWorkspace(
       @AuthenticationPrincipal SecurityUser securityUser) {
     String workspaceId = userService.getWorkspaceId(securityUser.userId());
-    return ApiResponse.success(new UserWorkspaceResponse(workspaceId));
+    Workspace workspace = workspaceId != null ? workspaceReader.getWorkspace(workspaceId) : null;
+    return ApiResponse.success(
+        new UserWorkspaceResponse(workspaceId, workspace != null ? workspace.name() : null));
   }
 
   @DeleteMapping("/api/v1/users/me")

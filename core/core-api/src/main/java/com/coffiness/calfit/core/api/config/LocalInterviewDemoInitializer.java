@@ -30,6 +30,7 @@ import com.coffiness.calfit.storage.db.core.user.UserRepository;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -461,6 +462,16 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
       RecruitmentSeed frontendRecruitment,
       List<ApplicantEntity> applicants) {
     LocalDate weekStart = currentWeekStart();
+    LocalDateTime now = LocalDateTime.now();
+    List<LocalDateTime> interviewSlots =
+        ensureFutureInterviewSlots(
+            now,
+            List.of(
+                weekStart.plusDays(6).atTime(10, 0),
+                weekStart.plusDays(6).atTime(12, 0),
+                weekStart.plusDays(6).atTime(14, 0),
+                weekStart.plusDays(6).atTime(16, 0),
+                weekStart.plusDays(8).atTime(10, 0)));
 
     ensureInterview(
         tenantId,
@@ -469,7 +480,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         meetingRoomId,
         interviewerUserId,
         applicants.get(0).getId(),
-        weekStart.plusDays(6).atTime(10, 0),
+        interviewSlots.get(0),
         "백엔드 실무 면접 A");
 
     ensureInterview(
@@ -479,7 +490,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         meetingRoomId,
         interviewerUserId,
         applicants.get(1).getId(),
-        weekStart.plusDays(6).atTime(12, 0),
+        interviewSlots.get(1),
         "백엔드 실무 면접 B");
 
     ensureInterview(
@@ -489,7 +500,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         meetingRoomId,
         interviewerUserId,
         applicants.get(2).getId(),
-        weekStart.plusDays(6).atTime(14, 0),
+        interviewSlots.get(2),
         "프론트 실무 면접 A");
 
     ensureInterview(
@@ -499,7 +510,7 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         meetingRoomId,
         interviewerUserId,
         applicants.get(3).getId(),
-        weekStart.plusDays(6).atTime(16, 0),
+        interviewSlots.get(3),
         "프론트 실무 면접 B");
 
     ensureInterview(
@@ -509,8 +520,35 @@ public class LocalInterviewDemoInitializer implements ApplicationRunner {
         meetingRoomId,
         interviewerUserId,
         applicants.get(4).getId(),
-        weekStart.plusDays(8).atTime(10, 0),
+        interviewSlots.get(4),
         "다음 주 백엔드 면접");
+  }
+
+  // 이미 지난 면접 시각이면 다음 가능한 정각 슬롯으로 밀고, 서로 겹치지 않게 순차 배치한다.
+  private List<LocalDateTime> ensureFutureInterviewSlots(
+      LocalDateTime referenceTime, List<LocalDateTime> scheduledTimes) {
+    List<LocalDateTime> resolvedSlots = new ArrayList<>();
+    LocalDateTime nextAvailableSlot =
+        referenceTime.plusHours(1).withMinute(0).withSecond(0).withNano(0);
+
+    for (LocalDateTime scheduledTime : scheduledTimes) {
+      LocalDateTime resolvedSlot = scheduledTime;
+      if (!resolvedSlot.isAfter(referenceTime)) {
+        resolvedSlot = nextAvailableSlot;
+      }
+
+      if (!resolvedSlots.isEmpty()) {
+        LocalDateTime minimumNextSlot = resolvedSlots.get(resolvedSlots.size() - 1).plusHours(1);
+        if (resolvedSlot.isBefore(minimumNextSlot)) {
+          resolvedSlot = minimumNextSlot;
+        }
+      }
+
+      resolvedSlots.add(resolvedSlot);
+      nextAvailableSlot = resolvedSlot.plusHours(1);
+    }
+
+    return resolvedSlots;
   }
 
   // 같은 시각의 면접이 없을 때만 확정 면접 일정을 생성
