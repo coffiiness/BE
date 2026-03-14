@@ -10,13 +10,14 @@ public record ScheduleInfo(
     LocalDateTime endTime,
     ScheduleType type,
     String description,
+    String location,
     Long roomId,
     Long reservationId,
     boolean isAllDay,
     boolean isBusy,
     Long interviewScheduleId) {
 
-  public static ScheduleInfo from(Schedule schedule) {
+  public static ScheduleInfo of(Schedule schedule, String location) {
     return new ScheduleInfo(
         schedule.id(),
         schedule.title(),
@@ -24,6 +25,7 @@ public record ScheduleInfo(
         schedule.endTime(),
         schedule.type(),
         schedule.description(),
+        location,
         schedule.roomId(),
         schedule.reservationId(),
         schedule.isAllDay(),
