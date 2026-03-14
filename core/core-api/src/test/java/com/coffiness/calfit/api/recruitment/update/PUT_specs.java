@@ -235,7 +235,8 @@ public class PUT_specs {
         recruitmentFixture.updateRecruitment(hrToken, tenantId, recruitmentId, updateRequest);
     assertThat(updateResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
-    List<RecruitmentHistoryEntity> histories = readRecruitmentHistories(tenantId, recruitmentHistoryRepository, recruitmentId);
+    List<RecruitmentHistoryEntity> histories =
+        readRecruitmentHistories(tenantId, recruitmentHistoryRepository, recruitmentId);
 
     assertThat(histories)
         .extracting(RecruitmentHistoryEntity::getRecruitmentActionType)
@@ -247,7 +248,8 @@ public class PUT_specs {
         .doesNotContain(RecruitmentActionType.RECRUITMENT_INFO_UPDATED);
 
     assertThat(histories)
-        .filteredOn(history -> history.getRecruitmentActionType() == RecruitmentActionType.STAGE_REORDERED)
+        .filteredOn(
+            history -> history.getRecruitmentActionType() == RecruitmentActionType.STAGE_REORDERED)
         .singleElement()
         .satisfies(
             history -> {

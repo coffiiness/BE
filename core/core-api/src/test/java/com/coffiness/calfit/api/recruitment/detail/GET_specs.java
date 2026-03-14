@@ -261,8 +261,7 @@ public class GET_specs {
     assertThat(response.getError().getCode()).isEqualTo("E400");
     @SuppressWarnings("unchecked")
     Map<String, Object> errorData = (Map<String, Object>) response.getError().getData();
-    assertThat(errorData)
-        .containsEntry("message", "해당 채용 공고에 접근할 권한이 없습니다.");
+    assertThat(errorData).containsEntry("message", "해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
   // 테스트용 면접관 사용자를 생성하고 워크스페이스에 초대

@@ -16,6 +16,7 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
 
   private final RecruitmentHistoryRepository recruitmentHistoryRepository;
 
+  // 채용 공고 이력 적재
   @Override
   public void append(
       Long recruitmentId,
@@ -23,42 +24,62 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
       RecruitmentActionType actionType,
       String reason,
       Recruitment recruitmentSnapShot) {
+    recruitmentHistoryRepository.save(
+        RecruitmentHistoryEntity.builder()
+            .actorId(actorId)
+            .recruitmentId(recruitmentId)
+            .reason(reason)
+            .recruitmentActionType(actionType)
+            .changeLog(buildRecruitmentChangeLog(recruitmentSnapShot))
+            .stageId(null)
+            .build());
+  }
 
-    // 변경 로그 JSON
-    Map<String, Object> changeLog = new HashMap<>();
-    if (recruitmentSnapShot != null) {
-      changeLog.put("title", recruitmentSnapShot.title());
-      changeLog.put("targetCount", recruitmentSnapShot.targetCount());
-      changeLog.put(
-          "status",
-          recruitmentSnapShot.recruitmentStatus() != null
-              ? recruitmentSnapShot.recruitmentStatus().name()
-              : null);
-      changeLog.put(
-          "careerType",
-          recruitmentSnapShot.careerType() != null
-              ? recruitmentSnapShot.careerType().name()
-              : null);
-      changeLog.put(
-          "startDate",
-          recruitmentSnapShot.startDate() != null
-              ? recruitmentSnapShot.startDate().toString()
-              : null);
-      changeLog.put(
-          "endDate",
-          recruitmentSnapShot.endDate() != null ? recruitmentSnapShot.endDate().toString() : null);
-    }
-
-    RecruitmentHistoryEntity entity =
+  // 채용 단계 이력 적재
+  @Override
+  public void appendStage(
+      Long recruitmentId,
+      Long stageId,
+      Long actorId,
+      RecruitmentActionType actionType,
+      String reason,
+      Map<String, Object> changeLog) {
+    recruitmentHistoryRepository.save(
         RecruitmentHistoryEntity.builder()
             .actorId(actorId)
             .recruitmentId(recruitmentId)
             .reason(reason)
             .recruitmentActionType(actionType)
             .changeLog(changeLog)
-            .stageId(null)
-            .build();
+            .stageId(stageId)
+            .build());
+  }
 
-    recruitmentHistoryRepository.save(entity);
+  // 채용 공고 변경 로그 생성
+  private Map<String, Object> buildRecruitmentChangeLog(Recruitment recruitmentSnapShot) {
+    Map<String, Object> changeLog = new HashMap<>();
+    if (recruitmentSnapShot == null) {
+      return changeLog;
+    }
+
+    changeLog.put("title", recruitmentSnapShot.title());
+    changeLog.put("targetCount", recruitmentSnapShot.targetCount());
+    changeLog.put(
+        "status",
+        recruitmentSnapShot.recruitmentStatus() != null
+            ? recruitmentSnapShot.recruitmentStatus().name()
+            : null);
+    changeLog.put(
+        "careerType",
+        recruitmentSnapShot.careerType() != null ? recruitmentSnapShot.careerType().name() : null);
+    changeLog.put(
+        "startDate",
+        recruitmentSnapShot.startDate() != null
+            ? recruitmentSnapShot.startDate().toString()
+            : null);
+    changeLog.put(
+        "endDate",
+        recruitmentSnapShot.endDate() != null ? recruitmentSnapShot.endDate().toString() : null);
+    return changeLog;
   }
 }

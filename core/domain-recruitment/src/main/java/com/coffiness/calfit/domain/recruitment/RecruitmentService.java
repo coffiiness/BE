@@ -7,8 +7,12 @@ import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -94,12 +98,17 @@ public class RecruitmentService {
 
     Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
 
-    recruitmentHistoryAppender.append(
-        updatedRecruitment.id(),
-        memberId,
-        RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
-        "채용 공고 수정",
-        updatedRecruitment);
+    if (hasRecruitmentInfoChanges(recruitment, updatedRecruitment)) {
+      recruitmentHistoryAppender.append(
+          updatedRecruitment.id(),
+          memberId,
+          RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
+          "채용 공고 수정",
+          updatedRecruitment);
+    }
+
+    appendInterviewerHistory(memberId, recruitment, updatedRecruitment);
+    appendStageHistories(memberId, recruitment, updatedRecruitment);
 
     return savedRecruitment;
   }
@@ -201,6 +210,167 @@ public class RecruitmentService {
           afterRecruitment);
     }
   }
+
+  // 채용 공고 기본 정보 변경 여부 확인
+  private boolean hasRecruitmentInfoChanges(
+      Recruitment beforeRecruitment, Recruitment afterRecruitment) {
+    return !Objects.equals(beforeRecruitment.title(), afterRecruitment.title())
+        || !Objects.equals(beforeRecruitment.contents(), afterRecruitment.contents())
+        || beforeRecruitment.targetCount() != afterRecruitment.targetCount()
+        || !Objects.equals(beforeRecruitment.startDate(), afterRecruitment.startDate())
+        || !Objects.equals(beforeRecruitment.endDate(), afterRecruitment.endDate())
+        || !Objects.equals(
+            beforeRecruitment.applicationTemplateId(), afterRecruitment.applicationTemplateId())
+        || beforeRecruitment.careerType() != afterRecruitment.careerType()
+        || !Objects.equals(
+            beforeRecruitment.minExperienceYears(), afterRecruitment.minExperienceYears())
+        || !Objects.equals(
+            beforeRecruitment.maxExperienceYears(), afterRecruitment.maxExperienceYears())
+        || !Objects.equals(beforeRecruitment.leadGroupId(), afterRecruitment.leadGroupId())
+        || !Objects.equals(
+            toUnorderedSet(beforeRecruitment.referenceGroupIds()),
+            toUnorderedSet(afterRecruitment.referenceGroupIds()));
+  }
+
+  // 채용 단계 이력 적재
+  private void appendStageHistories(
+      long memberId, Recruitment beforeRecruitment, Recruitment afterRecruitment) {
+    List<RecruitmentStage> beforeStages = filterVisibleStages(beforeRecruitment.stages());
+    List<RecruitmentStage> afterStages = filterVisibleStages(afterRecruitment.stages());
+
+    List<RecruitmentStage> remainingBefore = new ArrayList<>(beforeStages);
+    List<RecruitmentStage> remainingAfter = new ArrayList<>(afterStages);
+
+    List<StageChange> reorderChanges = new ArrayList<>();
+    List<StageChange> updateChanges = new ArrayList<>();
+    List<RecruitmentStage> deletedStages = new ArrayList<>();
+    List<RecruitmentStage> createdStages = new ArrayList<>();
+
+    for (RecruitmentStage beforeStage : beforeStages) {
+      RecruitmentStage matchedAfter = findStageBySignature(remainingAfter, beforeStage);
+      if (matchedAfter == null) {
+        continue;
+      }
+
+      remainingBefore.remove(beforeStage);
+      remainingAfter.remove(matchedAfter);
+
+      if (!Objects.equals(beforeStage.stageStep(), matchedAfter.stageStep())) {
+        reorderChanges.add(new StageChange(beforeStage, matchedAfter));
+      }
+    }
+
+    for (RecruitmentStage beforeStage : List.copyOf(remainingBefore)) {
+      RecruitmentStage matchedAfter = findStageByStep(remainingAfter, beforeStage.stageStep());
+      if (matchedAfter == null) {
+        continue;
+      }
+
+      remainingBefore.remove(beforeStage);
+      remainingAfter.remove(matchedAfter);
+      updateChanges.add(new StageChange(beforeStage, matchedAfter));
+    }
+
+    deletedStages.addAll(remainingBefore);
+    createdStages.addAll(remainingAfter);
+
+    for (StageChange reorderChange : reorderChanges) {
+      recruitmentHistoryAppender.appendStage(
+          afterRecruitment.id(),
+          reorderChange.before().id(),
+          memberId,
+          RecruitmentActionType.STAGE_REORDERED,
+          "채용 단계 순서 변경",
+          Map.of(
+              "before",
+              toStageChangeLog(reorderChange.before()),
+              "after",
+              toStageChangeLog(reorderChange.after())));
+    }
+
+    for (StageChange updateChange : updateChanges) {
+      recruitmentHistoryAppender.appendStage(
+          afterRecruitment.id(),
+          updateChange.before().id(),
+          memberId,
+          RecruitmentActionType.STAGE_UPDATED,
+          "채용 단계 수정",
+          Map.of(
+              "before",
+              toStageChangeLog(updateChange.before()),
+              "after",
+              toStageChangeLog(updateChange.after())));
+    }
+
+    for (RecruitmentStage deletedStage : deletedStages) {
+      recruitmentHistoryAppender.appendStage(
+          afterRecruitment.id(),
+          deletedStage.id(),
+          memberId,
+          RecruitmentActionType.STAGE_DELETED,
+          "채용 단계 삭제",
+          Map.of("before", toStageChangeLog(deletedStage)));
+    }
+
+    for (RecruitmentStage createdStage : createdStages) {
+      recruitmentHistoryAppender.appendStage(
+          afterRecruitment.id(),
+          createdStage.id(),
+          memberId,
+          RecruitmentActionType.STAGE_CREATED,
+          "채용 단계 생성",
+          Map.of("after", toStageChangeLog(createdStage)));
+    }
+  }
+
+  // 사용자 노출 채용 단계 필터링
+  private List<RecruitmentStage> filterVisibleStages(List<RecruitmentStage> stages) {
+    if (stages == null || stages.isEmpty()) {
+      return List.of();
+    }
+
+    return stages.stream().filter(stage -> stage.stageType() != RecruitmentStageType.FAIL).toList();
+  }
+
+  // 단계 이름과 타입 기준 단계 탐색
+  private RecruitmentStage findStageBySignature(
+      List<RecruitmentStage> candidates, RecruitmentStage target) {
+    return candidates.stream()
+        .filter(
+            candidate ->
+                Objects.equals(candidate.stageName(), target.stageName())
+                    && candidate.stageType() == target.stageType())
+        .findFirst()
+        .orElse(null);
+  }
+
+  // 단계 순서 기준 단계 탐색
+  private RecruitmentStage findStageByStep(List<RecruitmentStage> candidates, Integer stageStep) {
+    return candidates.stream()
+        .filter(candidate -> Objects.equals(candidate.stageStep(), stageStep))
+        .findFirst()
+        .orElse(null);
+  }
+
+  // 채용 단계 변경 로그 생성
+  private Map<String, Object> toStageChangeLog(RecruitmentStage stage) {
+    Map<String, Object> changeLog = new HashMap<>();
+    changeLog.put("id", stage.id());
+    changeLog.put("stageName", stage.stageName());
+    changeLog.put("stageStep", stage.stageStep());
+    changeLog.put("stageType", stage.stageType() != null ? stage.stageType().name() : null);
+    return changeLog;
+  }
+
+  // 순서 무시 비교용 집합 변환
+  private <T> Set<T> toUnorderedSet(List<T> items) {
+    if (items == null || items.isEmpty()) {
+      return Set.of();
+    }
+    return Set.copyOf(items);
+  }
+
+  private record StageChange(RecruitmentStage before, RecruitmentStage after) {}
 
   private RecruitmentStatus resolveStatusAtCreation(
       LocalDateTime startDate, LocalDateTime endDate, LocalDateTime currentTime) {
