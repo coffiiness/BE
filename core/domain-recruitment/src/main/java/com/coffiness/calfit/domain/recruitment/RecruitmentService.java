@@ -96,7 +96,8 @@ public class RecruitmentService {
             request.interviewerIds(),
             newStages);
 
-    Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
+    recruitmentStore.update(updatedRecruitment);
+    Recruitment savedRecruitment = recruitmentReader.readById(recruitmentId);
 
     if (hasRecruitmentInfoChanges(recruitment, updatedRecruitment)) {
       recruitmentHistoryAppender.append(
