@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -195,6 +196,72 @@ public class GET_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData().totalApplicants()).isEqualTo(2);
     assertThat(response.getData().processingInterview()).isEqualTo(1);
+  }
+
+  @Test
+  void 채용공고와_무관한_멤버는_상세를_조회할_수_없다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long interviewerId = userFixture.me(hrToken).getData().id();
+
+    RecruitmentCreateRequest request =
+        new RecruitmentCreateRequest(
+            "상세 권한 확인용 채용",
+            2,
+            applicationTemplateId,
+            "상세 권한 확인용 내용",
+            LocalDateTime.now(),
+            LocalDateTime.now().plusDays(30),
+            CareerType.EXPERIENCED,
+            3,
+            7,
+            leadGroupId,
+            List.of(),
+            List.of(interviewerId),
+            List.of(
+                new RecruitmentStageRequest("서류 전형", RecruitmentStageType.DOCUMENT, 1),
+                new RecruitmentStageRequest("실무 면접", RecruitmentStageType.INTERVIEW, 2),
+                new RecruitmentStageRequest("최종 합격", RecruitmentStageType.PASS, 3)));
+
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(hrToken, tenantId, request);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    Long recruitmentId =
+        recruitmentFixture.getRecruitmentList(hrToken, tenantId).getData().stream()
+            .filter(item -> "상세 권한 확인용 채용".equals(item.title()))
+            .findFirst()
+            .orElseThrow()
+            .id();
+
+    String email = userFixture.randomEmail();
+    String password = userFixture.randomPassword();
+    userFixture.signUp(email, password, "무관한 멤버");
+    String unrelatedToken = userFixture.login(email, password).getData().accessToken();
+
+    ApiResponse<InvitationResponse> invitationResponse =
+        memberFixture.createInvitation(hrToken, tenantId, email, MemberType.INTERVIEWER);
+    memberFixture.acceptInvitation(invitationResponse.getData().token(), unrelatedToken);
+
+    ApiResponse<RecruitmentDetailResponse> response =
+        recruitmentFixture.getRecruitmentDetail(unrelatedToken, tenantId, recruitmentId);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> errorData = (Map<String, Object>) response.getError().getData();
+    assertThat(errorData).containsEntry("message", "해당 채용 공고에 접근할 권한이 없습니다.");
   }
 
   // 테스트용 면접관 사용자를 생성하고 워크스페이스에 초대
