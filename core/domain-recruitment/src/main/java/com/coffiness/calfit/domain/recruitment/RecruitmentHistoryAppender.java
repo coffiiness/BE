@@ -15,6 +15,14 @@ public interface RecruitmentHistoryAppender {
       String reason,
       Recruitment recruitmentSnapShot);
 
+  // 채용 공고 사용자 정의 이력 적재
+  void append(
+      Long recruitmentId,
+      Long actorId,
+      RecruitmentActionType actionType,
+      String reason,
+      Map<String, Object> changeLog);
+
   // 채용 단계 이력 적재
   void appendStage(
       Long recruitmentId,

@@ -207,7 +207,7 @@ public class RecruitmentService {
           memberId,
           RecruitmentActionType.INTERVIEWER_ADDED,
           "면접관 설정 수정",
-          afterRecruitment);
+          Map.of("addedInterviewerIds", List.copyOf(addedIds)));
     }
 
     Set<Long> removedIds = new LinkedHashSet<>(beforeIds);
@@ -218,7 +218,7 @@ public class RecruitmentService {
           memberId,
           RecruitmentActionType.INTERVIEWER_REMOVED,
           "면접관 설정 수정",
-          afterRecruitment);
+          Map.of("removedInterviewerIds", List.copyOf(removedIds)));
     }
   }
 

@@ -24,13 +24,25 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
       RecruitmentActionType actionType,
       String reason,
       Recruitment recruitmentSnapShot) {
+    append(
+        recruitmentId, actorId, actionType, reason, buildRecruitmentChangeLog(recruitmentSnapShot));
+  }
+
+  // 채용 공고 사용자 정의 이력 적재
+  @Override
+  public void append(
+      Long recruitmentId,
+      Long actorId,
+      RecruitmentActionType actionType,
+      String reason,
+      Map<String, Object> changeLog) {
     recruitmentHistoryRepository.save(
         RecruitmentHistoryEntity.builder()
             .actorId(actorId)
             .recruitmentId(recruitmentId)
             .reason(reason)
             .recruitmentActionType(actionType)
-            .changeLog(buildRecruitmentChangeLog(recruitmentSnapShot))
+            .changeLog(changeLog)
             .stageId(null)
             .build());
   }
