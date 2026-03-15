@@ -2,10 +2,9 @@ package com.coffiness.calfit.infra;
 
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.domain.recruitment.RecruitmentHistoryAppender;
+import com.coffiness.calfit.domain.recruitment.RecruitmentHistoryChangeLog;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryRepository;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,8 +12,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppender {
-
-  private static final String STAGE_SCOPE = "STAGE";
 
   private final RecruitmentHistoryRepository recruitmentHistoryRepository;
 
@@ -25,17 +22,8 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
       Long actorId,
       RecruitmentActionType actionType,
       String reason,
-      String scope,
-      Map<String, Object> beforeChangeLog,
-      Map<String, Object> afterChangeLog,
-      List<String> changedFields) {
-    saveHistory(
-        recruitmentId,
-        null,
-        actorId,
-        actionType,
-        reason,
-        buildChangeLog(scope, beforeChangeLog, afterChangeLog, changedFields));
+      RecruitmentHistoryChangeLog changeLog) {
+    saveHistory(recruitmentId, null, actorId, actionType, reason, changeLog.toMap());
   }
 
   // 채용 단계 이력 적재
@@ -46,30 +34,8 @@ public class RecruitmentHistoryAppenderImpl implements RecruitmentHistoryAppende
       Long actorId,
       RecruitmentActionType actionType,
       String reason,
-      Map<String, Object> beforeChangeLog,
-      Map<String, Object> afterChangeLog,
-      List<String> changedFields) {
-    saveHistory(
-        recruitmentId,
-        stageId,
-        actorId,
-        actionType,
-        reason,
-        buildChangeLog(STAGE_SCOPE, beforeChangeLog, afterChangeLog, changedFields));
-  }
-
-  // 표준 채용 이력 변경 로그 생성
-  private Map<String, Object> buildChangeLog(
-      String scope,
-      Map<String, Object> beforeChangeLog,
-      Map<String, Object> afterChangeLog,
-      List<String> changedFields) {
-    Map<String, Object> changeLog = new LinkedHashMap<>();
-    changeLog.put("scope", scope);
-    changeLog.put("before", beforeChangeLog);
-    changeLog.put("after", afterChangeLog);
-    changeLog.put("changedFields", changedFields == null ? List.of() : List.copyOf(changedFields));
-    return changeLog;
+      RecruitmentHistoryChangeLog changeLog) {
+    saveHistory(recruitmentId, stageId, actorId, actionType, reason, changeLog.toMap());
   }
 
   // 채용 이력 저장

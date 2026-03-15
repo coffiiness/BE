@@ -19,11 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecruitmentService {
 
   private static final long SYSTEM_ACTOR_ID = 0L;
-  private static final String RECRUITMENT_SCOPE = "RECRUITMENT";
-  private static final String INTERVIEWER_SCOPE = "INTERVIEWER";
 
   private final RecruitmentStore recruitmentStore;
   private final RecruitmentHistoryAppender recruitmentHistoryAppender;
+  private final RecruitmentHistoryChangeLogFactory recruitmentHistoryChangeLogFactory;
   private final RecruitmentReader recruitmentReader;
 
   public Long createRecruitment(long userId, RecruitmentCreateRequest request) {
@@ -96,18 +95,16 @@ public class RecruitmentService {
 
     Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
 
-    List<String> recruitmentChangedFields =
-        getRecruitmentChangedFields(recruitment, savedRecruitment);
-    if (!recruitmentChangedFields.isEmpty()) {
+    RecruitmentHistoryChangeLog recruitmentChangeLog =
+        recruitmentHistoryChangeLogFactory.createRecruitmentChangeLog(
+            recruitment, savedRecruitment);
+    if (!recruitmentChangeLog.changedFields().isEmpty()) {
       recruitmentHistoryAppender.append(
           savedRecruitment.id(),
           memberId,
           RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
           "채용 공고 수정",
-          RECRUITMENT_SCOPE,
-          toRecruitmentHistorySnapshot(recruitment),
-          toRecruitmentHistorySnapshot(savedRecruitment),
-          recruitmentChangedFields);
+          recruitmentChangeLog);
     }
 
     appendInterviewerHistory(memberId, recruitment, savedRecruitment);
@@ -214,10 +211,8 @@ public class RecruitmentService {
           memberId,
           RecruitmentActionType.INTERVIEWER_ADDED,
           "면접관 설정 수정",
-          INTERVIEWER_SCOPE,
-          toInterviewerHistorySnapshot(beforeIds),
-          toInterviewerHistorySnapshot(mergeInterviewerIds(beforeIds, addedIds)),
-          List.of("interviewerIds"));
+          recruitmentHistoryChangeLogFactory.createInterviewerChangeLog(
+              beforeIds, mergeInterviewerIds(beforeIds, addedIds)));
     }
 
     Set<Long> removedIds = new LinkedHashSet<>(beforeIds);
@@ -229,10 +224,8 @@ public class RecruitmentService {
           memberId,
           RecruitmentActionType.INTERVIEWER_REMOVED,
           "면접관 설정 수정",
-          INTERVIEWER_SCOPE,
-          toInterviewerHistorySnapshot(removalBeforeIds),
-          toInterviewerHistorySnapshot(afterIds),
-          List.of("interviewerIds"));
+          recruitmentHistoryChangeLogFactory.createInterviewerChangeLog(
+              removalBeforeIds, afterIds));
     }
   }
 
@@ -246,15 +239,6 @@ public class RecruitmentService {
       appendRecruitmentHistory(
           SYSTEM_ACTOR_ID, actionType, reason, recruitment, recruitment.updateStatus(targetStatus));
     }
-  }
-
-  // 채용 공고 변경 필드 추출
-  private List<String> getRecruitmentChangedFields(
-      Recruitment beforeRecruitment, Recruitment afterRecruitment) {
-    return determineChangedFields(
-        toRecruitmentHistorySnapshot(beforeRecruitment),
-        toRecruitmentHistorySnapshot(afterRecruitment),
-        Set.of());
   }
 
   // 채용 단계 이력 적재
@@ -300,51 +284,53 @@ public class RecruitmentService {
     createdStages.addAll(remainingAfter);
 
     for (StageChange reorderChange : reorderChanges) {
+      RecruitmentHistoryChangeLog stageChangeLog =
+          recruitmentHistoryChangeLogFactory.createStageChangeLog(
+              reorderChange.before(), reorderChange.after());
       recruitmentHistoryAppender.appendStage(
           afterRecruitment.id(),
           reorderChange.before().id(),
           memberId,
           RecruitmentActionType.STAGE_REORDERED,
           "채용 단계 순서 변경",
-          toStageChangeLog(reorderChange.before()),
-          toStageChangeLog(reorderChange.after()),
-          getStageChangedFields(reorderChange.before(), reorderChange.after()));
+          stageChangeLog);
     }
 
     for (StageChange updateChange : updateChanges) {
+      RecruitmentHistoryChangeLog stageChangeLog =
+          recruitmentHistoryChangeLogFactory.createStageChangeLog(
+              updateChange.before(), updateChange.after());
       recruitmentHistoryAppender.appendStage(
           afterRecruitment.id(),
           updateChange.before().id(),
           memberId,
           RecruitmentActionType.STAGE_UPDATED,
           "채용 단계 수정",
-          toStageChangeLog(updateChange.before()),
-          toStageChangeLog(updateChange.after()),
-          getStageChangedFields(updateChange.before(), updateChange.after()));
+          stageChangeLog);
     }
 
     for (RecruitmentStage deletedStage : deletedStages) {
+      RecruitmentHistoryChangeLog stageChangeLog =
+          recruitmentHistoryChangeLogFactory.createStageChangeLog(deletedStage, null);
       recruitmentHistoryAppender.appendStage(
           afterRecruitment.id(),
           deletedStage.id(),
           memberId,
           RecruitmentActionType.STAGE_DELETED,
           "채용 단계 삭제",
-          toStageChangeLog(deletedStage),
-          null,
-          getStageChangedFields(deletedStage, null));
+          stageChangeLog);
     }
 
     for (RecruitmentStage createdStage : createdStages) {
+      RecruitmentHistoryChangeLog stageChangeLog =
+          recruitmentHistoryChangeLogFactory.createStageChangeLog(null, createdStage);
       recruitmentHistoryAppender.appendStage(
           afterRecruitment.id(),
           createdStage.id(),
           memberId,
           RecruitmentActionType.STAGE_CREATED,
           "채용 단계 생성",
-          null,
-          toStageChangeLog(createdStage),
-          getStageChangedFields(null, createdStage));
+          stageChangeLog);
     }
   }
 
@@ -377,20 +363,6 @@ public class RecruitmentService {
         .orElse(null);
   }
 
-  // 채용 단계 변경 로그 생성
-  private Map<String, Object> toStageChangeLog(RecruitmentStage stage) {
-    if (stage == null) {
-      return null;
-    }
-
-    Map<String, Object> changeLog = new HashMap<>();
-    changeLog.put("id", stage.id());
-    changeLog.put("stageName", stage.stageName());
-    changeLog.put("stageStep", stage.stageStep());
-    changeLog.put("stageType", stage.stageType() != null ? stage.stageType().name() : null);
-    return changeLog;
-  }
-
   // 채용 공고 이력 적재
   private void appendRecruitmentHistory(
       long actorId,
@@ -406,80 +378,8 @@ public class RecruitmentService {
         actorId,
         actionType,
         reason,
-        RECRUITMENT_SCOPE,
-        toRecruitmentHistorySnapshot(beforeRecruitment),
-        toRecruitmentHistorySnapshot(afterRecruitment),
-        getRecruitmentChangedFields(beforeRecruitment, afterRecruitment));
-  }
-
-  // 채용 공고 이력 스냅샷 생성
-  private Map<String, Object> toRecruitmentHistorySnapshot(Recruitment recruitment) {
-    if (recruitment == null) {
-      return null;
-    }
-
-    Map<String, Object> snapshot = new LinkedHashMap<>();
-    snapshot.put("title", recruitment.title());
-    snapshot.put("contents", recruitment.contents());
-    snapshot.put(
-        "recruitmentStatus",
-        recruitment.recruitmentStatus() != null ? recruitment.recruitmentStatus().name() : null);
-    snapshot.put("targetCount", recruitment.targetCount());
-    snapshot.put(
-        "startDate", recruitment.startDate() != null ? recruitment.startDate().toString() : null);
-    snapshot.put(
-        "endDate", recruitment.endDate() != null ? recruitment.endDate().toString() : null);
-    snapshot.put("applicationTemplateId", recruitment.applicationTemplateId());
-    snapshot.put(
-        "careerType", recruitment.careerType() != null ? recruitment.careerType().name() : null);
-    snapshot.put("minExperienceYears", recruitment.minExperienceYears());
-    snapshot.put("maxExperienceYears", recruitment.maxExperienceYears());
-    snapshot.put("leadGroupId", recruitment.leadGroupId());
-    snapshot.put(
-        "referenceGroupIds",
-        recruitment.referenceGroupIds() == null
-            ? List.of()
-            : List.copyOf(recruitment.referenceGroupIds()));
-    return snapshot;
-  }
-
-  // 면접관 이력 스냅샷 생성
-  private Map<String, Object> toInterviewerHistorySnapshot(Set<Long> interviewerIds) {
-    Map<String, Object> snapshot = new LinkedHashMap<>();
-    snapshot.put("interviewerIds", List.copyOf(interviewerIds));
-    return snapshot;
-  }
-
-  // 채용 단계 변경 필드 추출
-  private List<String> getStageChangedFields(
-      RecruitmentStage beforeStage, RecruitmentStage afterStage) {
-    return determineChangedFields(
-        toStageChangeLog(beforeStage), toStageChangeLog(afterStage), Set.of("id"));
-  }
-
-  // 변경 필드 목록 추출
-  private List<String> determineChangedFields(
-      Map<String, Object> beforeChangeLog,
-      Map<String, Object> afterChangeLog,
-      Set<String> ignoredFields) {
-    Set<String> fieldNames = new LinkedHashSet<>();
-    if (beforeChangeLog != null) {
-      fieldNames.addAll(beforeChangeLog.keySet());
-    }
-    if (afterChangeLog != null) {
-      fieldNames.addAll(afterChangeLog.keySet());
-    }
-    fieldNames.removeAll(ignoredFields);
-
-    List<String> changedFields = new ArrayList<>();
-    for (String fieldName : fieldNames) {
-      Object beforeValue = beforeChangeLog != null ? beforeChangeLog.get(fieldName) : null;
-      Object afterValue = afterChangeLog != null ? afterChangeLog.get(fieldName) : null;
-      if (!Objects.equals(beforeValue, afterValue)) {
-        changedFields.add(fieldName);
-      }
-    }
-    return changedFields;
+        recruitmentHistoryChangeLogFactory.createRecruitmentChangeLog(
+            beforeRecruitment, afterRecruitment));
   }
 
   // 면접관 반영 후 목록 생성
