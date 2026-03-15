@@ -181,7 +181,12 @@ public class PATCH_specs {
               @SuppressWarnings("unchecked")
               Map<String, Object> changeLog = (Map<String, Object>) history.getChangeLog();
               assertThat(changeLog)
-                  .containsEntry("addedInterviewerIds", List.of(newInterviewer.userId()));
+                  .containsEntry("scope", "INTERVIEWER")
+                  .containsEntry("changedFields", List.of("interviewerIds"))
+                  .containsEntry("before", Map.of("interviewerIds", List.of(hrUserId)))
+                  .containsEntry(
+                      "after",
+                      Map.of("interviewerIds", List.of(hrUserId, newInterviewer.userId())));
             });
 
     assertThat(histories)
@@ -193,7 +198,14 @@ public class PATCH_specs {
             history -> {
               @SuppressWarnings("unchecked")
               Map<String, Object> changeLog = (Map<String, Object>) history.getChangeLog();
-              assertThat(changeLog).containsEntry("removedInterviewerIds", List.of(hrUserId));
+              assertThat(changeLog)
+                  .containsEntry("scope", "INTERVIEWER")
+                  .containsEntry("changedFields", List.of("interviewerIds"))
+                  .containsEntry(
+                      "before",
+                      Map.of("interviewerIds", List.of(hrUserId, newInterviewer.userId())))
+                  .containsEntry(
+                      "after", Map.of("interviewerIds", List.of(newInterviewer.userId())));
             });
   }
 

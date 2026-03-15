@@ -256,7 +256,11 @@ public class PUT_specs {
               assertThat(history.getStageId()).isNotNull();
               @SuppressWarnings("unchecked")
               Map<String, Object> changeLog = (Map<String, Object>) history.getChangeLog();
-              assertThat(changeLog).containsKeys("before", "after");
+              assertThat(changeLog)
+                  .containsEntry("scope", "STAGE")
+                  .containsKeys("before", "after", "changedFields");
+              assertThat((List<String>) changeLog.get("changedFields"))
+                  .containsExactly("stageStep");
             });
   }
 

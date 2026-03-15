@@ -1,6 +1,7 @@
 package com.coffiness.calfit.domain.recruitment;
 
 import com.coffiness.calfit.core.enums.RecruitmentActionType;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Repository;
 
@@ -13,15 +14,10 @@ public interface RecruitmentHistoryAppender {
       Long actorId,
       RecruitmentActionType actionType,
       String reason,
-      Recruitment recruitmentSnapShot);
-
-  // 채용 공고 사용자 정의 이력 적재
-  void append(
-      Long recruitmentId,
-      Long actorId,
-      RecruitmentActionType actionType,
-      String reason,
-      Map<String, Object> changeLog);
+      String scope,
+      Map<String, Object> beforeChangeLog,
+      Map<String, Object> afterChangeLog,
+      List<String> changedFields);
 
   // 채용 단계 이력 적재
   void appendStage(
@@ -30,5 +26,7 @@ public interface RecruitmentHistoryAppender {
       Long actorId,
       RecruitmentActionType actionType,
       String reason,
-      Map<String, Object> changeLog);
+      Map<String, Object> beforeChangeLog,
+      Map<String, Object> afterChangeLog,
+      List<String> changedFields);
 }
