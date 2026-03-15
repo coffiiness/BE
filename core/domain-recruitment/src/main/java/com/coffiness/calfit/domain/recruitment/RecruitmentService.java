@@ -7,13 +7,7 @@ import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class RecruitmentService {
+
+  private static final long SYSTEM_ACTOR_ID = 0L;
 
   private final RecruitmentStore recruitmentStore;
   private final RecruitmentHistoryAppender recruitmentHistoryAppender;
@@ -99,17 +95,17 @@ public class RecruitmentService {
     recruitmentStore.update(updatedRecruitment);
     Recruitment savedRecruitment = recruitmentReader.readById(recruitmentId);
 
-    if (hasRecruitmentInfoChanges(recruitment, updatedRecruitment)) {
+    if (hasRecruitmentInfoChanges(recruitment, savedRecruitment)) {
       recruitmentHistoryAppender.append(
-          updatedRecruitment.id(),
+          savedRecruitment.id(),
           memberId,
           RecruitmentActionType.RECRUITMENT_INFO_UPDATED,
           "채용 공고 수정",
-          updatedRecruitment);
+          savedRecruitment);
     }
 
-    appendInterviewerHistory(memberId, recruitment, updatedRecruitment);
-    appendStageHistories(memberId, recruitment, updatedRecruitment);
+    appendInterviewerHistory(memberId, recruitment, savedRecruitment);
+    appendStageHistories(memberId, recruitment, savedRecruitment);
 
     return savedRecruitment;
   }
@@ -174,8 +170,23 @@ public class RecruitmentService {
 
   public RecruitmentStatusTransitionResult updateRecruitmentStatusBySchedule(
       LocalDateTime currentTime) {
+    List<Recruitment> recruitmentsToOpen = recruitmentReader.readScheduledToOpen(currentTime);
+    List<Recruitment> recruitmentsToClose = recruitmentReader.readScheduledToClose(currentTime);
+
     int closedCount = recruitmentStore.closeEndedRecruitments(currentTime);
     int openedCount = recruitmentStore.openScheduledRecruitments(currentTime);
+
+    appendScheduledStatusHistories(
+        recruitmentsToOpen,
+        RecruitmentStatus.OPEN,
+        RecruitmentActionType.RECRUITMENT_OPENED,
+        "채용 공고 자동 게시");
+    appendScheduledStatusHistories(
+        recruitmentsToClose,
+        RecruitmentStatus.CLOSED,
+        RecruitmentActionType.RECRUITMENT_CLOSED,
+        "채용 공고 자동 마감");
+
     return new RecruitmentStatusTransitionResult(openedCount, closedCount);
   }
 
@@ -209,6 +220,22 @@ public class RecruitmentService {
           RecruitmentActionType.INTERVIEWER_REMOVED,
           "면접관 설정 수정",
           afterRecruitment);
+    }
+  }
+
+  // 자동 상태 전환 이력 적재
+  private void appendScheduledStatusHistories(
+      List<Recruitment> recruitments,
+      RecruitmentStatus targetStatus,
+      RecruitmentActionType actionType,
+      String reason) {
+    for (Recruitment recruitment : recruitments) {
+      recruitmentHistoryAppender.append(
+          recruitment.id(),
+          SYSTEM_ACTOR_ID,
+          actionType,
+          reason,
+          recruitment.updateStatus(targetStatus));
     }
   }
 
