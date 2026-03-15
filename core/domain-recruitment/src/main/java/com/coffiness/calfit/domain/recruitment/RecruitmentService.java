@@ -92,8 +92,7 @@ public class RecruitmentService {
             request.interviewerIds(),
             newStages);
 
-    recruitmentStore.update(updatedRecruitment);
-    Recruitment savedRecruitment = recruitmentReader.readById(recruitmentId);
+    Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
 
     if (hasRecruitmentInfoChanges(recruitment, savedRecruitment)) {
       recruitmentHistoryAppender.append(
@@ -121,7 +120,7 @@ public class RecruitmentService {
     Recruitment updatedRecruitment = recruitment.updateInterviewers(interviewerIds);
     Recruitment savedRecruitment = recruitmentStore.updateInterviewers(updatedRecruitment);
 
-    appendInterviewerHistory(memberId, recruitment, updatedRecruitment);
+    appendInterviewerHistory(memberId, recruitment, savedRecruitment);
 
     return savedRecruitment;
   }
