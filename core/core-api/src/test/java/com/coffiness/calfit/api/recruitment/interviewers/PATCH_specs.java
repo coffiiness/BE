@@ -13,10 +13,13 @@ import com.coffiness.calfit.api.v1.response.RecruitmentDetailResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryEntity;
+import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryRepository;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
@@ -129,6 +132,83 @@ public class PATCH_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
 
+  @Test
+  void 면접관_추가_및_해제시_history_changeLog에_대상_id를_남긴다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired RecruitmentFixture recruitmentFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
+      @Autowired RecruitmentHistoryRepository recruitmentHistoryRepository) {
+
+    WorkspaceContext context = memberFixture.setupWorkspace();
+    String hrToken = context.hrToken();
+    String tenantId = context.workspaceId();
+    Long hrUserId = userFixture.me(hrToken).getData().id();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long recruitmentId =
+        createRecruitment(
+            recruitmentFixture, hrToken, tenantId, applicationTemplateId, leadGroupId, hrUserId);
+
+    InterviewerContext newInterviewer =
+        inviteInterviewer(memberFixture, userFixture, tenantId, hrToken, "교체 면접관");
+
+    ApiResponse<RecruitmentDetailResponse> response =
+        recruitmentFixture.updateRecruitmentInterviewers(
+            hrToken,
+            tenantId,
+            recruitmentId,
+            Map.of("interviewerIds", List.of(newInterviewer.userId())));
+
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    List<RecruitmentHistoryEntity> histories =
+        readRecruitmentHistories(tenantId, recruitmentHistoryRepository, recruitmentId);
+
+    assertThat(histories)
+        .extracting(RecruitmentHistoryEntity::getRecruitmentActionType)
+        .contains(RecruitmentActionType.INTERVIEWER_ADDED)
+        .contains(RecruitmentActionType.INTERVIEWER_REMOVED);
+
+    assertThat(histories)
+        .filteredOn(
+            history ->
+                history.getRecruitmentActionType() == RecruitmentActionType.INTERVIEWER_ADDED)
+        .singleElement()
+        .satisfies(
+            history -> {
+              @SuppressWarnings("unchecked")
+              Map<String, Object> changeLog = (Map<String, Object>) history.getChangeLog();
+              assertThat(changeLog)
+                  .containsEntry("scope", "INTERVIEWER")
+                  .containsEntry("changedFields", List.of("interviewerIds"))
+                  .containsEntry("before", Map.of("interviewerIds", List.of(hrUserId)))
+                  .containsEntry(
+                      "after",
+                      Map.of("interviewerIds", List.of(hrUserId, newInterviewer.userId())));
+            });
+
+    assertThat(histories)
+        .filteredOn(
+            history ->
+                history.getRecruitmentActionType() == RecruitmentActionType.INTERVIEWER_REMOVED)
+        .singleElement()
+        .satisfies(
+            history -> {
+              @SuppressWarnings("unchecked")
+              Map<String, Object> changeLog = (Map<String, Object>) history.getChangeLog();
+              assertThat(changeLog)
+                  .containsEntry("scope", "INTERVIEWER")
+                  .containsEntry("changedFields", List.of("interviewerIds"))
+                  .containsEntry(
+                      "before",
+                      Map.of("interviewerIds", List.of(hrUserId, newInterviewer.userId())))
+                  .containsEntry(
+                      "after", Map.of("interviewerIds", List.of(newInterviewer.userId())));
+            });
+  }
+
   // 테스트용 게시된 공고를 하나 생성
   private Long createRecruitment(
       RecruitmentFixture recruitmentFixture,
@@ -214,6 +294,18 @@ public class PATCH_specs {
     memberFixture.acceptInvitation(invitationToken, token);
 
     return new InterviewerContext(token, userId);
+  }
+
+  private List<RecruitmentHistoryEntity> readRecruitmentHistories(
+      String tenantId,
+      RecruitmentHistoryRepository recruitmentHistoryRepository,
+      Long recruitmentId) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return recruitmentHistoryRepository.findByRecruitmentIdOrderByCreatedAtAsc(recruitmentId);
+    } finally {
+      TenantContext.clear();
+    }
   }
 
   private record InterviewerContext(String token, Long userId) {}
