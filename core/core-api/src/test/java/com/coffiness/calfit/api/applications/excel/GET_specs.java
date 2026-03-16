@@ -41,8 +41,11 @@ import org.springframework.http.ResponseEntity;
 @DisplayName("GET /api/v1/applications/excel")
 public class GET_specs {
 
+  private static final String EXCEL_CONTENT_TYPE =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
   @Test
-  void 인사담당자는_지원자_엑셀을_다운로드할_수_있다(
+  void hr_can_download_applicant_excel(
       @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
       @Autowired ApplicantFixture applicantFixture,
@@ -53,7 +56,6 @@ public class GET_specs {
       @Autowired RecruitmentStageRepository recruitmentStageRepository,
       @Autowired ApplicationRepository applicationRepository)
       throws Exception {
-    // Arrange
     WorkspaceContext workspace = memberFixture.setupWorkspace();
     Long hrUserId = userFixture.me(workspace.hrToken()).getData().id();
     Long leadGroupId = findLeadGroupId(workspace.workspaceId(), groupRepository);
@@ -90,44 +92,120 @@ public class GET_specs {
         "candidate-one",
         applicantEmail);
 
-    // Act
     ResponseEntity<byte[]> response =
         applicationExcelFixture.export(workspace.hrToken(), workspace.workspaceId());
 
-    // Assert
     assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
-        .contains("attachment;");
+        .contains("attachment;")
+        .contains(".xlsx");
     assertThat(response.getHeaders().getContentType())
-        .isEqualTo(
-            MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        .isEqualTo(MediaType.parseMediaType(EXCEL_CONTENT_TYPE));
     assertThat(response.getBody()).isNotNull();
 
     try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
       assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("지원자 목록");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
+          .isEqualTo("지원자명");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue())
+          .isEqualTo("이메일");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(2).getStringCellValue())
+          .isEqualTo("공고");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(3).getStringCellValue())
+          .isEqualTo("진행 상태");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(4).getStringCellValue())
+          .isEqualTo("다음 일정");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(5).getStringCellValue())
+          .isEqualTo("지원일");
       assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(1);
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(0).getStringCellValue())
           .isEqualTo("candidate-one");
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(1).getStringCellValue())
           .isEqualTo(applicantEmail);
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(2).getStringCellValue())
-          .isEqualTo("01012345678");
+          .isEqualTo("backend-recruitment");
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(3).getStringCellValue())
-          .isEqualTo("MALE");
-      assertThat(workbook.getSheetAt(0).getRow(1).getCell(4).getStringCellValue())
-          .isEqualTo("1995.01.01");
-      assertThat(workbook.getSheetAt(0).getRow(1).getCell(5).getStringCellValue())
           .isEqualTo("Document Review");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(4).getStringCellValue())
+          .isEqualTo("-");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(5).getStringCellValue())
+          .matches("\\d{4}\\.\\d{2}\\.\\d{2}");
     }
   }
 
   @Test
-  void 지원자는_지원자_엑셀을_다운로드할_수_없다(
+  void hr_can_download_header_only_excel_even_when_search_result_is_empty(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired ApplicantFixture applicantFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
+      @Autowired RecruitmentRepository recruitmentRepository,
+      @Autowired RecruitmentStageRepository recruitmentStageRepository,
+      @Autowired ApplicationRepository applicationRepository)
+      throws Exception {
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    Long hrUserId = userFixture.me(workspace.hrToken()).getData().id();
+    Long leadGroupId = findLeadGroupId(workspace.workspaceId(), groupRepository);
+    Long templateId =
+        createApplicationTemplate(
+            workspace.workspaceId(), applicationTemplateRepository, "excel-export-template");
+    Long recruitmentId =
+        createRecruitment(
+            workspace.workspaceId(),
+            recruitmentRepository,
+            hrUserId,
+            templateId,
+            leadGroupId,
+            "backend-recruitment");
+    Long stageId =
+        createRecruitmentStage(
+            workspace.workspaceId(), recruitmentStageRepository, recruitmentId, "Document Review");
+
+    String applicantEmail = "candidate2@test.com";
+    ApiResponse<ApplicantResponse> applicantSignUpResponse =
+        applicantFixture.signUp(
+            workspace.workspaceId(),
+            applicantEmail,
+            applicantFixture.randomPassword(),
+            "candidate-two");
+
+    InterviewApplicantTestHelper.createPendingApplication(
+        workspace.workspaceId(),
+        applicationRepository,
+        recruitmentId,
+        stageId,
+        templateId,
+        applicantSignUpResponse.getData().id(),
+        "candidate-two",
+        applicantEmail);
+
+    ResponseEntity<byte[]> response =
+        applicationExcelFixture.export(
+            workspace.hrToken(), workspace.workspaceId(), "no-such-applicant");
+
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(response.getHeaders().getContentType())
+        .isEqualTo(MediaType.parseMediaType(EXCEL_CONTENT_TYPE));
+    assertThat(response.getBody()).isNotNull();
+
+    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
+      assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("지원자 목록");
+      assertThat(workbook.getSheetAt(0).getPhysicalNumberOfRows()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(0);
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
+          .isEqualTo("지원자명");
+    }
+  }
+
+  @Test
+  void applicant_cannot_download_applicant_excel(
       @Autowired MemberFixture memberFixture,
       @Autowired ApplicantFixture applicantFixture,
       @Autowired ApplicationExcelFixture applicationExcelFixture) {
-    // Arrange
     WorkspaceContext workspace = memberFixture.setupWorkspace();
     String applicantEmail = applicantFixture.randomEmail();
     String applicantPassword = applicantFixture.randomPassword();
@@ -136,12 +214,10 @@ public class GET_specs {
     ApiResponse<ApplicantLoginResponse> applicantLoginResponse =
         applicantFixture.login(workspace.workspaceId(), applicantEmail, applicantPassword);
 
-    // Act
     ResponseEntity<byte[]> response =
         applicationExcelFixture.export(
             applicantLoginResponse.getData().accessToken(), workspace.workspaceId());
 
-    // Assert
     assertThat(response.getStatusCode().is4xxClientError()).isTrue();
     assertThat(response.getBody()).isNotNull();
     assertThat(new String(response.getBody(), StandardCharsets.UTF_8))
