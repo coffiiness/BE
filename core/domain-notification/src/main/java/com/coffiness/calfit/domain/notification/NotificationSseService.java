@@ -34,7 +34,7 @@ public class NotificationSseService {
   public void sendNotificationCreated(
       String tenantId, Long userId, Long notificationId, NotificationType type) {
     String key = key(tenantId, userId);
-    List<SseEmitter> userEmitters = emitters.get(key);
+    List<SseEmitter> userEmitters = emitt rs.get(key);
     if (userEmitters == null || userEmitters.isEmpty()) {
       return;
     }
