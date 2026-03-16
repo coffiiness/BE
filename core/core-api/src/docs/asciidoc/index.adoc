@@ -345,6 +345,222 @@ include::{snippets}/workspaces/create/response-fields.adoc[]
 
 '''
 
+== Recruitments API
+
+=== Create Recruitment
+==== Curl Request
+include::{snippets}/recruitments/create/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/recruitments/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/recruitments/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/create/response-fields.adoc[]
+
+'''
+
+=== Get Recruitment List
+==== Curl Request
+include::{snippets}/recruitments/list/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/recruitments/list/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/recruitments/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/list/response-fields.adoc[]
+
+'''
+
+=== Get Recruitment Detail
+==== Curl Request
+include::{snippets}/recruitments/detail/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/recruitments/detail/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/recruitments/detail/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/detail/response-fields.adoc[]
+
+'''
+
+=== Get Recruitment Interview Schedules
+==== Curl Request
+include::{snippets}/recruitments/interview-schedules/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/recruitments/interview-schedules/path-parameters.adoc[]
+==== Query Parameters
+include::{snippets}/recruitments/interview-schedules/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/recruitments/interview-schedules/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/interview-schedules/response-fields.adoc[]
+
+'''
+
+=== Get Weekly Interview Schedules
+==== Curl Request
+include::{snippets}/recruitments/weekly-interview-schedules/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/recruitments/weekly-interview-schedules/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/recruitments/weekly-interview-schedules/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/weekly-interview-schedules/response-fields.adoc[]
+
+'''
+
+=== Update Recruitment
+==== Curl Request
+include::{snippets}/recruitments/update/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/recruitments/update/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/recruitments/update/request-fields.adoc[]
+==== Http Response
+include::{snippets}/recruitments/update/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/update/response-fields.adoc[]
+
+'''
+
+=== Update Recruitment Interviewers
+==== Curl Request
+include::{snippets}/recruitments/update-interviewers/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/recruitments/update-interviewers/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/recruitments/update-interviewers/request-fields.adoc[]
+==== Http Response
+include::{snippets}/recruitments/update-interviewers/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/update-interviewers/response-fields.adoc[]
+
+'''
+
+=== Publish Recruitment
+==== Curl Request
+include::{snippets}/recruitments/publish/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/recruitments/publish/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/recruitments/publish/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/publish/response-fields.adoc[]
+
+'''
+
+=== Delete Recruitment
+==== Curl Request
+include::{snippets}/recruitments/delete/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/recruitments/delete/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/recruitments/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/recruitments/delete/response-fields.adoc[]
+
+'''
+
+== Calendar API
+
+=== Create Schedule
+==== Curl Request
+include::{snippets}/schedules/create/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/schedules/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/schedules/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/create/response-fields.adoc[]
+
+'''
+
+=== Sync Schedule
+==== Curl Request
+include::{snippets}/schedules/sync/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/schedules/sync/request-fields.adoc[]
+==== Http Response
+include::{snippets}/schedules/sync/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/sync/response-fields.adoc[]
+
+'''
+
+=== Get Schedules
+==== Curl Request
+include::{snippets}/schedules/list/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/schedules/list/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/schedules/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/list/response-fields.adoc[]
+
+'''
+
+=== Get Attendee Availability
+==== Curl Request
+include::{snippets}/schedules/availability/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/schedules/availability/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/schedules/availability/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/availability/response-fields.adoc[]
+
+'''
+
+=== Get Attendee Availability Range
+==== Curl Request
+include::{snippets}/schedules/availability-range/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/schedules/availability-range/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/schedules/availability-range/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/availability-range/response-fields.adoc[]
+
+'''
+
+=== Get Schedule Detail
+==== Curl Request
+include::{snippets}/schedules/detail/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/schedules/detail/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/schedules/detail/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/detail/response-fields.adoc[]
+
+'''
+
+=== Update Schedule
+==== Curl Request
+include::{snippets}/schedules/update/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/schedules/update/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/schedules/update/request-fields.adoc[]
+==== Http Response
+include::{snippets}/schedules/update/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/update/response-fields.adoc[]
+
+'''
+
+=== Delete Schedule
+==== Curl Request
+include::{snippets}/schedules/delete/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/schedules/delete/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/schedules/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/schedules/delete/response-fields.adoc[]
+
+'''
+
 == Payments API
 
 === Get Toss Config

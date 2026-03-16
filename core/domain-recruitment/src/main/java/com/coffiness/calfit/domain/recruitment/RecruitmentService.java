@@ -7,6 +7,7 @@ import com.coffiness.calfit.core.enums.RecruitmentActionType;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -95,10 +96,10 @@ public class RecruitmentService {
 
     Recruitment savedRecruitment = recruitmentStore.update(updatedRecruitment);
 
-    RecruitmentHistoryChangeLog recruitmentChangeLog =
-        recruitmentHistoryChangeLogFactory.createRecruitmentChangeLog(
-            recruitment, savedRecruitment);
-    if (!recruitmentChangeLog.changedFields().isEmpty()) {
+    if (hasRecruitmentInfoChanges(recruitment, savedRecruitment)) {
+      RecruitmentHistoryChangeLog recruitmentChangeLog =
+          recruitmentHistoryChangeLogFactory.createRecruitmentChangeLog(
+              recruitment, savedRecruitment);
       recruitmentHistoryAppender.append(
           savedRecruitment.id(),
           memberId,
@@ -387,6 +388,46 @@ public class RecruitmentService {
     Set<Long> mergedIds = new LinkedHashSet<>(baseIds);
     mergedIds.addAll(addedIds);
     return mergedIds;
+  }
+
+  // 채용 공고 기본 정보 변경 여부 확인
+  private boolean hasRecruitmentInfoChanges(
+      Recruitment beforeRecruitment, Recruitment afterRecruitment) {
+    return !Objects.equals(beforeRecruitment.title(), afterRecruitment.title())
+        || !Objects.equals(beforeRecruitment.contents(), afterRecruitment.contents())
+        || beforeRecruitment.targetCount() != afterRecruitment.targetCount()
+        || !Objects.equals(
+            normalizeDateTime(beforeRecruitment.startDate()),
+            normalizeDateTime(afterRecruitment.startDate()))
+        || !Objects.equals(
+            normalizeDateTime(beforeRecruitment.endDate()),
+            normalizeDateTime(afterRecruitment.endDate()))
+        || !Objects.equals(
+            beforeRecruitment.applicationTemplateId(), afterRecruitment.applicationTemplateId())
+        || beforeRecruitment.careerType() != afterRecruitment.careerType()
+        || !Objects.equals(
+            beforeRecruitment.minExperienceYears(), afterRecruitment.minExperienceYears())
+        || !Objects.equals(
+            beforeRecruitment.maxExperienceYears(), afterRecruitment.maxExperienceYears())
+        || !Objects.equals(beforeRecruitment.leadGroupId(), afterRecruitment.leadGroupId())
+        || !Objects.equals(
+            toUnorderedSet(beforeRecruitment.referenceGroupIds()),
+            toUnorderedSet(afterRecruitment.referenceGroupIds()));
+  }
+
+  // 참조 조직 비교용 순서 무시 집합 변환
+  private <T> Set<T> toUnorderedSet(List<T> items) {
+    if (items == null || items.isEmpty()) {
+      return Set.of();
+    }
+    return Set.copyOf(items);
+  }
+
+  private LocalDateTime normalizeDateTime(LocalDateTime dateTime) {
+    if (dateTime == null) {
+      return null;
+    }
+    return dateTime.truncatedTo(ChronoUnit.MILLIS);
   }
 
   private record StageChange(RecruitmentStage before, RecruitmentStage after) {}

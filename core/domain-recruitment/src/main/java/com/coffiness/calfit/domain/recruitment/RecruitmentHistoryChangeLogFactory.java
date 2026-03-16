@@ -1,5 +1,7 @@
 package com.coffiness.calfit.domain.recruitment;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -72,9 +74,15 @@ public class RecruitmentHistoryChangeLogFactory {
         recruitment.recruitmentStatus() != null ? recruitment.recruitmentStatus().name() : null);
     snapshot.put("targetCount", recruitment.targetCount());
     snapshot.put(
-        "startDate", recruitment.startDate() != null ? recruitment.startDate().toString() : null);
+        "startDate",
+        normalizeDateTime(recruitment.startDate()) != null
+            ? normalizeDateTime(recruitment.startDate()).toString()
+            : null);
     snapshot.put(
-        "endDate", recruitment.endDate() != null ? recruitment.endDate().toString() : null);
+        "endDate",
+        normalizeDateTime(recruitment.endDate()) != null
+            ? normalizeDateTime(recruitment.endDate()).toString()
+            : null);
     snapshot.put("applicationTemplateId", recruitment.applicationTemplateId());
     snapshot.put(
         "careerType", recruitment.careerType() != null ? recruitment.careerType().name() : null);
@@ -134,5 +142,12 @@ public class RecruitmentHistoryChangeLogFactory {
       }
     }
     return changedFields;
+  }
+
+  private LocalDateTime normalizeDateTime(LocalDateTime dateTime) {
+    if (dateTime == null) {
+      return null;
+    }
+    return dateTime.truncatedTo(ChronoUnit.MILLIS);
   }
 }
