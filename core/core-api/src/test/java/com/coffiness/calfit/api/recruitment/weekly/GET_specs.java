@@ -3,12 +3,10 @@ package com.coffiness.calfit.api.recruitment.weekly;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
-import com.coffiness.calfit.api.support.InterviewApplicantTestHelper;
 import com.coffiness.calfit.api.fixture.*;
-import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
+import com.coffiness.calfit.api.support.InterviewApplicantTestHelper;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
-import com.coffiness.calfit.api.v1.response.ApplicantLoginResponse;
 import com.coffiness.calfit.api.v1.response.ApplicantResponse;
 import com.coffiness.calfit.api.v1.response.InvitationResponse;
 import com.coffiness.calfit.api.v1.response.MemberResponse;
@@ -222,9 +220,11 @@ class GET_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData()).hasSize(2);
-    assertThat(response.getData()).extracting(WeeklyInterviewScheduleResponse::interviewerName)
+    assertThat(response.getData())
+        .extracting(WeeklyInterviewScheduleResponse::interviewerName)
         .containsExactly("면접관 A", "면접관 B");
-    assertThat(response.getData()).extracting(WeeklyInterviewScheduleResponse::description)
+    assertThat(response.getData())
+        .extracting(WeeklyInterviewScheduleResponse::description)
         .containsExactly("A 면접", "B 면접");
   }
 

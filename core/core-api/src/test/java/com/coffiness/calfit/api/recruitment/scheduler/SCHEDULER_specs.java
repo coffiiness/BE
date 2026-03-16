@@ -329,7 +329,9 @@ public class SCHEDULER_specs {
   private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
     TenantContext.setTenantId(tenantId);
     try {
-      return groupRepository.findByStatus(com.coffiness.calfit.core.enums.EntityStatus.ACTIVE).stream()
+      return groupRepository
+          .findByStatus(com.coffiness.calfit.core.enums.EntityStatus.ACTIVE)
+          .stream()
           .findFirst()
           .orElseGet(() -> groupRepository.save(GroupEntity.create("스케줄러 테스트 그룹", "#14B8A6")))
           .getId();

@@ -42,7 +42,8 @@ public class POST_specs {
     String tenantId = context.workspaceId();
     Long hrUserId = userFixture.me(token).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId = createApplicationTemplate(token, tenantId, applicationTemplateFixture);
+    Long applicationTemplateId =
+        createApplicationTemplate(token, tenantId, applicationTemplateFixture);
     RecruitmentCreateRequest request =
         createRequest(applicationTemplateId, leadGroupId, List.of(hrUserId));
 

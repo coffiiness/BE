@@ -306,10 +306,8 @@ public class PATCH_specs {
   @SuppressWarnings("unchecked")
   private List<Long> extractInterviewerIds(Map<String, Object> changeLog, String key) {
     Map<String, Object> snapshot = (Map<String, Object>) changeLog.get(key);
-    return ((List<?>) snapshot.get("interviewerIds")).stream()
-        .map(Number.class::cast)
-        .map(Number::longValue)
-        .toList();
+    return ((List<?>) snapshot.get("interviewerIds"))
+        .stream().map(Number.class::cast).map(Number::longValue).toList();
   }
 
   private record InterviewerContext(String token, Long userId) {}

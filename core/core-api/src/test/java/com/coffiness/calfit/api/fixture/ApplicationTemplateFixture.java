@@ -75,7 +75,9 @@ public record ApplicationTemplateFixture(BaseFixture base) {
                         "type", "TEXT")),
                 true));
 
-    if (response == null || response.getResult() == ResultType.ERROR || response.getData() == null) {
+    if (response == null
+        || response.getResult() == ResultType.ERROR
+        || response.getData() == null) {
       throw new IllegalStateException("지원서 템플릿 생성 fixture 준비에 실패했습니다.");
     }
 
