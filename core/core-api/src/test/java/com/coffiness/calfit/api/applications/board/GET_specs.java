@@ -14,6 +14,7 @@ import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
 import com.coffiness.calfit.api.v1.response.ApplicantLoginResponse;
 import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.enums.CareerType;
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.Gender;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
@@ -23,6 +24,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
+import com.coffiness.calfit.storage.db.core.user.GroupEntity;
+import com.coffiness.calfit.storage.db.core.user.GroupRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +44,18 @@ public class GET_specs {
       @Autowired RecruitmentFixture recruitmentFixture,
       @Autowired ApplicantFixture applicantFixture,
       @Autowired ApplicationFixture applicationFixture,
-      @Autowired ObjectMapper objectMapper) {
+      @Autowired ObjectMapper objectMapper,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
 
     // Arrange: HR 계정 + 워크스페이스
     String hrToken = userFixture.createUserAndGetToken();
     var workspace = workspaceFixture.createWorkspace(hrToken).getData();
     String tenantId = workspace.workspaceId();
+    Long hrUserId = userFixture.me(hrToken).getData().id();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(tenantId, applicationTemplateRepository);
 
     List<RecruitmentStageRequest> stages =
         List.of(
@@ -55,19 +67,21 @@ public class GET_specs {
         new RecruitmentCreateRequest(
             "백엔드 채용",
             2,
-            1L,
+            applicationTemplateId,
             "백엔드 채용 공고",
             LocalDateTime.now(),
             LocalDateTime.now().plusDays(30),
             CareerType.EXPERIENCED,
             3,
             5,
-            1L,
+            leadGroupId,
             List.of(),
-            List.of(),
+            List.of(hrUserId),
             stages);
 
-    recruitmentFixture.createRecruitment(hrToken, tenantId, recruitmentRequest);
+    ApiResponse<Void> createRecruitmentResponse =
+        recruitmentFixture.createRecruitment(hrToken, tenantId, recruitmentRequest);
+    assertThat(createRecruitmentResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     ApiResponse<List<RecruitmentListResponse>> listResponse =
         recruitmentFixture.getRecruitmentList(hrToken, tenantId);
@@ -75,7 +89,7 @@ public class GET_specs {
     Long processId = listResponse.getData().get(0).stages().get(0).id();
 
     // Arrange: 지원자 회원가입/로그인
-    String email = applicantFixture.randomEmail();
+    String email = "board@test.com";
     String password = applicantFixture.randomPassword();
     String name = applicantFixture.randomName();
     applicantFixture.signUp(tenantId, email, password, name);
@@ -88,7 +102,7 @@ public class GET_specs {
             null,
             recruitmentId,
             processId,
-            1L,
+            null,
             name,
             Gender.MALE,
             LocalDate.of(1995, 1, 1),
@@ -96,15 +110,41 @@ public class GET_specs {
             email,
             objectMapper.createObjectNode());
 
-    applicationFixture.createApplication(applicantToken, applicationRequest);
+    ApiResponse<?> createApplicationResponse =
+        applicationFixture.createApplication(applicantToken, applicationRequest);
+    assertThat(createApplicationResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
     // Act
     ApiResponse<KanbanBoard> response =
         applicationFixture.getKanbanBoard(hrToken, tenantId, recruitmentId);
 
-    // Assert
-    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(response.getData().columns().size()).isEqualTo(3);
-    assertThat(response.getData().columns().get(0).applications().size()).isEqualTo(1);
+  // Assert
+  assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData().columns().size()).isEqualTo(4);
+  assertThat(response.getData().columns().get(0).applications().size()).isEqualTo(1);
+  }
+
+  private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
+          .findFirst()
+          .orElseGet(() -> groupRepository.save(GroupEntity.create("board-test-group", "#3B82F6")))
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
+  }
+
+  private Long createApplicationTemplate(
+      String tenantId, ApplicationTemplateRepository applicationTemplateRepository) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return applicationTemplateRepository
+          .save(ApplicationTemplateEntity.create("board-test-template", "{}", true))
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
   }
 }
