@@ -133,7 +133,7 @@ class GET_specs {
   }
 
   @Test
-  void 면접관은_본인에게_배정된_이번주_면접만_조회한다(
+  void 면접관은_접근가능한_공고의_이번주_면접_일정을_조회한다(
       @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
@@ -221,9 +221,11 @@ class GET_specs {
             interviewerA.token(), tenantId, LocalDate.of(2030, 3, 13));
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(response.getData()).hasSize(1);
-    assertThat(response.getData().get(0).interviewerName()).isEqualTo("면접관 A");
-    assertThat(response.getData().get(0).description()).isEqualTo("A 면접");
+    assertThat(response.getData()).hasSize(2);
+    assertThat(response.getData()).extracting(WeeklyInterviewScheduleResponse::interviewerName)
+        .containsExactly("면접관 A", "면접관 B");
+    assertThat(response.getData()).extracting(WeeklyInterviewScheduleResponse::description)
+        .containsExactly("A 면접", "B 면접");
   }
 
   @Test
