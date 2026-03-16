@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class POST_specs {
 
   @Test
-  void hr_can_create_application_template(
+  void 인사담당자는_지원서_템플릿을_생성할_수_있다(
       @Autowired MemberFixture memberFixture,
       @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
     // Arrange
@@ -52,7 +52,7 @@ public class POST_specs {
   }
 
   @Test
-  void non_hr_member_cannot_create_application_template(
+  void 비인사담당자는_지원서_템플릿을_생성할_수_없다(
       @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
       @Autowired ApplicationTemplateFixture applicationTemplateFixture) {

@@ -42,7 +42,7 @@ import org.springframework.http.ResponseEntity;
 public class GET_specs {
 
   @Test
-  void hr_can_download_applicant_excel(
+  void 인사담당자는_지원자_엑셀을_다운로드할_수_있다(
       @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
       @Autowired ApplicantFixture applicantFixture,
@@ -123,7 +123,7 @@ public class GET_specs {
   }
 
   @Test
-  void applicant_cannot_download_applicant_excel(
+  void 지원자는_지원자_엑셀을_다운로드할_수_없다(
       @Autowired MemberFixture memberFixture,
       @Autowired ApplicantFixture applicantFixture,
       @Autowired ApplicationExcelFixture applicationExcelFixture) {
