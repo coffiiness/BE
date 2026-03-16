@@ -26,7 +26,13 @@ public class EmailVerificationService {
 
   @Transactional
   public void generateTokenAndSendEmail(String userEmail, String userName, String verificationUrl) {
-    tokenRepository.findByUserEmail(userEmail).ifPresent(tokenRepository::delete);
+    tokenRepository
+        .findByUserEmail(userEmail)
+        .ifPresent(
+            existingToken -> {
+              tokenRepository.delete(existingToken);
+              tokenRepository.flush();
+            });
 
     String tokenValue = UUID.randomUUID().toString();
     LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(EXPIRE_MINUTES);

@@ -99,34 +99,27 @@ public record MemberFixture(
 
   /** 워크스페이스에 두 번째 멤버 추가 (초대 → 수락) 두 번째 유저의 이메일을 직접 지정해 초대하고, 수락 후 해당 멤버의 ID를 반환한다. */
   public Long addSecondMember(WorkspaceContext context) {
-    String inviteeEmail = userFixture.randomEmail();
-    String inviteePassword = userFixture.randomPassword();
-    userFixture.signUp(inviteeEmail, inviteePassword, userFixture.randomName());
-
-    ApiResponse<InvitationResponse> invitationResponse =
-        createInvitation(
-            context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.INTERVIEWER);
-    String invitationToken = invitationResponse.getData().token();
-
-    String inviteeToken = userFixture.login(inviteeEmail, inviteePassword).getData().accessToken();
-    acceptInvitation(invitationToken, inviteeToken);
-    MemberResponse memberResponse = getMyMember(inviteeToken, context.workspaceId()).getData();
-    return memberResponse.id();
+    return inviteMember(context, MemberType.INTERVIEWER).memberId();
   }
 
   public Long addSecondMemberUserId(WorkspaceContext context) {
+    return inviteMember(context, MemberType.INTERVIEWER).userId();
+  }
+
+  public InvitedMemberContext inviteMember(WorkspaceContext context, MemberType memberType) {
     String inviteeEmail = userFixture.randomEmail();
     String inviteePassword = userFixture.randomPassword();
     Long userId =
         userFixture.signUp(inviteeEmail, inviteePassword, userFixture.randomName()).getData().id();
 
     ApiResponse<InvitationResponse> invitationResponse =
-        createInvitation(
-            context.hrToken(), context.workspaceId(), inviteeEmail, MemberType.INTERVIEWER);
+        createInvitation(context.hrToken(), context.workspaceId(), inviteeEmail, memberType);
     String inviteeToken = userFixture.login(inviteeEmail, inviteePassword).getData().accessToken();
     acceptInvitation(invitationResponse.getData().token(), inviteeToken);
+    MemberResponse memberResponse = getMyMember(inviteeToken, context.workspaceId()).getData();
 
-    return userId;
+    return new InvitedMemberContext(
+        userId, memberResponse.id(), inviteeEmail, inviteePassword, inviteeToken, memberType);
   }
 
   // ==================== Private Helpers ====================
@@ -169,4 +162,12 @@ public record MemberFixture(
   // ==================== Context Records ====================
 
   public record WorkspaceContext(String hrToken, String workspaceId) {}
+
+  public record InvitedMemberContext(
+      Long userId,
+      Long memberId,
+      String email,
+      String password,
+      String token,
+      MemberType memberType) {}
 }

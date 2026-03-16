@@ -1,0 +1,78 @@
+package com.coffiness.calfit.api.applications.template.create;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.coffiness.calfit.api.CalfitApiTest;
+import com.coffiness.calfit.api.fixture.ApplicationTemplateFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture.InvitedMemberContext;
+import com.coffiness.calfit.api.fixture.MemberFixture.WorkspaceContext;
+import com.coffiness.calfit.api.v1.response.ApplicationTemplateListResponse;
+import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.support.response.ApiResponse;
+import com.coffiness.calfit.core.support.response.ResultType;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@CalfitApiTest
+@DisplayName("POST /api/v1/workspaces/{workspaceId}/application-templates")
+public class POST_specs {
+
+  @Test
+  void hr_can_create_application_template(
+      @Autowired MemberFixture memberFixture,
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
+    // Arrange
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    Map<String, Object> request =
+        applicationTemplateFixture.newCreateRequest(
+            "backend-default-template",
+            List.of(
+                Map.of(
+                    "key", "portfolioUrl",
+                    "label", "Portfolio URL",
+                    "type", "TEXT")),
+            true);
+
+    // Act
+    ApiResponse<ApplicationTemplateListResponse> response =
+        applicationTemplateFixture.create(
+            workspace.hrToken(), workspace.workspaceId(), request);
+
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(response.getData()).isNotNull();
+    assertThat(response.getData().name()).isEqualTo("backend-default-template");
+    assertThat(response.getData().used()).isTrue();
+    assertThat(response.getData().recruitmentCount()).isZero();
+    assertThat(response.getData().customFields()).contains("portfolioUrl");
+  }
+
+  @Test
+  void non_hr_member_cannot_create_application_template(
+      @Autowired MemberFixture memberFixture,
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
+    // Arrange
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    InvitedMemberContext interviewer =
+        memberFixture.inviteMember(workspace, MemberType.INTERVIEWER);
+    Map<String, Object> request =
+        applicationTemplateFixture.newCreateRequest(
+            "interviewer-template",
+            List.of(Map.of("key", "githubUrl", "label", "GitHub URL", "type", "TEXT")),
+            false);
+
+    // Act
+    ApiResponse<ApplicationTemplateListResponse> response =
+        applicationTemplateFixture.create(
+            interviewer.token(), workspace.workspaceId(), request);
+
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E403");
+  }
+}

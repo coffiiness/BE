@@ -22,6 +22,7 @@ import com.coffiness.calfit.docs.RestDocsTest;
 import com.coffiness.calfit.domain.user.EmailVerificationService;
 import com.coffiness.calfit.domain.user.User;
 import com.coffiness.calfit.domain.user.UserService;
+import com.coffiness.calfit.domain.workspace.WorkspaceReader;
 import com.coffiness.calfit.support.email.EmailPageService;
 import com.coffiness.calfit.support.email.EmailProperties;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
@@ -39,13 +40,15 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public class UserApiDocs extends RestDocsTest {
 
   private final UserService userService = mock(UserService.class);
+  private final WorkspaceReader workspaceReader = mock(WorkspaceReader.class);
   private final EmailVerificationService emailVerificationService =
       mock(EmailVerificationService.class);
   private final EmailProperties emailProperties = new EmailProperties();
   private final EmailPageService emailPageService = mock(EmailPageService.class);
 
   private final UserController userController =
-      new UserController(userService, emailVerificationService, emailProperties, emailPageService);
+      new UserController(
+          userService, workspaceReader, emailVerificationService, emailProperties, emailPageService);
 
   private final SecurityUser mockSecurityUser = new SecurityUser(1L, "test@example.com", "USER");
 

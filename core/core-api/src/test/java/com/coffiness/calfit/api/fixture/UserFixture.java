@@ -8,6 +8,11 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 public record UserFixture(BaseFixture base) {
 
@@ -45,6 +50,22 @@ public record UserFixture(BaseFixture base) {
     return base.post("/api/v1/users/login", request, LoginResponse.class);
   }
 
+  public ApiResponse<Void> resendVerificationEmail(String email) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    ResponseEntity<ApiResponse> response =
+        base.client()
+            .exchange(
+                "/api/v1/users/signup/resend-verification?email={email}",
+                HttpMethod.POST,
+                new HttpEntity<>(headers),
+                ApiResponse.class,
+                email);
+
+    return convertResponse(response.getBody(), Void.class);
+  }
+
   public ApiResponse<UserResponse> me(String token) {
     return base.get("/api/v1/users/me", token, UserResponse.class);
   }
@@ -67,5 +88,24 @@ public record UserFixture(BaseFixture base) {
     signUp(email, password, name);
     ApiResponse<LoginResponse> loginResponse = login(email, password);
     return loginResponse.getData().accessToken();
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> ApiResponse<T> convertResponse(ApiResponse<?> response, Class<T> responseType) {
+    if (response == null) {
+      return null;
+    }
+
+    if (response.getResult() == com.coffiness.calfit.core.support.response.ResultType.ERROR
+        || response.getData() == null) {
+      return (ApiResponse<T>) response;
+    }
+
+    if (responseType == Void.class) {
+      return (ApiResponse<T>) response;
+    }
+
+    T convertedData = base.objectMapper().convertValue(response.getData(), responseType);
+    return ApiResponse.success(convertedData);
   }
 }
