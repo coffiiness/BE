@@ -80,7 +80,7 @@ spring.config.activate.on-profile: prod
 spring:
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
