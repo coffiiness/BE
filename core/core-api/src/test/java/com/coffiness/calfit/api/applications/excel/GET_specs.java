@@ -3,211 +3,304 @@ package com.coffiness.calfit.api.applications.excel;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import com.coffiness.calfit.api.fixture.ApplicantFixture;
+import com.coffiness.calfit.api.fixture.ApplicationExcelFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture;
+import com.coffiness.calfit.api.fixture.MemberFixture.WorkspaceContext;
 import com.coffiness.calfit.api.fixture.UserFixture;
-import com.coffiness.calfit.api.fixture.WorkspaceFixture;
-import com.coffiness.calfit.api.v1.response.WorkspaceResponse;
+import com.coffiness.calfit.api.support.InterviewApplicantTestHelper;
+import com.coffiness.calfit.api.v1.response.ApplicantLoginResponse;
+import com.coffiness.calfit.api.v1.response.ApplicantResponse;
 import com.coffiness.calfit.core.enums.CareerType;
-import com.coffiness.calfit.core.enums.Gender;
+import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.enums.RecruitmentStatus;
-import com.coffiness.calfit.storage.db.core.application.ApplicationEntity;
+import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentRepository;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentStageRepository;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
+import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
+import com.coffiness.calfit.storage.db.core.user.GroupEntity;
+import com.coffiness.calfit.storage.db.core.user.GroupRepository;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 @CalfitApiTest
 @DisplayName("GET /api/v1/applications/excel")
-class GET_specs {
+public class GET_specs {
 
   private static final String EXCEL_CONTENT_TYPE =
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
   @Test
-  void hr_account_request_returns_applicant_excel_file(
-      @Autowired TestRestTemplate restTemplate,
+  void hr_can_download_applicant_excel(
+      @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
-      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
       @Autowired RecruitmentRepository recruitmentRepository,
       @Autowired RecruitmentStageRepository recruitmentStageRepository,
       @Autowired ApplicationRepository applicationRepository)
       throws Exception {
-    ExcelTestFixture fixture =
-        createFixture(
-            userFixture, workspaceFixture, recruitmentRepository, recruitmentStageRepository);
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    Long hrUserId = userFixture.me(workspace.hrToken()).getData().id();
+    Long leadGroupId = findLeadGroupId(workspace.workspaceId(), groupRepository);
+    Long templateId =
+        createApplicationTemplate(
+            workspace.workspaceId(), applicationTemplateRepository, "excel-export-template");
+    Long recruitmentId =
+        createRecruitment(
+            workspace.workspaceId(),
+            recruitmentRepository,
+            hrUserId,
+            templateId,
+            leadGroupId,
+            "backend-recruitment");
+    Long stageId =
+        createRecruitmentStage(
+            workspace.workspaceId(), recruitmentStageRepository, recruitmentId, "Document Review");
 
-    TenantContext.setTenantId(fixture.tenantId());
-    try {
-      applicationRepository.save(
-          ApplicationEntity.create(
-              999L,
-              fixture.recruitmentId(),
-              fixture.stageId(),
-              1L,
-              "Export Candidate",
-              Gender.FEMALE,
-              LocalDateTime.of(1998, 3, 1, 0, 0),
-              "010-1111-2222",
-              "export-candidate@test.com",
-              "{}"));
-    } finally {
-      TenantContext.clear();
-    }
+    String applicantEmail = "candidate1@test.com";
+    ApiResponse<ApplicantResponse> applicantSignUpResponse =
+        applicantFixture.signUp(
+            workspace.workspaceId(),
+            applicantEmail,
+            applicantFixture.randomPassword(),
+            "candidate-one");
+
+    InterviewApplicantTestHelper.createPendingApplication(
+        workspace.workspaceId(),
+        applicationRepository,
+        recruitmentId,
+        stageId,
+        templateId,
+        applicantSignUpResponse.getData().id(),
+        "candidate-one",
+        applicantEmail);
 
     ResponseEntity<byte[]> response =
-        requestExcel(restTemplate, fixture.tenantId(), fixture.token(), null);
+        applicationExcelFixture.export(workspace.hrToken(), workspace.workspaceId());
 
     assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+        .contains("attachment;")
+        .contains(".xlsx");
     assertThat(response.getHeaders().getContentType())
         .isEqualTo(MediaType.parseMediaType(EXCEL_CONTENT_TYPE));
-    assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
-        .contains("attachment; filename=\"")
-        .contains(".xlsx");
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody()).isNotEmpty();
 
-    try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(response.getBody()))) {
-      Sheet sheet = workbook.getSheetAt(0);
-
-      assertThat(sheet.getSheetName()).isEqualTo("\uC9C0\uC6D0\uC790 \uBAA9\uB85D");
-      assertThat(sheet.getRow(0).getCell(0).getStringCellValue())
+    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
+      assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("\uC9C0\uC6D0\uC790 \uBAA9\uB85D");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
           .isEqualTo("\uC9C0\uC6D0\uC790\uBA85");
-      assertThat(sheet.getRow(0).getCell(1).getStringCellValue()).isEqualTo("\uC774\uBA54\uC77C");
-      assertThat(sheet.getRow(0).getCell(2).getStringCellValue()).isEqualTo("\uACF5\uACE0");
-      assertThat(sheet.getRow(0).getCell(3).getStringCellValue())
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue())
+          .isEqualTo("\uC774\uBA54\uC77C");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(2).getStringCellValue())
+          .isEqualTo("\uACF5\uACE0");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(3).getStringCellValue())
           .isEqualTo("\uC9C4\uD589 \uC0C1\uD0DC");
-      assertThat(sheet.getRow(0).getCell(4).getStringCellValue())
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(4).getStringCellValue())
           .isEqualTo("\uB2E4\uC74C \uC77C\uC815");
-      assertThat(sheet.getRow(0).getCell(5).getStringCellValue()).isEqualTo("\uC9C0\uC6D0\uC77C");
-
-      assertThat(sheet.getRow(1).getCell(0).getStringCellValue()).isEqualTo("Export Candidate");
-      assertThat(sheet.getRow(1).getCell(1).getStringCellValue())
-          .isEqualTo("export-candidate@test.com");
-      assertThat(sheet.getRow(1).getCell(2).getStringCellValue()).isEqualTo("Backend Hiring");
-      assertThat(sheet.getRow(1).getCell(3).getStringCellValue()).isEqualTo("Document Review");
-      assertThat(sheet.getRow(1).getCell(4).getStringCellValue()).isEqualTo("-");
-      assertThat(sheet.getRow(1).getCell(5).getStringCellValue())
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(5).getStringCellValue())
+          .isEqualTo("\uC9C0\uC6D0\uC77C");
+      assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(0).getStringCellValue())
+          .isEqualTo("candidate-one");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(1).getStringCellValue())
+          .isEqualTo(applicantEmail);
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(2).getStringCellValue())
+          .isEqualTo("backend-recruitment");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(3).getStringCellValue())
+          .isEqualTo("Document Review");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(4).getStringCellValue())
+          .isEqualTo("-");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(5).getStringCellValue())
           .matches("\\d{4}\\.\\d{2}\\.\\d{2}");
     }
   }
 
   @Test
-  void hr_account_request_returns_header_only_excel_even_when_search_result_is_empty(
-      @Autowired TestRestTemplate restTemplate,
+  void hr_can_download_header_only_excel_even_when_search_result_is_empty(
+      @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
-      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
       @Autowired RecruitmentRepository recruitmentRepository,
       @Autowired RecruitmentStageRepository recruitmentStageRepository,
       @Autowired ApplicationRepository applicationRepository)
       throws Exception {
-    ExcelTestFixture fixture =
-        createFixture(
-            userFixture, workspaceFixture, recruitmentRepository, recruitmentStageRepository);
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    Long hrUserId = userFixture.me(workspace.hrToken()).getData().id();
+    Long leadGroupId = findLeadGroupId(workspace.workspaceId(), groupRepository);
+    Long templateId =
+        createApplicationTemplate(
+            workspace.workspaceId(), applicationTemplateRepository, "excel-export-template");
+    Long recruitmentId =
+        createRecruitment(
+            workspace.workspaceId(),
+            recruitmentRepository,
+            hrUserId,
+            templateId,
+            leadGroupId,
+            "backend-recruitment");
+    Long stageId =
+        createRecruitmentStage(
+            workspace.workspaceId(), recruitmentStageRepository, recruitmentId, "Document Review");
 
-    TenantContext.setTenantId(fixture.tenantId());
-    try {
-      applicationRepository.save(
-          ApplicationEntity.create(
-              1000L,
-              fixture.recruitmentId(),
-              fixture.stageId(),
-              1L,
-              "Existing Candidate",
-              Gender.MALE,
-              LocalDateTime.of(1997, 5, 1, 0, 0),
-              "010-2222-3333",
-              "existing-candidate@test.com",
-              "{}"));
-    } finally {
-      TenantContext.clear();
-    }
+    String applicantEmail = "candidate2@test.com";
+    ApiResponse<ApplicantResponse> applicantSignUpResponse =
+        applicantFixture.signUp(
+            workspace.workspaceId(),
+            applicantEmail,
+            applicantFixture.randomPassword(),
+            "candidate-two");
+
+    InterviewApplicantTestHelper.createPendingApplication(
+        workspace.workspaceId(),
+        applicationRepository,
+        recruitmentId,
+        stageId,
+        templateId,
+        applicantSignUpResponse.getData().id(),
+        "candidate-two",
+        applicantEmail);
 
     ResponseEntity<byte[]> response =
-        requestExcel(
-            restTemplate, fixture.tenantId(), fixture.token(), "?search=no-such-applicant");
+        applicationExcelFixture.export(
+            workspace.hrToken(), workspace.workspaceId(), "no-such-applicant");
 
     assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(response.getHeaders().getContentType())
+        .isEqualTo(MediaType.parseMediaType(EXCEL_CONTENT_TYPE));
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody()).isNotEmpty();
 
-    try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(response.getBody()))) {
-      Sheet sheet = workbook.getSheetAt(0);
-
-      assertThat(sheet.getSheetName()).isEqualTo("\uC9C0\uC6D0\uC790 \uBAA9\uB85D");
-      assertThat(sheet.getPhysicalNumberOfRows()).isEqualTo(1);
-      assertThat(sheet.getRow(0).getCell(0).getStringCellValue())
+    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
+      assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("\uC9C0\uC6D0\uC790 \uBAA9\uB85D");
+      assertThat(workbook.getSheetAt(0).getPhysicalNumberOfRows()).isEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(0);
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
           .isEqualTo("\uC9C0\uC6D0\uC790\uBA85");
-      assertThat(sheet.getRow(1)).isNull();
     }
   }
 
-  private ExcelTestFixture createFixture(
-      UserFixture userFixture,
-      WorkspaceFixture workspaceFixture,
-      RecruitmentRepository recruitmentRepository,
-      RecruitmentStageRepository recruitmentStageRepository) {
-    String token = userFixture.createUserAndGetToken();
-    WorkspaceResponse workspace = workspaceFixture.createWorkspace(token).getData();
-    String tenantId = workspace.workspaceId();
+  @Test
+  void applicant_cannot_download_applicant_excel(
+      @Autowired MemberFixture memberFixture,
+      @Autowired ApplicantFixture applicantFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture) {
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    String applicantEmail = applicantFixture.randomEmail();
+    String applicantPassword = applicantFixture.randomPassword();
+    applicantFixture.signUp(
+        workspace.workspaceId(), applicantEmail, applicantPassword, applicantFixture.randomName());
+    ApiResponse<ApplicantLoginResponse> applicantLoginResponse =
+        applicantFixture.login(workspace.workspaceId(), applicantEmail, applicantPassword);
 
+    ResponseEntity<byte[]> response =
+        applicationExcelFixture.export(
+            applicantLoginResponse.getData().accessToken(), workspace.workspaceId());
+
+    assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+    assertThat(response.getBody()).isNotNull();
+    assertThat(new String(response.getBody(), StandardCharsets.UTF_8))
+        .contains("\"code\":\"E401\"");
+  }
+
+  private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
     TenantContext.setTenantId(tenantId);
     try {
-      RecruitmentEntity recruitment =
-          recruitmentRepository.save(
+      return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
+          .findFirst()
+          .orElseGet(() -> groupRepository.save(GroupEntity.create("seed-group", "#3B82F6")))
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
+  }
+
+  private Long createApplicationTemplate(
+      String tenantId,
+      ApplicationTemplateRepository applicationTemplateRepository,
+      String templateName) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return applicationTemplateRepository
+          .save(
+              ApplicationTemplateEntity.create(
+                  templateName, "[{\"key\":\"portfolioUrl\",\"type\":\"TEXT\"}]", true))
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
+  }
+
+  private Long createRecruitment(
+      String tenantId,
+      RecruitmentRepository recruitmentRepository,
+      Long creatorId,
+      Long templateId,
+      Long leadGroupId,
+      String title) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return recruitmentRepository
+          .save(
               RecruitmentEntity.builder()
-                  .creatorId(1L)
-                  .title("Backend Hiring")
+                  .creatorId(creatorId)
+                  .title(title)
                   .recruitmentStatus(RecruitmentStatus.OPEN)
                   .targetCount(1)
                   .startDate(LocalDateTime.now().minusDays(1))
                   .endDate(LocalDateTime.now().plusDays(7))
-                  .applicationTemplateId(1L)
-                  .contents("Backend hiring post")
+                  .applicationTemplateId(templateId)
+                  .contents("recruitment-contents")
                   .careerType(CareerType.NEW)
-                  .leadGroupId(1L)
-                  .build());
-
-      RecruitmentStageEntity stage =
-          recruitmentStageRepository.save(
-              RecruitmentStageEntity.builder()
-                  .recruitmentId(recruitment.getId())
-                  .stageName("Document Review")
-                  .stageStep(1)
-                  .stageType(RecruitmentStageType.DOCUMENT)
-                  .build());
-
-      return new ExcelTestFixture(token, tenantId, recruitment.getId(), stage.getId());
+                  .minExperienceYears(0)
+                  .maxExperienceYears(0)
+                  .leadGroupId(leadGroupId)
+                  .build())
+          .getId();
     } finally {
       TenantContext.clear();
     }
   }
 
-  private ResponseEntity<byte[]> requestExcel(
-      TestRestTemplate restTemplate, String tenantId, String token, String queryString) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(token);
-    headers.set("X-Tenant-ID", tenantId);
-
-    String path = "/api/v1/applications/excel" + (queryString == null ? "" : queryString);
-    return restTemplate.exchange(path, HttpMethod.GET, new HttpEntity<Void>(headers), byte[].class);
+  private Long createRecruitmentStage(
+      String tenantId,
+      RecruitmentStageRepository recruitmentStageRepository,
+      Long recruitmentId,
+      String stageName) {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return recruitmentStageRepository
+          .save(
+              RecruitmentStageEntity.builder()
+                  .recruitmentId(recruitmentId)
+                  .stageName(stageName)
+                  .stageStep(1)
+                  .stageType(RecruitmentStageType.DOCUMENT)
+                  .build())
+          .getId();
+    } finally {
+      TenantContext.clear();
+    }
   }
-
-  private record ExcelTestFixture(
-      String token, String tenantId, Long recruitmentId, Long stageId) {}
 }

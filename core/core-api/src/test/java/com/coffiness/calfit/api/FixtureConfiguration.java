@@ -95,4 +95,18 @@ public class FixtureConfiguration {
   ApplicationFixture applicationFixture(Environment environment, ObjectMapper objectMapper) {
     return ApplicationFixture.create(environment, objectMapper);
   }
+
+  @Bean
+  @Scope("prototype")
+  ApplicationTemplateFixture applicationTemplateFixture(
+      Environment environment, ObjectMapper objectMapper) {
+    return ApplicationTemplateFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
+  ApplicationExcelFixture applicationExcelFixture(
+      Environment environment, ObjectMapper objectMapper) {
+    return ApplicationExcelFixture.create(environment, objectMapper);
+  }
 }
