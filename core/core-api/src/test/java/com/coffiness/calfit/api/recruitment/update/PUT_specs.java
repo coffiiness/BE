@@ -3,6 +3,7 @@ package com.coffiness.calfit.api.recruitment.update;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import com.coffiness.calfit.api.fixture.ApplicationTemplateFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
 import com.coffiness.calfit.api.fixture.RecruitmentFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
@@ -21,8 +22,6 @@ import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryEntity;
 import com.coffiness.calfit.storage.db.core.recruitment.RecruitmentHistoryRepository;
-import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
-import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
 import com.coffiness.calfit.storage.db.core.user.GroupRepository;
 import java.time.LocalDateTime;
@@ -40,7 +39,9 @@ public class PUT_specs {
   void 필수_데이터를_입력하면_채용공고_수정에_성공한다(
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
-      @Autowired WorkspaceFixture workspaceFixture) {
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
@@ -48,6 +49,12 @@ public class PUT_specs {
     String tenantId = workspace.workspaceId();
 
     LocalDateTime now = LocalDateTime.now();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(token, tenantId, applicationTemplateFixture);
+    Long updatedApplicationTemplateId =
+        createApplicationTemplate(token, tenantId, applicationTemplateFixture);
+    Long userId = userFixture.me(token).getData().id();
 
     List<RecruitmentStageRequest> stages =
         List.of(
@@ -59,19 +66,21 @@ public class PUT_specs {
         new RecruitmentCreateRequest(
             "2026년 상반기 백엔드 신입 모집",
             3,
-            1L,
+            applicationTemplateId,
             "구합니다. 개발자",
             now.plusDays(1),
             now.plusDays(4),
             CareerType.NEW,
             null,
             null,
-            1L,
-            List.of(1L, 2L),
-            List.of(101L, 102L),
+            leadGroupId,
+            List.of(),
+            List.of(userId),
             stages);
 
-    recruitmentFixture.createRecruitment(token, tenantId, request);
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
     Long recruitmentId =
         recruitmentFixture.getRecruitmentList(token, tenantId).getData().get(0).id();
 
@@ -79,16 +88,16 @@ public class PUT_specs {
         new RecruitmentUpdateRequest(
             "수정된 제목",
             5,
-            2L,
+            updatedApplicationTemplateId,
             "수정된 내용",
             now.plusDays(2),
             now.plusDays(10),
             CareerType.EXPERIENCED,
             3,
             5,
-            2L,
-            List.of(3L, 4L),
-            List.of(103L, 104L),
+            leadGroupId,
+            List.of(),
+            List.of(userId),
             stages);
 
     // Act
@@ -103,7 +112,9 @@ public class PUT_specs {
   void 이미_게시가_시작된_공고는_수정할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
-      @Autowired WorkspaceFixture workspaceFixture) {
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
 
     // Arrange
     String token = userFixture.createUserAndGetToken();
@@ -111,6 +122,10 @@ public class PUT_specs {
     String tenantId = workspace.workspaceId();
 
     LocalDateTime now = LocalDateTime.now();
+    Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(token, tenantId, applicationTemplateFixture);
+    Long userId = userFixture.me(token).getData().id();
 
     List<RecruitmentStageRequest> stages =
         List.of(
@@ -122,19 +137,21 @@ public class PUT_specs {
         new RecruitmentCreateRequest(
             "2026년 상반기 백엔드 신입 모집",
             3,
-            1L,
+            applicationTemplateId,
             "구합니다. 개발자",
             now.minusDays(2),
             now.plusDays(4),
             CareerType.NEW,
             null,
             null,
-            1L,
-            List.of(1L, 2L),
-            List.of(101L, 102L),
+            leadGroupId,
+            List.of(),
+            List.of(userId),
             stages);
 
-    recruitmentFixture.createRecruitment(token, tenantId, request);
+    ApiResponse<Void> createResponse =
+        recruitmentFixture.createRecruitment(token, tenantId, request);
+    assertThat(createResponse.getResult()).isEqualTo(ResultType.SUCCESS);
     Long recruitmentId =
         recruitmentFixture.getRecruitmentList(token, tenantId).getData().get(0).id();
 
@@ -143,16 +160,16 @@ public class PUT_specs {
         new RecruitmentUpdateRequest(
             "수정된 제목",
             5,
-            2L,
+            applicationTemplateId,
             "수정된 내용",
             now.plusDays(2),
             now.plusDays(10),
             CareerType.EXPERIENCED,
             3,
             5,
-            2L,
-            List.of(3L, 4L),
-            List.of(103L, 104L),
+            leadGroupId,
+            List.of(),
+            List.of(userId),
             stages);
 
     ApiResponse<RecruitmentDetailResponse> response =
@@ -165,10 +182,10 @@ public class PUT_specs {
   @Test
   void 채용단계_변경은_별도_history로_분리된다(
       @Autowired MemberFixture memberFixture,
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
       @Autowired UserFixture userFixture,
       @Autowired GroupRepository groupRepository,
-      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
       @Autowired RecruitmentHistoryRepository recruitmentHistoryRepository) {
 
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
@@ -177,7 +194,8 @@ public class PUT_specs {
 
     Long interviewerId = userFixture.me(hrToken).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(hrToken, tenantId, applicationTemplateFixture);
     LocalDateTime now = LocalDateTime.now();
 
     RecruitmentCreateRequest createRequest =
@@ -293,14 +311,7 @@ public class PUT_specs {
   }
 
   private Long createApplicationTemplate(
-      String tenantId, ApplicationTemplateRepository applicationTemplateRepository) {
-    TenantContext.setTenantId(tenantId);
-    try {
-      return applicationTemplateRepository
-          .save(ApplicationTemplateEntity.create("수정 테스트 템플릿", "{}", true))
-          .getId();
-    } finally {
-      TenantContext.clear();
-    }
+      String token, String tenantId, ApplicationTemplateFixture applicationTemplateFixture) {
+    return applicationTemplateFixture.createUsedTemplateId(token, tenantId, "recruitment-update");
   }
 }
