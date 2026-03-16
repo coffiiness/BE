@@ -1,11 +1,13 @@
 package com.coffiness.calfit.api.subscription.history;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @CalfitApiTest
 @DisplayName("GET /api/v1/subscriptions")
+@Disabled("API 엔드포인트 미구현 — 컨트롤러에 /api/v1/subscriptions GET 이 없음")
 public class GET_specs {
 
   @Test

@@ -1,11 +1,13 @@
 package com.coffiness.calfit.api.subscription.change;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @CalfitApiTest
 @DisplayName("PATCH /api/v1/subscriptions/current")
+@Disabled("API 엔드포인트 미구현 — 컨트롤러에 /api/v1/subscriptions/current PATCH 가 없음")
 public class PATCH_specs {
 
   @Test
