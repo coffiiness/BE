@@ -105,19 +105,19 @@ public class GET_specs {
 
     try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
       assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
-      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("\uC9C0\uC6D0\uC790 \uBAA9\uB85D");
+      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("지원자 목록");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
-          .isEqualTo("\uC9C0\uC6D0\uC790\uBA85");
+          .isEqualTo("지원자명");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue())
-          .isEqualTo("\uC774\uBA54\uC77C");
+          .isEqualTo("이메일");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(2).getStringCellValue())
-          .isEqualTo("\uACF5\uACE0");
+          .isEqualTo("공고");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(3).getStringCellValue())
-          .isEqualTo("\uC9C4\uD589 \uC0C1\uD0DC");
+          .isEqualTo("진행 상태");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(4).getStringCellValue())
-          .isEqualTo("\uB2E4\uC74C \uC77C\uC815");
+          .isEqualTo("다음 일정");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(5).getStringCellValue())
-          .isEqualTo("\uC9C0\uC6D0\uC77C");
+          .isEqualTo("지원일");
       assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(1);
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(0).getStringCellValue())
           .isEqualTo("candidate-one");
@@ -193,11 +193,11 @@ public class GET_specs {
 
     try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
       assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
-      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("\uC9C0\uC6D0\uC790 \uBAA9\uB85D");
+      assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("지원자 목록");
       assertThat(workbook.getSheetAt(0).getPhysicalNumberOfRows()).isEqualTo(1);
       assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(0);
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
-          .isEqualTo("\uC9C0\uC6D0\uC790\uBA85");
+          .isEqualTo("지원자명");
     }
   }
 

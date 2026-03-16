@@ -58,17 +58,17 @@ public class ApplicationExcelController {
   private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
   private static final DateTimeFormatter DATE_TIME_FMT =
       DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
-  private static final String EXCEL_SHEET_NAME = "\uC9C0\uC6D0\uC790 \uBAA9\uB85D";
-  private static final String ALL_RECRUITMENTS_LABEL = "\uC804\uCCB4 \uACF5\uACE0";
-  private static final String ALL_STAGES_LABEL = "\uC804\uCCB4 \uC0C1\uD0DC";
+  private static final String EXCEL_SHEET_NAME = "지원자 목록";
+  private static final String ALL_RECRUITMENTS_LABEL = "전체 공고";
+  private static final String ALL_STAGES_LABEL = "전체 상태";
   private static final String EMPTY_CELL = "-";
   private static final String[] EXCEL_HEADERS = {
-    "\uC9C0\uC6D0\uC790\uBA85",
-    "\uC774\uBA54\uC77C",
-    "\uACF5\uACE0",
-    "\uC9C4\uD589 \uC0C1\uD0DC",
-    "\uB2E4\uC74C \uC77C\uC815",
-    "\uC9C0\uC6D0\uC77C"
+    "지원자명",
+    "이메일",
+    "공고",
+    "진행 상태",
+    "다음 일정",
+    "지원일"
   };
 
   private final ApplicationRepository applicationRepository;
