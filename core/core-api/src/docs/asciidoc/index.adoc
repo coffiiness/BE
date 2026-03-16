@@ -229,6 +229,68 @@ include::{snippets}/workspaces/create/response-fields.adoc[]
 
 '''
 
+== Announcements API
+
+=== Create Announcement
+==== Curl Request
+include::{snippets}/announcements/create/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/announcements/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/announcements/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/announcements/create/response-fields.adoc[]
+
+'''
+
+=== Get Announcement List
+==== Curl Request
+include::{snippets}/announcements/list/curl-request.adoc[]
+==== Http Response
+include::{snippets}/announcements/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/announcements/list/response-fields.adoc[]
+
+'''
+
+=== Get Announcement Detail
+==== Curl Request
+include::{snippets}/announcements/detail/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/announcements/detail/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/announcements/detail/http-response.adoc[]
+==== Response Fields
+include::{snippets}/announcements/detail/response-fields.adoc[]
+
+'''
+
+=== Update Announcement
+==== Curl Request
+include::{snippets}/announcements/update/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/announcements/update/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/announcements/update/request-fields.adoc[]
+==== Http Response
+include::{snippets}/announcements/update/http-response.adoc[]
+==== Response Fields
+include::{snippets}/announcements/update/response-fields.adoc[]
+
+'''
+
+=== Delete Announcement
+==== Curl Request
+include::{snippets}/announcements/delete/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/announcements/delete/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/announcements/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/announcements/delete/response-fields.adoc[]
+
+'''
+
 == Recruitments API
 
 === Create Recruitment
