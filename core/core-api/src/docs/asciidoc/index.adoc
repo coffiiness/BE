@@ -25,6 +25,30 @@ include::{snippets}/users/signup/response-fields.adoc[]
 
 '''
 
+=== Resend Verification Email
+==== Curl Request
+include::{snippets}/users/resend-verification/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/users/resend-verification/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/users/resend-verification/http-response.adoc[]
+==== Response Fields
+include::{snippets}/users/resend-verification/response-fields.adoc[]
+
+'''
+
+=== Verify Signup Email
+==== Curl Request
+include::{snippets}/users/signup-verify/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/users/signup-verify/query-parameters.adoc[]
+==== Response Headers
+include::{snippets}/users/signup-verify/response-headers.adoc[]
+==== Http Response
+include::{snippets}/users/signup-verify/http-response.adoc[]
+
+'''
+
 === User Login
 ==== Curl Request
 include::{snippets}/users/login/curl-request.adoc[]
@@ -44,6 +68,16 @@ include::{snippets}/users/me/curl-request.adoc[]
 include::{snippets}/users/me/http-response.adoc[]
 ==== Response Fields
 include::{snippets}/users/me/response-fields.adoc[]
+
+'''
+
+=== Get My Workspace
+==== Curl Request
+include::{snippets}/users/me-workspace/curl-request.adoc[]
+==== Http Response
+include::{snippets}/users/me-workspace/http-response.adoc[]
+==== Response Fields
+include::{snippets}/users/me-workspace/response-fields.adoc[]
 
 '''
 
@@ -80,6 +114,88 @@ include::{snippets}/applicants/login/request-fields.adoc[]
 include::{snippets}/applicants/login/http-response.adoc[]
 ==== Response Fields
 include::{snippets}/applicants/login/response-fields.adoc[]
+
+'''
+
+== Application Templates API
+
+=== Get Application Templates
+==== Curl Request
+include::{snippets}/application-templates/list/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/application-templates/list/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/application-templates/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/application-templates/list/response-fields.adoc[]
+
+'''
+
+=== Create Application Template
+==== Curl Request
+include::{snippets}/application-templates/create/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/application-templates/create/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/application-templates/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/application-templates/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/application-templates/create/response-fields.adoc[]
+
+'''
+
+=== Update Application Template
+==== Curl Request
+include::{snippets}/application-templates/update/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/application-templates/update/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/application-templates/update/request-fields.adoc[]
+==== Http Response
+include::{snippets}/application-templates/update/http-response.adoc[]
+==== Response Fields
+include::{snippets}/application-templates/update/response-fields.adoc[]
+
+'''
+
+=== Update Application Template Status
+==== Curl Request
+include::{snippets}/application-templates/status/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/application-templates/status/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/application-templates/status/request-fields.adoc[]
+==== Http Response
+include::{snippets}/application-templates/status/http-response.adoc[]
+==== Response Fields
+include::{snippets}/application-templates/status/response-fields.adoc[]
+
+'''
+
+=== Delete Application Template
+==== Curl Request
+include::{snippets}/application-templates/delete/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/application-templates/delete/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/application-templates/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/application-templates/delete/response-fields.adoc[]
+
+'''
+
+== Applications API
+
+=== Export Applicants Excel
+==== Curl Request
+include::{snippets}/applications/excel-export/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/applications/excel-export/query-parameters.adoc[]
+==== Response Headers
+include::{snippets}/applications/excel-export/response-headers.adoc[]
+==== Http Response
+include::{snippets}/applications/excel-export/http-response.adoc[]
 
 '''
 
