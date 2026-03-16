@@ -291,6 +291,94 @@ include::{snippets}/announcements/delete/response-fields.adoc[]
 
 '''
 
+== Meeting Rooms API
+
+=== Create Meeting Room
+==== Curl Request
+include::{snippets}/meeting-rooms/create/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/meeting-rooms/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/create/response-fields.adoc[]
+
+'''
+
+=== Get Meeting Room List
+==== Curl Request
+include::{snippets}/meeting-rooms/list/curl-request.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/list/response-fields.adoc[]
+
+'''
+
+=== Update Meeting Room
+==== Curl Request
+include::{snippets}/meeting-rooms/update/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/meeting-rooms/update/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/meeting-rooms/update/request-fields.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/update/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/update/response-fields.adoc[]
+
+'''
+
+=== Delete Meeting Room
+==== Curl Request
+include::{snippets}/meeting-rooms/delete/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/meeting-rooms/delete/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/delete/response-fields.adoc[]
+
+'''
+
+=== Get Meeting Room Reservations
+==== Curl Request
+include::{snippets}/meeting-rooms/reservations/list/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/meeting-rooms/reservations/list/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/reservations/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/reservations/list/response-fields.adoc[]
+
+'''
+
+=== Reserve Meeting Room
+==== Curl Request
+include::{snippets}/meeting-rooms/reservations/create/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/meeting-rooms/reservations/create/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/meeting-rooms/reservations/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/reservations/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/reservations/create/response-fields.adoc[]
+
+'''
+
+=== Cancel Meeting Room Reservation
+==== Curl Request
+include::{snippets}/meeting-rooms/reservations/cancel/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/meeting-rooms/reservations/cancel/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/meeting-rooms/reservations/cancel/http-response.adoc[]
+==== Response Fields
+include::{snippets}/meeting-rooms/reservations/cancel/response-fields.adoc[]
+
+'''
+
 == Recruitments API
 
 === Create Recruitment
