@@ -40,4 +40,63 @@ public class POST_specs {
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData().accessToken()).isNotBlank();
   }
+
+  @Test
+  void loginFailsWhenEmailDoesNotExist(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String hrToken = userFixture.createUserAndGetToken();
+    ApiResponse<WorkspaceResponse> workspace = workspaceFixture.createWorkspace(hrToken);
+    String workspaceId = workspace.getData().workspaceId();
+
+    ApiResponse<ApplicantLoginResponse> response =
+        applicantFixture.login(workspaceId, "missing@test.com", "pass1234");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+  }
+
+  @Test
+  void loginFailsWhenPasswordDoesNotMatch(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String hrToken = userFixture.createUserAndGetToken();
+    ApiResponse<WorkspaceResponse> workspace = workspaceFixture.createWorkspace(hrToken);
+    String workspaceId = workspace.getData().workspaceId();
+
+    ApiResponse<ApplicantResponse> signUp =
+        applicantFixture.signUp(workspaceId, "login@test.com", "pass1234", "applicant");
+    assertThat(signUp.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<ApplicantLoginResponse> response =
+        applicantFixture.login(workspaceId, "login@test.com", "wrong-pass");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+  }
+
+  @Test
+  void loginFailsFromAnotherWorkspace(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String hrToken = userFixture.createUserAndGetToken();
+    ApiResponse<WorkspaceResponse> firstWorkspace = workspaceFixture.createWorkspace(hrToken);
+    ApiResponse<WorkspaceResponse> secondWorkspace = workspaceFixture.createWorkspace(hrToken);
+
+    String email = "cross-workspace@test.com";
+    String password = applicantFixture.randomPassword();
+
+    ApiResponse<ApplicantResponse> signUp =
+        applicantFixture.signUp(firstWorkspace.getData().workspaceId(), email, password, "applicant");
+    assertThat(signUp.getResult()).isEqualTo(ResultType.SUCCESS);
+
+    ApiResponse<ApplicantLoginResponse> response =
+        applicantFixture.login(secondWorkspace.getData().workspaceId(), email, password);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+  }
 }
