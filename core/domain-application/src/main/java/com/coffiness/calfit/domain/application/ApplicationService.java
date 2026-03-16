@@ -258,7 +258,6 @@ public class ApplicationService {
     }
 
     automationEventExecutor.executePendingForApplication(applicationId);
-
   }
 
   private void requireTenant() {
