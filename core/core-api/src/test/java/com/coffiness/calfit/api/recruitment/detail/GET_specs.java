@@ -3,6 +3,7 @@ package com.coffiness.calfit.api.recruitment.detail;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.coffiness.calfit.api.CalfitApiTest;
+import com.coffiness.calfit.api.support.InterviewApplicantTestHelper;
 import com.coffiness.calfit.api.fixture.*;
 import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
@@ -11,11 +12,10 @@ import com.coffiness.calfit.api.v1.response.*;
 import com.coffiness.calfit.core.enums.*;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.storage.db.core.application.ApplicationRepository;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleEntity;
 import com.coffiness.calfit.storage.db.core.interview.InterviewScheduleRepository;
-import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
-import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
 import com.coffiness.calfit.storage.db.core.user.GroupRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +38,7 @@ public class GET_specs {
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
       @Autowired GroupRepository groupRepository,
-      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
 
     // Arrange
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
@@ -46,7 +46,8 @@ public class GET_specs {
     String tenantId = context.workspaceId();
     Long interviewerId = userFixture.me(token).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(token, tenantId, applicationTemplateFixture);
 
     List<RecruitmentStageRequest> stages1 =
         List.of(
@@ -106,13 +107,12 @@ public class GET_specs {
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
       @Autowired ApplicantFixture applicantFixture,
-      @Autowired ApplicationFixture applicationFixture,
+      @Autowired ApplicationRepository applicationRepository,
       @Autowired MeetingRoomFixture meetingRoomFixture,
       @Autowired InterviewFixture interviewFixture,
       @Autowired InterviewScheduleRepository interviewScheduleRepository,
       @Autowired GroupRepository groupRepository,
-      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
-      @Autowired ObjectMapper objectMapper) {
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
 
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String hrToken = context.hrToken();
@@ -131,23 +131,22 @@ public class GET_specs {
             LocalDateTime.now().minusDays(1),
             LocalDateTime.of(2030, 3, 31, 18, 0),
             groupRepository,
-            applicationTemplateRepository);
+            applicationTemplateFixture);
 
-    createApplicantAndApply(
+    Long firstApplicantId =
+        createPendingApplicant(
+            applicantFixture,
+            applicationRepository,
+            tenantId,
+            recruitment.recruitmentId(),
+            recruitment.stageId(),
+            recruitment.applicationTemplateId());
+    createPendingApplicant(
         applicantFixture,
-        applicationFixture,
-        objectMapper,
+        applicationRepository,
         tenantId,
         recruitment.recruitmentId(),
-        recruitment.applicationStageId(),
-        recruitment.applicationTemplateId());
-    createApplicantAndApply(
-        applicantFixture,
-        applicationFixture,
-        objectMapper,
-        tenantId,
-        recruitment.recruitmentId(),
-        recruitment.applicationStageId(),
+        recruitment.stageId(),
         recruitment.applicationTemplateId());
 
     MeetingRoomResponse meetingRoom =
@@ -161,7 +160,7 @@ public class GET_specs {
             recruitment.stageId(),
             InterviewRound.FIRST,
             List.of(interviewer.userId()),
-            List.of(101L),
+            List.of(firstApplicantId),
             meetingRoom.id(),
             LocalDateTime.of(2030, 3, 13, 14, 0),
             60,
@@ -204,14 +203,15 @@ public class GET_specs {
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
       @Autowired GroupRepository groupRepository,
-      @Autowired ApplicationTemplateRepository applicationTemplateRepository) {
+      @Autowired ApplicationTemplateFixture applicationTemplateFixture) {
 
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String hrToken = context.hrToken();
     String tenantId = context.workspaceId();
 
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(hrToken, tenantId, applicationTemplateFixture);
     Long interviewerId = userFixture.me(hrToken).getData().id();
 
     RecruitmentCreateRequest request =
@@ -293,9 +293,10 @@ public class GET_specs {
       LocalDateTime startDate,
       LocalDateTime endDate,
       GroupRepository groupRepository,
-      ApplicationTemplateRepository applicationTemplateRepository) {
+      ApplicationTemplateFixture applicationTemplateFixture) {
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId =
+        createApplicationTemplate(token, tenantId, applicationTemplateFixture);
 
     RecruitmentCreateRequest request =
         new RecruitmentCreateRequest(
@@ -344,11 +345,10 @@ public class GET_specs {
         detailResponse.applicationTemplateId());
   }
 
-  // 지원자를 생성하고 해당 채용 공고에 지원시킴
-  private void createApplicantAndApply(
+  // 지원자를 생성하고 해당 면접 단계에 대기 지원서를 저장
+  private Long createPendingApplicant(
       ApplicantFixture applicantFixture,
-      ApplicationFixture applicationFixture,
-      ObjectMapper objectMapper,
+      ApplicationRepository applicationRepository,
       String tenantId,
       Long recruitmentId,
       Long stageId,
@@ -357,33 +357,19 @@ public class GET_specs {
     String password = applicantFixture.randomPassword();
     String name = applicantFixture.randomName();
 
-    applicantFixture.signUp(tenantId, email, password, name);
-    ApiResponse<ApplicantLoginResponse> loginResponse =
-        applicantFixture.login(tenantId, email, password);
+    ApiResponse<ApplicantResponse> signUpResponse =
+        applicantFixture.signUp(tenantId, email, password, name);
+    InterviewApplicantTestHelper.createPendingApplication(
+        tenantId,
+        applicationRepository,
+        recruitmentId,
+        stageId,
+        applicationTemplateId,
+        signUpResponse.getData().id(),
+        name,
+        email);
 
-    ApplicationCreateRequest request =
-        new ApplicationCreateRequest(
-            null,
-            recruitmentId,
-            stageId,
-            applicationTemplateId,
-            name,
-            Gender.MALE,
-            LocalDate.of(1995, 1, 1),
-            "01012345678",
-            email,
-            objectMapper.createObjectNode());
-
-    ApiResponse<Void> response =
-        applicationFixture.createApplication(loginResponse.getData().accessToken(), request);
-    assertThat(response.getResult())
-        .withFailMessage(
-            "result=%s, errorCode=%s, errorMessage=%s, errorData=%s",
-            response.getResult(),
-            response.getError() == null ? null : response.getError().getCode(),
-            response.getError() == null ? null : response.getError().getMessage(),
-            response.getError() == null ? null : response.getError().getData())
-        .isEqualTo(ResultType.SUCCESS);
+    return signUpResponse.getData().id();
   }
 
   // 제외 대상 면접 상태를 만들기 위해 테스트용 면접 레코드를 직접 저장
@@ -428,15 +414,8 @@ public class GET_specs {
 
   // 현재 tenant에서 사용할 지원서 템플릿을 생성
   private Long createApplicationTemplate(
-      String tenantId, ApplicationTemplateRepository applicationTemplateRepository) {
-    TenantContext.setTenantId(tenantId);
-    try {
-      return applicationTemplateRepository
-          .save(ApplicationTemplateEntity.create("상세 조회 테스트 템플릿", "{}", true))
-          .getId();
-    } finally {
-      TenantContext.clear();
-    }
+      String token, String tenantId, ApplicationTemplateFixture applicationTemplateFixture) {
+    return applicationTemplateFixture.createUsedTemplateId(token, tenantId, "recruitment-detail");
   }
 
   private record InterviewerContext(Long userId, String token) {}

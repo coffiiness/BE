@@ -60,6 +60,28 @@ public record ApplicationTemplateFixture(BaseFixture base) {
         templateId);
   }
 
+  public Long createUsedTemplateId(String token, String tenantId, String namePrefix) {
+    String templateName = namePrefix + "-" + System.nanoTime();
+    ApiResponse<ApplicationTemplateListResponse> response =
+        create(
+            token,
+            tenantId,
+            newCreateRequest(
+                templateName,
+                List.of(
+                    Map.of(
+                        "key", "portfolioUrl",
+                        "label", "Portfolio URL",
+                        "type", "TEXT")),
+                true));
+
+    if (response == null || response.getResult() == ResultType.ERROR || response.getData() == null) {
+      throw new IllegalStateException("지원서 템플릿 생성 fixture 준비에 실패했습니다.");
+    }
+
+    return response.getData().id();
+  }
+
   public ApiResponse<Void> delete(String token, String tenantId, Long templateId) {
     return exchangeWithTenant(
         "/api/v1/workspaces/{workspaceId}/application-templates/{templateId}",
