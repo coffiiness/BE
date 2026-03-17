@@ -219,12 +219,37 @@ public class ScheduleReaderImpl implements ScheduleReader {
       return ScheduleAvailability.empty();
     }
 
+    Set<Long> targetAttendeeIdSet = new LinkedHashSet<>(targetAttendeeIds);
     List<ScheduleEntity> busySchedules =
         scheduleRepository.findBusyOverlappingSchedulesByUserIds(
             targetAttendeeIds, startDate, endDate, EntityStatus.ACTIVE);
 
     List<Long> scheduleIds = busySchedules.stream().map(ScheduleEntity::getId).toList();
     Map<Long, List<Long>> attendeeIdsByScheduleId = readAttendeeIdsByScheduleIds(scheduleIds);
+    Map<Long, List<ScheduleAvailability.BusySchedule>> busySchedulesByAttendeeId =
+        new LinkedHashMap<>();
+
+    targetAttendeeIds.forEach(
+        attendeeId -> busySchedulesByAttendeeId.put(attendeeId, new ArrayList<>()));
+
+    busySchedules.stream()
+        .sorted(Comparator.comparing(ScheduleEntity::getStartTime))
+        .forEach(
+            schedule -> {
+              ScheduleAvailability.BusySchedule busySchedule = toBusySchedule(schedule);
+              LinkedHashSet<Long> visibleAttendeeIds = new LinkedHashSet<>();
+
+              if (targetAttendeeIdSet.contains(schedule.getUserId())) {
+                visibleAttendeeIds.add(schedule.getUserId());
+              }
+
+              attendeeIdsByScheduleId.getOrDefault(schedule.getId(), List.of()).stream()
+                  .filter(targetAttendeeIdSet::contains)
+                  .forEach(visibleAttendeeIds::add);
+
+              visibleAttendeeIds.forEach(
+                  attendeeId -> busySchedulesByAttendeeId.get(attendeeId).add(busySchedule));
+            });
 
     Map<Long, UserInfo> userMap =
         userReader.getUsers(targetAttendeeIds).stream()
@@ -237,26 +262,7 @@ public class ScheduleReaderImpl implements ScheduleReader {
                     new ScheduleAvailability.AttendeeAvailability(
                         attendeeId,
                         resolveUserName(userMap.get(attendeeId), attendeeId),
-                        busySchedules.stream()
-                            .filter(
-                                schedule ->
-                                    isScheduleVisibleToAttendee(
-                                        attendeeId,
-                                        schedule,
-                                        attendeeIdsByScheduleId.getOrDefault(
-                                            schedule.getId(), List.of())))
-                            .sorted(Comparator.comparing(ScheduleEntity::getStartTime))
-                            .map(
-                                schedule ->
-                                    new ScheduleAvailability.BusySchedule(
-                                        schedule.getId(),
-                                        schedule.getTitle(),
-                                        schedule.getStartTime(),
-                                        schedule.getEndTime(),
-                                        schedule.isAllDay(),
-                                        schedule.getType(),
-                                        schedule.getInterviewScheduleId()))
-                            .toList()))
+                        List.copyOf(busySchedulesByAttendeeId.getOrDefault(attendeeId, List.of()))))
             .toList();
 
     return new ScheduleAvailability(attendeeAvailabilities);
@@ -467,10 +473,15 @@ public class ScheduleReaderImpl implements ScheduleReader {
     return ids.stream().filter(Objects::nonNull).filter(id -> id > 0).distinct().toList();
   }
 
-  // 참석자에게 해당 일정이 실제로 보이는지 확인
-  private boolean isScheduleVisibleToAttendee(
-      Long attendeeId, ScheduleEntity schedule, List<Long> attendeeIds) {
-    return Objects.equals(schedule.getUserId(), attendeeId) || attendeeIds.contains(attendeeId);
+  private ScheduleAvailability.BusySchedule toBusySchedule(ScheduleEntity schedule) {
+    return new ScheduleAvailability.BusySchedule(
+        schedule.getId(),
+        schedule.getTitle(),
+        schedule.getStartTime(),
+        schedule.getEndTime(),
+        schedule.isAllDay(),
+        schedule.getType(),
+        schedule.getInterviewScheduleId());
   }
 
   // 참석자 이름을 응답용 문자열로 변환
