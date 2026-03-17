@@ -164,7 +164,8 @@ class POST_specs {
 
     RecruitmentListResponse recruitment =
         recruitmentFixture.getRecruitmentList(hrToken, tenantId).getData().get(0);
-    return new RecruitmentContext(hrToken, tenantId, recruitment.id(), recruitment.stages().get(0).id());
+    return new RecruitmentContext(
+        hrToken, tenantId, recruitment.id(), recruitment.stages().get(0).id());
   }
 
   private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
@@ -174,7 +175,9 @@ class POST_specs {
             groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
                 .findFirst()
                 .orElseGet(
-                    () -> groupRepository.save(GroupEntity.create("automation-rule-group", "#3B82F6")))
+                    () ->
+                        groupRepository.save(
+                            GroupEntity.create("automation-rule-group", "#3B82F6")))
                 .getId());
   }
 

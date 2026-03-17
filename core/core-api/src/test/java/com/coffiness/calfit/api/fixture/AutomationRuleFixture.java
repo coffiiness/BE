@@ -22,14 +22,16 @@ public record AutomationRuleFixture(BaseFixture base) {
   public ApiResponse<AutomationRuleResponse> createRule(
       String token, String tenantId, Long recruitmentId, AutomationRuleUpsertRequest request) {
     String url = String.format("/api/v1/recruitments/%d/automation-rules", recruitmentId);
-    return exchangeWithTenant(url, HttpMethod.POST, request, token, tenantId, AutomationRuleResponse.class);
+    return exchangeWithTenant(
+        url, HttpMethod.POST, request, token, tenantId, AutomationRuleResponse.class);
   }
 
   public ApiResponse<List<AutomationRuleResponse>> getRules(
       String token, String tenantId, Long recruitmentId) {
     String url = String.format("/api/v1/recruitments/%d/automation-rules", recruitmentId);
     ApiResponse<AutomationRuleResponse[]> response =
-        exchangeWithTenant(url, HttpMethod.GET, null, token, tenantId, AutomationRuleResponse[].class);
+        exchangeWithTenant(
+            url, HttpMethod.GET, null, token, tenantId, AutomationRuleResponse[].class);
     return convertArrayResponse(response);
   }
 
