@@ -48,135 +48,135 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 class ApplicationExcelApiDocsTest extends RestDocsTest {
 
-    private static final String EXCEL_CONTENT_TYPE =
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    private static final String WORKSPACE_ID = "workspace-123";
+  private static final String EXCEL_CONTENT_TYPE =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  private static final String WORKSPACE_ID = "workspace-123";
 
-    private final ApplicationRepository applicationRepository = mock(ApplicationRepository.class);
-    private final RecruitmentRepository recruitmentRepository = mock(RecruitmentRepository.class);
-    private final RecruitmentStageRepository recruitmentStageRepository =
-            mock(RecruitmentStageRepository.class);
-    private final InterviewScheduleRepository interviewScheduleRepository =
-            mock(InterviewScheduleRepository.class);
-    private final InterviewScheduleApplicantRepository interviewScheduleApplicantRepository =
-            mock(InterviewScheduleApplicantRepository.class);
+  private final ApplicationRepository applicationRepository = mock(ApplicationRepository.class);
+  private final RecruitmentRepository recruitmentRepository = mock(RecruitmentRepository.class);
+  private final RecruitmentStageRepository recruitmentStageRepository =
+      mock(RecruitmentStageRepository.class);
+  private final InterviewScheduleRepository interviewScheduleRepository =
+      mock(InterviewScheduleRepository.class);
+  private final InterviewScheduleApplicantRepository interviewScheduleApplicantRepository =
+      mock(InterviewScheduleApplicantRepository.class);
 
-    private final ApplicationExcelController applicationExcelController =
-            new ApplicationExcelController(
-                    applicationRepository,
-                    recruitmentRepository,
-                    recruitmentStageRepository,
-                    interviewScheduleRepository,
-                    interviewScheduleApplicantRepository);
+  private final ApplicationExcelController applicationExcelController =
+      new ApplicationExcelController(
+          applicationRepository,
+          recruitmentRepository,
+          recruitmentStageRepository,
+          interviewScheduleRepository,
+          interviewScheduleApplicantRepository);
 
-    private final SecurityUser mockSecurityUser = new SecurityUser(1L, "hr@test.com", "USER");
+  private final SecurityUser mockSecurityUser = new SecurityUser(1L, "hr@test.com", "USER");
 
-    @BeforeEach
-    @Override
-    public void setUp(RestDocumentationContextProvider restDocumentation) {
-        super.setUp(restDocumentation);
-        setUpMockMvc(
-                applicationExcelController,
-                restDocumentation,
-                new HandlerMethodArgumentResolver() {
-                    @Override
-                    public boolean supportsParameter(MethodParameter parameter) {
-                        return parameter.getParameterType().equals(SecurityUser.class);
-                    }
+  @BeforeEach
+  @Override
+  public void setUp(RestDocumentationContextProvider restDocumentation) {
+    super.setUp(restDocumentation);
+    setUpMockMvc(
+        applicationExcelController,
+        restDocumentation,
+        new HandlerMethodArgumentResolver() {
+          @Override
+          public boolean supportsParameter(MethodParameter parameter) {
+            return parameter.getParameterType().equals(SecurityUser.class);
+          }
 
-                    @Override
-                    public Object resolveArgument(
-                            MethodParameter parameter,
-                            ModelAndViewContainer mavContainer,
-                            NativeWebRequest webRequest,
-                            WebDataBinderFactory binderFactory) {
-                        return mockSecurityUser;
-                    }
-                });
+          @Override
+          public Object resolveArgument(
+              MethodParameter parameter,
+              ModelAndViewContainer mavContainer,
+              NativeWebRequest webRequest,
+              WebDataBinderFactory binderFactory) {
+            return mockSecurityUser;
+          }
+        });
+  }
+
+  @Test
+  void 지원자_엑셀_다운로드_API_문서() throws Exception {
+    ApplicationEntity application =
+        ApplicationEntity.create(
+            10L,
+            100L,
+            1000L,
+            2000L,
+            "홍길동",
+            Gender.MALE,
+            LocalDateTime.of(1999, 1, 1, 0, 0),
+            "010-1234-5678",
+            "applicant@test.com",
+            "{}");
+    ReflectionTestUtils.setField(
+        application, "createdAt", LocalDateTime.of(2026, 3, 16, 12, 0), LocalDateTime.class);
+
+    RecruitmentEntity recruitment =
+        RecruitmentEntity.builder()
+            .creatorId(1L)
+            .title("백엔드 채용")
+            .recruitmentStatus(RecruitmentStatus.OPEN)
+            .targetCount(1)
+            .startDate(LocalDateTime.now().minusDays(1))
+            .endDate(LocalDateTime.now().plusDays(7))
+            .applicationTemplateId(2000L)
+            .contents("recruitment-contents")
+            .careerType(CareerType.NEW)
+            .minExperienceYears(0)
+            .maxExperienceYears(0)
+            .leadGroupId(1L)
+            .build();
+    ReflectionTestUtils.setField(recruitment, "id", 100L, Long.class);
+
+    RecruitmentStageEntity stage =
+        RecruitmentStageEntity.builder()
+            .recruitmentId(100L)
+            .stageName("서류 전형")
+            .stageStep(1)
+            .stageType(RecruitmentStageType.DOCUMENT)
+            .build();
+    ReflectionTestUtils.setField(stage, "id", 1000L, Long.class);
+
+    when(applicationRepository.findByStatus(eq(EntityStatus.ACTIVE)))
+        .thenReturn(List.of(application));
+    when(recruitmentRepository.findAllById(anyList())).thenReturn(List.of(recruitment));
+    when(recruitmentStageRepository.findAllById(anyList())).thenReturn(List.of(stage));
+    when(interviewScheduleApplicantRepository.findAllByTenantIdAndApplicantIdIn(
+            eq(WORKSPACE_ID), anyList()))
+        .thenReturn(List.of());
+
+    performWithTenant(
+            WORKSPACE_ID,
+            get("/api/v1/applications/excel")
+                .contentType(MediaType.APPLICATION_JSON)
+                .characterEncoding("UTF-8")
+                .accept(MediaType.parseMediaType(EXCEL_CONTENT_TYPE)))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Content-Type", containsString(EXCEL_CONTENT_TYPE)))
+        .andDo(
+            document(
+                "applications/excel-export",
+                queryParameters(
+                    parameterWithName("keyword").description("지원자 이름/이메일 검색어").optional(),
+                    parameterWithName("search").description("keyword 와 동일한 검색어 alias").optional(),
+                    parameterWithName("status").description("진행 상태 필터").optional(),
+                    parameterWithName("stageId").description("채용 단계 ID 필터").optional(),
+                    parameterWithName("job").description("공고명 또는 공고 ID 필터").optional(),
+                    parameterWithName("jobId").description("공고 ID 필터").optional(),
+                    parameterWithName("recruitmentId").description("공고 ID 필터").optional()),
+                responseHeaders(
+                    headerWithName("Content-Disposition").description("다운로드 파일명"),
+                    headerWithName("Content-Type").description("엑셀 MIME 타입"))));
+  }
+
+  private ResultActions performWithTenant(String tenantId, MockHttpServletRequestBuilder request)
+      throws Exception {
+    TenantContext.setTenantId(tenantId);
+    try {
+      return mockMvc.perform(request);
+    } finally {
+      TenantContext.clear();
     }
-
-    @Test
-    void 지원자_엑셀_다운로드_API_문서() throws Exception {
-        ApplicationEntity application =
-                ApplicationEntity.create(
-                        10L,
-                        100L,
-                        1000L,
-                        2000L,
-                        "홍길동",
-                        Gender.MALE,
-                        LocalDateTime.of(1999, 1, 1, 0, 0),
-                        "010-1234-5678",
-                        "applicant@test.com",
-                        "{}");
-        ReflectionTestUtils.setField(
-                application, "createdAt", LocalDateTime.of(2026, 3, 16, 12, 0), LocalDateTime.class);
-
-        RecruitmentEntity recruitment =
-                RecruitmentEntity.builder()
-                        .creatorId(1L)
-                        .title("백엔드 채용")
-                        .recruitmentStatus(RecruitmentStatus.OPEN)
-                        .targetCount(1)
-                        .startDate(LocalDateTime.now().minusDays(1))
-                        .endDate(LocalDateTime.now().plusDays(7))
-                        .applicationTemplateId(2000L)
-                        .contents("recruitment-contents")
-                        .careerType(CareerType.NEW)
-                        .minExperienceYears(0)
-                        .maxExperienceYears(0)
-                        .leadGroupId(1L)
-                        .build();
-        ReflectionTestUtils.setField(recruitment, "id", 100L, Long.class);
-
-        RecruitmentStageEntity stage =
-                RecruitmentStageEntity.builder()
-                        .recruitmentId(100L)
-                        .stageName("서류 전형")
-                        .stageStep(1)
-                        .stageType(RecruitmentStageType.DOCUMENT)
-                        .build();
-        ReflectionTestUtils.setField(stage, "id", 1000L, Long.class);
-
-        when(applicationRepository.findByStatus(eq(EntityStatus.ACTIVE)))
-                .thenReturn(List.of(application));
-        when(recruitmentRepository.findAllById(anyList())).thenReturn(List.of(recruitment));
-        when(recruitmentStageRepository.findAllById(anyList())).thenReturn(List.of(stage));
-        when(interviewScheduleApplicantRepository.findAllByTenantIdAndApplicantIdIn(
-                eq(WORKSPACE_ID), anyList()))
-                .thenReturn(List.of());
-
-        performWithTenant(
-                WORKSPACE_ID,
-                get("/api/v1/applications/excel")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .characterEncoding("UTF-8")
-                        .accept(MediaType.parseMediaType(EXCEL_CONTENT_TYPE)))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", containsString(EXCEL_CONTENT_TYPE)))
-                .andDo(
-                        document(
-                                "applications/excel-export",
-                                queryParameters(
-                                        parameterWithName("keyword").description("지원자 이름/이메일 검색어").optional(),
-                                        parameterWithName("search").description("keyword 와 동일한 검색어 alias").optional(),
-                                        parameterWithName("status").description("진행 상태 필터").optional(),
-                                        parameterWithName("stageId").description("채용 단계 ID 필터").optional(),
-                                        parameterWithName("job").description("공고명 또는 공고 ID 필터").optional(),
-                                        parameterWithName("jobId").description("공고 ID 필터").optional(),
-                                        parameterWithName("recruitmentId").description("공고 ID 필터").optional()),
-                                responseHeaders(
-                                        headerWithName("Content-Disposition").description("다운로드 파일명"),
-                                        headerWithName("Content-Type").description("엑셀 MIME 타입"))));
-    }
-
-    private ResultActions performWithTenant(String tenantId, MockHttpServletRequestBuilder request)
-            throws Exception {
-        TenantContext.setTenantId(tenantId);
-        try {
-            return mockMvc.perform(request);
-        } finally {
-            TenantContext.clear();
-        }
-    }
+  }
 }
