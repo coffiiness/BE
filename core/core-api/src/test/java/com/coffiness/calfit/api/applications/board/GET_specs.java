@@ -20,15 +20,15 @@ import com.coffiness.calfit.core.enums.RecruitmentStageType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.domain.application.KanbanBoard;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateEntity;
 import com.coffiness.calfit.storage.db.core.template.ApplicationTemplateRepository;
 import com.coffiness.calfit.storage.db.core.user.GroupEntity;
 import com.coffiness.calfit.storage.db.core.user.GroupRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,8 +54,7 @@ public class GET_specs {
     String tenantId = workspace.workspaceId();
     Long hrUserId = userFixture.me(hrToken).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId =
-        createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
 
     List<RecruitmentStageRequest> stages =
         List.of(
@@ -118,10 +117,10 @@ public class GET_specs {
     ApiResponse<KanbanBoard> response =
         applicationFixture.getKanbanBoard(hrToken, tenantId, recruitmentId);
 
-  // Assert
-  assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
+    // Assert
+    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData().columns().size()).isEqualTo(4);
-  assertThat(response.getData().columns().get(0).applications().size()).isEqualTo(1);
+    assertThat(response.getData().columns().get(0).applications().size()).isEqualTo(1);
   }
 
   private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {

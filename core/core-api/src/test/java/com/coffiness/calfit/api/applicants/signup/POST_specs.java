@@ -135,10 +135,7 @@ public class POST_specs {
 
     ApiResponse<ApplicantResponse> response =
         applicantFixture.signUp(
-            workspaceId,
-            "long-name@test.com",
-            applicantFixture.randomPassword(),
-            "a".repeat(51));
+            workspaceId, "long-name@test.com", applicantFixture.randomPassword(), "a".repeat(51));
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
@@ -151,7 +148,8 @@ public class POST_specs {
       @Autowired ApplicantFixture applicantFixture) {
     String firstHrToken = userFixture.createUserAndGetToken();
     String secondHrToken = userFixture.createUserAndGetToken();
-    String firstWorkspaceId = workspaceFixture.createWorkspace(firstHrToken).getData().workspaceId();
+    String firstWorkspaceId =
+        workspaceFixture.createWorkspace(firstHrToken).getData().workspaceId();
     String secondWorkspaceId =
         workspaceFixture.createWorkspace(secondHrToken).getData().workspaceId();
 
