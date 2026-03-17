@@ -17,8 +17,7 @@ import org.springframework.util.StringUtils;
 public class EmailConfigurationValidator implements ApplicationRunner {
 
   private static final String MISSING_CONFIGURATION_MESSAGE =
-      "이메일 발송이 활성화되어 있지만 필요한 메일 설정이 없습니다: %s. "
-          + "환경 변수 또는 import된 .env 파일에 값을 설정한 뒤 다시 시도해 주세요.";
+      "이메일 발송이 활성화되어 있지만 필요한 메일 설정이 없습니다: %s. " + "환경 변수 또는 import된 .env 파일에 값을 설정한 뒤 다시 시도해 주세요.";
 
   private final EmailProperties emailProperties;
   private final MailProperties springMailProperties;

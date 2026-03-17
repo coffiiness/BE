@@ -27,8 +27,7 @@ public class EmailService {
   private static final DateTimeFormatter DATE_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-  private static final String SIGNUP_VERIFICATION_SUBJECT =
-      "[CalFit] 이메일 인증을 완료해 주세요";
+  private static final String SIGNUP_VERIFICATION_SUBJECT = "[CalFit] 이메일 인증을 완료해 주세요";
 
   private final ObjectProvider<JavaMailSender> mailSenderProvider;
   private final TemplateEngine templateEngine;
@@ -40,8 +39,7 @@ public class EmailService {
     sendEmail(from, to, subject, htmlContent, false);
   }
 
-  private void sendHtmlEmailOrThrow(
-      String from, String to, String subject, String htmlContent) {
+  private void sendHtmlEmailOrThrow(String from, String to, String subject, String htmlContent) {
     sendEmail(from, to, subject, htmlContent, true);
   }
 
@@ -155,8 +153,7 @@ public class EmailService {
     context.setVariable("location", message.getLocation());
 
     String htmlContent = templateEngine.process("interview-schedule-email", context);
-    sendHtmlEmailOrThrow(
-        from, message.getApplicantEmail(), message.getSubject(), htmlContent);
+    sendHtmlEmailOrThrow(from, message.getApplicantEmail(), message.getSubject(), htmlContent);
   }
 
   @Async("emailTaskExecutor")
