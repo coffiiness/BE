@@ -379,6 +379,44 @@ include::{snippets}/meeting-rooms/reservations/cancel/response-fields.adoc[]
 
 '''
 
+== Interviews API
+
+=== Get Interview Availability
+==== Curl Request
+include::{snippets}/interviews/availability/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/interviews/availability/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/interviews/availability/http-response.adoc[]
+==== Response Fields
+include::{snippets}/interviews/availability/response-fields.adoc[]
+
+'''
+
+=== Get Pending Interview Applicants
+==== Curl Request
+include::{snippets}/interviews/pending-applicants/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/interviews/pending-applicants/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/interviews/pending-applicants/http-response.adoc[]
+==== Response Fields
+include::{snippets}/interviews/pending-applicants/response-fields.adoc[]
+
+'''
+
+=== Create Interview
+==== Curl Request
+include::{snippets}/interviews/create/curl-request.adoc[]
+==== Request Fields
+include::{snippets}/interviews/create/request-fields.adoc[]
+==== Http Response
+include::{snippets}/interviews/create/http-response.adoc[]
+==== Response Fields
+include::{snippets}/interviews/create/response-fields.adoc[]
+
+'''
+
 == Recruitments API
 
 === Create Recruitment
