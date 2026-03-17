@@ -40,7 +40,7 @@ public class POST_specs {
   }
 
   @Test
-  void duplicateEmailSignupFails(
+  void 지원자는_동일한_이메일로_중복_회원가입할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -62,7 +62,7 @@ public class POST_specs {
   }
 
   @Test
-  void invalidEmailSignupFails(
+  void 지원자는_잘못된_이메일_형식으로_회원가입할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -79,7 +79,7 @@ public class POST_specs {
   }
 
   @Test
-  void blankPasswordSignupFails(
+  void 지원자는_비밀번호_없이_회원가입할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -95,7 +95,7 @@ public class POST_specs {
   }
 
   @Test
-  void blankNameSignupFails(
+  void 지원자는_이름_없이_회원가입할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -112,7 +112,7 @@ public class POST_specs {
   }
 
   @Test
-  void signupFailsWhenWorkspaceDoesNotExist(@Autowired ApplicantFixture applicantFixture) {
+  void 존재하지_않는_워크스페이스에는_회원가입할_수_없다(@Autowired ApplicantFixture applicantFixture) {
     ApiResponse<ApplicantResponse> response =
         applicantFixture.signUp(
             "workspace-not-found",
@@ -122,5 +122,50 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
+  }
+
+  @Test
+  void 지원자는_이름_길이_제한을_초과하면_회원가입할_수_없다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String hrToken = userFixture.createUserAndGetToken();
+    ApiResponse<WorkspaceResponse> workspace = workspaceFixture.createWorkspace(hrToken);
+    String workspaceId = workspace.getData().workspaceId();
+
+    ApiResponse<ApplicantResponse> response =
+        applicantFixture.signUp(
+            workspaceId,
+            "long-name@test.com",
+            applicantFixture.randomPassword(),
+            "a".repeat(51));
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+  }
+
+  @Test
+  void 지원자는_다른_워크스페이스에서_같은_이메일로_가입할_수_있다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String firstHrToken = userFixture.createUserAndGetToken();
+    String secondHrToken = userFixture.createUserAndGetToken();
+    String firstWorkspaceId = workspaceFixture.createWorkspace(firstHrToken).getData().workspaceId();
+    String secondWorkspaceId =
+        workspaceFixture.createWorkspace(secondHrToken).getData().workspaceId();
+
+    String email = "shared-applicant@test.com";
+    String password = applicantFixture.randomPassword();
+
+    ApiResponse<ApplicantResponse> firstResponse =
+        applicantFixture.signUp(firstWorkspaceId, email, password, "first-applicant");
+    ApiResponse<ApplicantResponse> secondResponse =
+        applicantFixture.signUp(secondWorkspaceId, email, password, "second-applicant");
+
+    assertThat(firstResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(secondResponse.getResult()).isEqualTo(ResultType.SUCCESS);
+    assertThat(firstResponse.getData().workspaceId()).isEqualTo(firstWorkspaceId);
+    assertThat(secondResponse.getData().workspaceId()).isEqualTo(secondWorkspaceId);
   }
 }

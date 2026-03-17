@@ -41,7 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 class POST_specs {
 
   @Test
-  void applicantCanCreateApplicationForSelf(
+  void 지원자는_본인으로_지원서를_작성할_수_있다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
@@ -79,7 +79,7 @@ class POST_specs {
   }
 
   @Test
-  void applicantCannotCreateApplicationWithAnotherApplicantId(
+  void 지원자는_다른_applicantId로_지원서를_작성할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
@@ -120,7 +120,7 @@ class POST_specs {
   }
 
   @Test
-  void applicantCannotApplyTwiceToSameRecruitment(
+  void 지원자는_같은_채용에_중복_지원할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
@@ -163,7 +163,7 @@ class POST_specs {
   }
 
   @Test
-  void applicantCannotApplyToClosedRecruitment(
+  void 지원자는_마감된_채용에_지원할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
@@ -204,7 +204,7 @@ class POST_specs {
   }
 
   @Test
-  void applicantCannotApplyToMissingRecruitment(
+  void 지원자는_존재하지_않는_채용에_지원할_수_없다(
       @Autowired ApplicantFixture applicantFixture,
       @Autowired ApplicationFixture applicationFixture,
       @Autowired ObjectMapper objectMapper,
@@ -346,3 +346,4 @@ class POST_specs {
 
   private record ApplicantContext(Long id, String email, String name, String token) {}
 }
+

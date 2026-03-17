@@ -42,7 +42,7 @@ public class POST_specs {
   }
 
   @Test
-  void loginFailsWhenEmailDoesNotExist(
+  void 가입되지_않은_이메일로는_로그인할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -58,7 +58,7 @@ public class POST_specs {
   }
 
   @Test
-  void loginFailsWhenPasswordDoesNotMatch(
+  void 비밀번호가_일치하지_않으면_로그인할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -78,7 +78,7 @@ public class POST_specs {
   }
 
   @Test
-  void loginFailsFromAnotherWorkspace(
+  void 다른_워크스페이스에서는_로그인할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
