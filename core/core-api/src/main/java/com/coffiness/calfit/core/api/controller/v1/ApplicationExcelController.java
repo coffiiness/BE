@@ -62,14 +62,7 @@ public class ApplicationExcelController {
   private static final String ALL_RECRUITMENTS_LABEL = "전체 공고";
   private static final String ALL_STAGES_LABEL = "전체 상태";
   private static final String EMPTY_CELL = "-";
-  private static final String[] EXCEL_HEADERS = {
-    "지원자명",
-    "이메일",
-    "공고",
-    "진행 상태",
-    "다음 일정",
-    "지원일"
-  };
+  private static final String[] EXCEL_HEADERS = {"지원자명", "이메일", "공고", "진행 상태", "다음 일정", "지원일"};
 
   private final ApplicationRepository applicationRepository;
   private final RecruitmentRepository recruitmentRepository;

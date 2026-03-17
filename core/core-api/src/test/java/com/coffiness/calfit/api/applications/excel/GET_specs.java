@@ -108,16 +108,13 @@ public class GET_specs {
       assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("지원자 목록");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue())
           .isEqualTo("지원자명");
-      assertThat(workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue())
-          .isEqualTo("이메일");
-      assertThat(workbook.getSheetAt(0).getRow(0).getCell(2).getStringCellValue())
-          .isEqualTo("공고");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue()).isEqualTo("이메일");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(2).getStringCellValue()).isEqualTo("공고");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(3).getStringCellValue())
           .isEqualTo("진행 상태");
       assertThat(workbook.getSheetAt(0).getRow(0).getCell(4).getStringCellValue())
           .isEqualTo("다음 일정");
-      assertThat(workbook.getSheetAt(0).getRow(0).getCell(5).getStringCellValue())
-          .isEqualTo("지원일");
+      assertThat(workbook.getSheetAt(0).getRow(0).getCell(5).getStringCellValue()).isEqualTo("지원일");
       assertThat(workbook.getSheetAt(0).getLastRowNum()).isEqualTo(1);
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(0).getStringCellValue())
           .isEqualTo("candidate-one");
@@ -127,8 +124,7 @@ public class GET_specs {
           .isEqualTo("backend-recruitment");
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(3).getStringCellValue())
           .isEqualTo("Document Review");
-      assertThat(workbook.getSheetAt(0).getRow(1).getCell(4).getStringCellValue())
-          .isEqualTo("-");
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(4).getStringCellValue()).isEqualTo("-");
       assertThat(workbook.getSheetAt(0).getRow(1).getCell(5).getStringCellValue())
           .matches("\\d{4}\\.\\d{2}\\.\\d{2}");
     }
