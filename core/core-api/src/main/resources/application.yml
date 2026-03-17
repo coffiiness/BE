@@ -34,6 +34,8 @@ spring:
             required: ${SPRING_MAIL_SMTP_STARTTLS_REQUIRED:true}
           ssl:
             enable: ${SPRING_MAIL_SMTP_SSL_ENABLE:false}
+            protocols: ${SPRING_MAIL_SMTP_SSL_PROTOCOLS:TLSv1.2}
+            trust: ${SPRING_MAIL_SMTP_SSL_TRUST:}
           connectiontimeout: ${SPRING_MAIL_SMTP_CONNECTION_TIMEOUT:5000}
           timeout: ${SPRING_MAIL_SMTP_TIMEOUT:5000}
           writetimeout: ${SPRING_MAIL_SMTP_WRITE_TIMEOUT:5000}
