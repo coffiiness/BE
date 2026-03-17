@@ -66,7 +66,8 @@ public class CalendarConnectService {
             userId, workspaceCalendarId, exchangeResult);
 
     registerWatchChannel(externalCalendar, tenantId);
-    syncExistingSchedulesToGoogle(externalCalendar, userId);
+    syncExistingSchedulesToGoogle(
+        exchangeResult.accessToken(), externalCalendar.calendarId(), userId);
     return googleEmail;
   }
 
@@ -112,6 +113,7 @@ public class CalendarConnectService {
     }
 
     String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
+    syncExistingSchedulesToGoogle(accessToken, externalCalendar.calendarId(), userId);
 
     GoogleCalendarSyncResult syncResult =
         syncGoogleEventsWithRecovery(accessToken, externalCalendar);
@@ -233,16 +235,14 @@ public class CalendarConnectService {
   }
 
   // 연동 직후 기존 CalFit 일정을 구글 캘린더로 한 번 백필
-  private void syncExistingSchedulesToGoogle(ExternalCalendar externalCalendar, Long userId) {
-    if (externalCalendar == null || userId == null) {
+  private void syncExistingSchedulesToGoogle(String accessToken, String calendarId, Long userId) {
+    if (userId == null) {
       return;
     }
 
-    if (!hasText(externalCalendar.calendarId())) {
+    if (!hasText(accessToken) || !hasText(calendarId)) {
       return;
     }
-
-    String accessToken = googleCalendarTokenService.getValidAccessToken(externalCalendar.id());
 
     for (Schedule schedule : scheduleReader.readAllOwnedSchedules(userId)) {
       if (hasText(schedule.googleEventId())) {
@@ -250,7 +250,7 @@ public class CalendarConnectService {
       }
 
       try {
-        syncExistingSchedule(accessToken, externalCalendar.calendarId(), schedule);
+        syncExistingSchedule(accessToken, calendarId, schedule);
       } catch (RuntimeException e) {
         log.warn("기존 일정 구글 백필에 실패했습니다. scheduleId={}, userId={}", schedule.id(), userId, e);
       }
