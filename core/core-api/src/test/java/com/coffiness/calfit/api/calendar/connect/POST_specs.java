@@ -42,7 +42,8 @@ public class POST_specs {
   @MockitoBean private GoogleOAuthPort googleOAuthPort;
   @MockitoBean private GoogleCalendarPort googleCalendarPort;
 
-  private final CalendarSyncPolicy calendarSyncPolicy = new CalendarSyncPolicy();
+  private final CalendarSyncPolicy calendarSyncPolicy =
+      new CalendarSyncPolicy(ZoneId.of("Asia/Seoul"));
 
   @Test
   void 올바른_인가코드로_요청하면_캘린더_연동에_성공한다(
