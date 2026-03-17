@@ -17,8 +17,8 @@ import com.coffiness.calfit.api.v1.response.RecruitmentListResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.Gender;
-import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
+import com.coffiness.calfit.core.enums.RecruitmentStatus;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
@@ -244,8 +244,7 @@ class POST_specs {
     String tenantId = workspaceFixture.createWorkspace(hrToken).getData().workspaceId();
     Long hrUserId = userFixture.me(hrToken).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long applicationTemplateId =
-        createApplicationTemplate(tenantId, applicationTemplateRepository);
+    Long applicationTemplateId = createApplicationTemplate(tenantId, applicationTemplateRepository);
 
     ApiResponse<Void> createRecruitmentResponse =
         recruitmentFixture.createRecruitment(
@@ -298,8 +297,7 @@ class POST_specs {
       return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
           .findFirst()
           .orElseGet(
-              () ->
-                  groupRepository.save(GroupEntity.create("application-test-group", "#3B82F6")))
+              () -> groupRepository.save(GroupEntity.create("application-test-group", "#3B82F6")))
           .getId();
     } finally {
       TenantContext.clear();
@@ -346,4 +344,3 @@ class POST_specs {
 
   private record ApplicantContext(Long id, String email, String name, String token) {}
 }
-

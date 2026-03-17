@@ -40,6 +40,7 @@ public class CalendarConnectService {
   private final ScheduleReader scheduleReader;
   private final ScheduleStore scheduleStore;
   private final GoogleChannelTokenService googleChannelTokenService;
+  private final ZoneId appZoneId;
 
   @Value(
       "${calendar.google-sync.watch-callback-url:http://localhost:8080/api/v1/calendars/google/notifications}")
@@ -224,8 +225,8 @@ public class CalendarConnectService {
             hasText(syncEvent.summary()) ? syncEvent.summary() : "제목 없음",
             syncEvent.description(),
             ScheduleType.MEETING,
-            syncEvent.startTime().withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
-            syncEvent.endTime().withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
+            syncEvent.startTime().withZoneSameInstant(appZoneId).toLocalDateTime(),
+            syncEvent.endTime().withZoneSameInstant(appZoneId).toLocalDateTime(),
             syncEvent.allDay());
 
     scheduleService.upsertScheduleByGoogleEventId(userId, request);
@@ -264,8 +265,8 @@ public class CalendarConnectService {
             calendarId,
             schedule.title(),
             schedule.description(),
-            schedule.startTime().atZone(ZoneId.systemDefault()),
-            schedule.endTime().atZone(ZoneId.systemDefault()),
+            schedule.startTime().atZone(appZoneId),
+            schedule.endTime().atZone(appZoneId),
             schedule.isAllDay());
 
     if (created == null || !created.status() || !hasText(created.googleEventId())) {

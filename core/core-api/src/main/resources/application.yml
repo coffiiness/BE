@@ -59,6 +59,7 @@ jwt:
 
 # 이메일 설정
 app:
+  time-zone: ${APP_TIME_ZONE:Asia/Seoul}
   email:
     enabled: ${APP_EMAIL_ENABLED:true}
     sender: ${APP_EMAIL_SENDER:${SPRING_MAIL_USERNAME:no-reply@calfit.com}}
