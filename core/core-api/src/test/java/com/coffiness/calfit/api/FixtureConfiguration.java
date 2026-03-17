@@ -67,6 +67,12 @@ public class FixtureConfiguration {
 
   @Bean
   @Scope("prototype")
+  AutomationRuleFixture automationRuleFixture(Environment environment, ObjectMapper objectMapper) {
+    return AutomationRuleFixture.create(environment, objectMapper);
+  }
+
+  @Bean
+  @Scope("prototype")
   RecruitmentFixture recruitmentFixture(Environment environment, ObjectMapper objectMapper) {
     return RecruitmentFixture.create(environment, objectMapper);
   }
