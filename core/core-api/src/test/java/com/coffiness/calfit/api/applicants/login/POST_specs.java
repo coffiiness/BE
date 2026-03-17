@@ -90,7 +90,8 @@ public class POST_specs {
     String password = applicantFixture.randomPassword();
 
     ApiResponse<ApplicantResponse> signUp =
-        applicantFixture.signUp(firstWorkspace.getData().workspaceId(), email, password, "applicant");
+        applicantFixture.signUp(
+            firstWorkspace.getData().workspaceId(), email, password, "applicant");
     assertThat(signUp.getResult()).isEqualTo(ResultType.SUCCESS);
 
     ApiResponse<ApplicantLoginResponse> response =
