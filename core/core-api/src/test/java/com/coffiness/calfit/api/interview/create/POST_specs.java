@@ -320,7 +320,7 @@ class POST_specs {
             List.of(303L),
             meetingRoomId,
             LocalDateTime.of(2030, 3, 14, 16, 0),
-            90,
+            120,
             "면접 메일 테스트");
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
@@ -335,7 +335,7 @@ class POST_specs {
                         && "메일 지원자".equals(message.getApplicantName())
                         && "면접실 B".equals(message.getLocation())
                         && message.getScheduledAt().equals(LocalDateTime.of(2030, 3, 14, 16, 0))
-                        && message.getEndAt().equals(LocalDateTime.of(2030, 3, 14, 17, 30))
+                        && message.getEndAt().equals(LocalDateTime.of(2030, 3, 14, 18, 0))
                         && !message.getLocation().contains("숨겨져야 할 면접관")));
   }
 

@@ -111,12 +111,12 @@ public class GET_specs {
             List.of(interviewerId),
             List.of(201L),
             meetingRoomId,
-            LocalDateTime.of(2026, 3, 18, 13, 0),
+            LocalDateTime.of(2030, 3, 18, 13, 0),
             180,
             "실무 면접");
     assertThat(createInterviewResponse.getResult()).isEqualTo(ResultType.SUCCESS);
 
-    String yearMonth = "2026-03";
+    String yearMonth = "2030-03";
 
     // Act
     ApiResponse<List<InterviewScheduleResponse>> response =

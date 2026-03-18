@@ -2,27 +2,27 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>È¸¿ø°¡ÀÔ ¿Ï·á</title>
+    <title>íšŒì›ê°€ìž… ì™„ë£Œ</title>
     <meta http-equiv="refresh" th:content="'3;url=' + ${workspaceCreateUrl}" />
   </head>
   <body style="margin: 0; min-height: 100vh; background: #eef2f7; font-family: 'Segoe UI', Arial, sans-serif; color: #10214d; display: flex; align-items: center; justify-content: center; padding: 24px;">
     <div style="display: grid; grid-template-columns: 1fr 1.2fr; max-width: 1100px; width: 100%; background: #ffffff; border-radius: 28px; overflow: hidden; box-shadow: 0 30px 80px rgba(15, 23, 42, 0.14);">
       <section style="padding: 56px 48px; background: radial-gradient(circle at bottom, rgba(45, 212, 191, 0.28), transparent 48%), linear-gradient(160deg, #10214d 0%, #0b6b70 100%); color: #ffffff;">
         <div style="font-size: 52px; line-height: 1.05; font-weight: 800;">Welcome<br />Aboard!</div>
-        <p style="margin-top: 28px; font-size: 24px; line-height: 1.6; opacity: 0.9;">CalFit°ú ÇÔ²² Ã¤¿ëÀÇ »õ·Î¿î ¿©Á¤À» ½ÃÀÛÇÒ ÁØºñ°¡ µÇ¼Ì³ª¿ä?</p>
+        <p style="margin-top: 28px; font-size: 24px; line-height: 1.6; opacity: 0.9;">CalFitê³¼ í•¨ê»˜ ì±„ìš©ì˜ ìƒˆë¡œìš´ ì‹œìž‘ì„ ì¤€ë¹„í•  ì¤€ë¹„ ë˜ì…¨ë‚˜ìš”?</p>
       </section>
       <section style="padding: 56px 64px; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
         <div>
-          <h1 style="margin: 0; font-size: 54px; line-height: 1.15; font-weight: 800;">È¸¿ø°¡ÀÔÀÌ ¿Ï·áµÇ¾ú½À´Ï´Ù!</h1>
-          <p style="margin: 20px 0 0; font-size: 24px; line-height: 1.7; color: #334155;">ÀÌÁ¦ ÆÀÀ» À§ÇÑ ¿öÅ©½ºÆäÀÌ½º¸¦ ¸¸µé°í CalFit ´ë½Ãº¸µå¸¦ ½ÃÀÛÇØ º¸¼¼¿ä.</p>
+          <h1 style="margin: 0; font-size: 54px; line-height: 1.15; font-weight: 800;">íšŒì›ê°€ìž…ì´ ì™„ë£Œë˜ì—ˆìŠµë‹ˆë‹¤!</h1>
+          <p style="margin: 20px 0 0; font-size: 24px; line-height: 1.7; color: #334155;">ì•„ëž˜ ë²„íŠ¼ ë˜ëŠ” ì›Œí¬ìŠ¤íŽ˜ì´ìŠ¤ë¥¼ ë§Œë“¤ì–´ CalFit ì„œë¹„ìŠ¤ë¥¼ ì‹œìž‘í•´ ë³´ì„¸ìš”.</p>
         </div>
         <a
           th:href="${workspaceCreateUrl}"
           style="display: block; margin-top: 12px; padding: 24px 28px; border-radius: 20px; background: #edf6f5; border: 1px solid #bfded8; text-decoration: none; color: #0f766e; font-size: 28px; font-weight: 800;"
-          >¿öÅ©½ºÆäÀÌ½º »ý¼ºÇÏ±â</a
+          >ì›Œí¬ìŠ¤íŽ˜ì´ìŠ¤ ë§Œë“¤ê¸°</a
         >
-        <p style="margin: 0; color: #64748b; font-size: 18px;">3ÃÊ ÈÄ ¿öÅ©½ºÆäÀÌ½º »ý¼º È­¸éÀ¸·Î ÀÚµ¿ ÀÌµ¿ÇÕ´Ï´Ù.</p>
-        <a th:href="${loginUrl}" style="color: #475569; font-size: 22px; text-decoration: none;">·Î±×ÀÎ È­¸éÀ¸·Î µ¹¾Æ°¡±â</a>
+        <p style="margin: 0; color: #64748b; font-size: 18px;">3ì´ˆ í›„ ì›Œí¬ìŠ¤íŽ˜ì´ìŠ¤ ìƒì„± í™”ë©´ìœ¼ë¡œ ìžë™ ì´ë™í•©ë‹ˆë‹¤.</p>
+        <a th:href="${loginUrl}" style="color: #475569; font-size: 22px; text-decoration: none;">ë¡œê·¸ì¸ í™”ë©´ìœ¼ë¡œ ëŒì•„ê°€ê¸°</a>
       </section>
     </div>
   </body>
