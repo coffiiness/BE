@@ -1,6 +1,8 @@
 package com.coffiness.calfit.api.fixture;
 
 import com.coffiness.calfit.api.v1.request.ApplicationCreateRequest;
+import com.coffiness.calfit.api.v1.request.ApplicationStageUpdateRequest;
+import com.coffiness.calfit.api.v1.response.ApplicationDetailResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import com.coffiness.calfit.domain.application.KanbanBoard;
@@ -28,9 +30,22 @@ public record ApplicationFixture(BaseFixture base) {
     return exchangeWithTenant(url, token, tenantId, KanbanBoard.class);
   }
 
+  public ApiResponse<ApplicationDetailResponse> updateApplicationStage(
+      String token, String tenantId, Long applicationId, Long recruitmentProcessId) {
+    String url = String.format("/api/v1/applications/%s/stage", applicationId);
+    ApplicationStageUpdateRequest request = new ApplicationStageUpdateRequest(recruitmentProcessId);
+    return exchangeWithTenant(
+        url, HttpMethod.PATCH, request, token, tenantId, ApplicationDetailResponse.class);
+  }
+
   @SuppressWarnings("unchecked")
   private <T> ApiResponse<T> exchangeWithTenant(
-      String url, String token, String tenantId, Class<T> responseType) {
+      String url,
+      HttpMethod method,
+      Object body,
+      String token,
+      String tenantId,
+      Class<T> responseType) {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     if (token != null && !token.isBlank()) {
@@ -39,10 +54,17 @@ public record ApplicationFixture(BaseFixture base) {
     if (tenantId != null && !tenantId.isBlank()) {
       headers.set("X-Tenant-ID", tenantId);
     }
-    HttpEntity<?> entity = new HttpEntity<>(headers);
+    HttpEntity<?> entity =
+        (body != null) ? new HttpEntity<>(body, headers) : new HttpEntity<>(headers);
     ResponseEntity<ApiResponse> response =
-        base.client().exchange(url, HttpMethod.GET, entity, ApiResponse.class);
+        base.client().exchange(url, method, entity, ApiResponse.class);
     return convertResponse(response.getBody(), responseType);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> ApiResponse<T> exchangeWithTenant(
+      String url, String token, String tenantId, Class<T> responseType) {
+    return exchangeWithTenant(url, HttpMethod.GET, null, token, tenantId, responseType);
   }
 
   @SuppressWarnings("unchecked")

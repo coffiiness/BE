@@ -93,6 +93,7 @@ public class ApplicationController {
     if ("APPLICANT".equalsIgnoreCase(user.role())) {
       throw new CoreException(ErrorType.UNAUTHORIZED);
     }
+    validateHrMember(user.userId());
     return ApiResponse.success(
         applicationService.updateStage(applicationId, request, user.userId()));
   }
