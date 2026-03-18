@@ -74,7 +74,8 @@ class GET_specs {
     String tenantId = context.workspaceId();
 
     announcementBoardFixture.create(token, tenantId, "공지 제목", "공지 내용", false);
-    Long meetingRoomId = meetingRoomFixture.create(token, tenantId, "알림 필터 회의실", 3, 6).getData().id();
+    Long meetingRoomId =
+        meetingRoomFixture.create(token, tenantId, "알림 필터 회의실", 3, 6).getData().id();
     meetingRoomFixture.reserve(
         token,
         tenantId,
@@ -86,7 +87,8 @@ class GET_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                     .hasSizeGreaterThanOrEqualTo(2));
 
     ApiResponse<NotificationPageResponse> announcementResponse =
@@ -167,7 +169,8 @@ class GET_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                     .hasSizeGreaterThanOrEqualTo(3));
 
     ApiResponse<NotificationPageResponse> firstPage =
@@ -200,7 +203,8 @@ class GET_specs {
     String attendeeEmail = userFixture.randomEmail();
     String attendeePassword = userFixture.randomPassword();
     userFixture.signUp(attendeeEmail, attendeePassword, userFixture.randomName());
-    String attendeeToken = userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
+    String attendeeToken =
+        userFixture.login(attendeeEmail, attendeePassword).getData().accessToken();
     ApiResponse<InvitationResponse> invitationResponse =
         memberFixture.createInvitation(ownerToken, tenantId, attendeeEmail, MemberType.INTERVIEWER);
     memberFixture.acceptInvitation(invitationResponse.getData().token(), attendeeToken);
@@ -228,7 +232,11 @@ class GET_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unreadCount(attendeeToken, tenantId).getData().unreadCount())
+                assertThat(
+                        notificationFixture
+                            .unreadCount(attendeeToken, tenantId)
+                            .getData()
+                            .unreadCount())
                     .isGreaterThanOrEqualTo(1));
 
     ApiResponse<NotificationPageResponse> ownerUnread =

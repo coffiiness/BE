@@ -129,7 +129,8 @@ public class POST_specs {
     String password = applicantFixture.randomPassword();
 
     ApiResponse<ApplicantResponse> signUp =
-        applicantFixture.signUp(firstWorkspace.getData().workspaceId(), email, password, "applicant");
+        applicantFixture.signUp(
+            firstWorkspace.getData().workspaceId(), email, password, "applicant");
     assertThat(signUp.getResult()).isEqualTo(ResultType.SUCCESS);
 
     ApiResponse<ApplicantLoginResponse> response =
@@ -141,8 +142,7 @@ public class POST_specs {
   }
 
   @Test
-  void 존재하지_않는_워크스페이스에서는_로그인할_수_없다(
-      @Autowired ApplicantFixture applicantFixture) {
+  void 존재하지_않는_워크스페이스에서는_로그인할_수_없다(@Autowired ApplicantFixture applicantFixture) {
     ApiResponse<ApplicantLoginResponse> response =
         applicantFixture.login(
             "workspace-not-found", "missing@test.com", applicantFixture.randomPassword());

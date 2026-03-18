@@ -114,7 +114,11 @@ class PATCH_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.unreadCount(ownerToken, tenantId).getData().unreadCount())
+                assertThat(
+                        notificationFixture
+                            .unreadCount(ownerToken, tenantId)
+                            .getData()
+                            .unreadCount())
                     .isGreaterThanOrEqualTo(1));
 
     NotificationResponse ownerNotification =

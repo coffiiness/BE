@@ -40,7 +40,8 @@ class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                     .hasSizeGreaterThanOrEqualTo(2));
 
     NotificationPageResponse listResponse =
@@ -70,7 +71,8 @@ class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                     .isEmpty());
   }
 
@@ -101,7 +103,8 @@ class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () -> {
-              assertThat(notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
+              assertThat(
+                      notificationFixture.list(token, tenantId, null, 0, 10).getData().contents())
                   .isEmpty();
               assertThat(notificationFixture.unreadCount(token, tenantId).getData().unreadCount())
                   .isZero();
@@ -124,11 +127,20 @@ class DELETE_specs {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () ->
-                assertThat(notificationFixture.list(ownerToken, tenantId, null, 0, 10).getData().contents())
+                assertThat(
+                        notificationFixture
+                            .list(ownerToken, tenantId, null, 0, 10)
+                            .getData()
+                            .contents())
                     .isNotEmpty());
 
     Long notificationId =
-        notificationFixture.list(ownerToken, tenantId, null, 0, 10).getData().contents().get(0).id();
+        notificationFixture
+            .list(ownerToken, tenantId, null, 0, 10)
+            .getData()
+            .contents()
+            .get(0)
+            .id();
 
     String otherEmail = userFixture.randomEmail();
     String otherPassword = userFixture.randomPassword();
@@ -138,7 +150,8 @@ class DELETE_specs {
         memberFixture.createInvitation(ownerToken, tenantId, otherEmail, MemberType.INTERVIEWER);
     memberFixture.acceptInvitation(invitationResponse.getData().token(), otherToken);
 
-    ApiResponse<Void> deleteResponse = notificationFixture.delete(otherToken, tenantId, notificationId);
+    ApiResponse<Void> deleteResponse =
+        notificationFixture.delete(otherToken, tenantId, notificationId);
 
     assertThat(deleteResponse.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(deleteResponse.getError()).isNotNull();

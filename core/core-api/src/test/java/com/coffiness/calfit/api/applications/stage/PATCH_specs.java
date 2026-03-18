@@ -80,7 +80,9 @@ class PATCH_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData().recruitmentProcessId()).isEqualTo(recruitment.interviewStageId());
-    assertThat(readApplication(tenantId, applicationRepository, applicationId).getRecruitmentProcessId())
+    assertThat(
+            readApplication(tenantId, applicationRepository, applicationId)
+                .getRecruitmentProcessId())
         .isEqualTo(recruitment.interviewStageId());
 
     List<ApplicationProcessHistoryEntity> histories =
@@ -89,8 +91,10 @@ class PATCH_specs {
         .singleElement()
         .satisfies(
             history -> {
-              assertThat(history.getFromRecruitmentProcessId()).isEqualTo(recruitment.documentStageId());
-              assertThat(history.getToRecruitmentProcessId()).isEqualTo(recruitment.interviewStageId());
+              assertThat(history.getFromRecruitmentProcessId())
+                  .isEqualTo(recruitment.documentStageId());
+              assertThat(history.getToRecruitmentProcessId())
+                  .isEqualTo(recruitment.interviewStageId());
               assertThat(history.getActorId()).isEqualTo(hrUserId);
             });
 
@@ -156,9 +160,12 @@ class PATCH_specs {
             interviewer.token(), tenantId, applicationId, recruitment.interviewStageId());
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
-    assertThat(readApplication(tenantId, applicationRepository, applicationId).getRecruitmentProcessId())
+    assertThat(
+            readApplication(tenantId, applicationRepository, applicationId)
+                .getRecruitmentProcessId())
         .isEqualTo(recruitment.documentStageId());
-    assertThat(readHistories(tenantId, applicationProcessHistoryRepository, applicationId)).isEmpty();
+    assertThat(readHistories(tenantId, applicationProcessHistoryRepository, applicationId))
+        .isEmpty();
   }
 
   @Test
@@ -210,9 +217,12 @@ class PATCH_specs {
             hrToken, tenantId, applicationId, secondRecruitment.interviewStageId());
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
-    assertThat(readApplication(tenantId, applicationRepository, applicationId).getRecruitmentProcessId())
+    assertThat(
+            readApplication(tenantId, applicationRepository, applicationId)
+                .getRecruitmentProcessId())
         .isEqualTo(firstRecruitment.documentStageId());
-    assertThat(readHistories(tenantId, applicationProcessHistoryRepository, applicationId)).isEmpty();
+    assertThat(readHistories(tenantId, applicationProcessHistoryRepository, applicationId))
+        .isEmpty();
   }
 
   @Test
@@ -256,7 +266,8 @@ class PATCH_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData().recruitmentProcessId()).isEqualTo(recruitment.documentStageId());
-    assertThat(readHistories(tenantId, applicationProcessHistoryRepository, applicationId)).isEmpty();
+    assertThat(readHistories(tenantId, applicationProcessHistoryRepository, applicationId))
+        .isEmpty();
   }
 
   private RecruitmentContext createRecruitment(
@@ -348,7 +359,9 @@ class PATCH_specs {
       String tenantId, ApplicationRepository applicationRepository, Long applicationId) {
     TenantContext.setTenantId(tenantId);
     try {
-      return applicationRepository.findByIdAndStatus(applicationId, EntityStatus.ACTIVE).orElseThrow();
+      return applicationRepository
+          .findByIdAndStatus(applicationId, EntityStatus.ACTIVE)
+          .orElseThrow();
     } finally {
       TenantContext.clear();
     }
@@ -371,7 +384,8 @@ class PATCH_specs {
     try {
       return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
           .findFirst()
-          .orElseGet(() -> groupRepository.save(GroupEntity.create("applications-stage", "#14B8A6")))
+          .orElseGet(
+              () -> groupRepository.save(GroupEntity.create("applications-stage", "#14B8A6")))
           .getId();
     } finally {
       TenantContext.clear();
@@ -379,7 +393,10 @@ class PATCH_specs {
   }
 
   private record RecruitmentContext(
-      Long recruitmentId, Long applicationTemplateId, Long documentStageId, Long interviewStageId) {}
+      Long recruitmentId,
+      Long applicationTemplateId,
+      Long documentStageId,
+      Long interviewStageId) {}
 
   private record MemberAccessContext(String token) {}
 }

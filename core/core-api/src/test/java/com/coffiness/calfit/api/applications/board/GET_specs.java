@@ -93,8 +93,7 @@ class GET_specs {
         "Park Other");
 
     ApiResponse<KanbanBoard> response =
-        applicationFixture.getKanbanBoard(
-            hrToken, tenantId, primaryRecruitment.recruitmentId());
+        applicationFixture.getKanbanBoard(hrToken, tenantId, primaryRecruitment.recruitmentId());
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData()).isNotNull();
@@ -111,14 +110,18 @@ class GET_specs {
             column -> {
               if (column.recruitmentProcessId().equals(primaryRecruitment.documentStageId())) {
                 assertThat(column.stageType()).isEqualTo(RecruitmentStageType.DOCUMENT);
-                assertThat(column.applications()).extracting(app -> app.name()).containsExactly("Kim Document");
+                assertThat(column.applications())
+                    .extracting(app -> app.name())
+                    .containsExactly("Kim Document");
               }
             })
         .anySatisfy(
             column -> {
               if (column.recruitmentProcessId().equals(primaryRecruitment.interviewStageId())) {
                 assertThat(column.stageType()).isEqualTo(RecruitmentStageType.INTERVIEW);
-                assertThat(column.applications()).extracting(app -> app.name()).containsExactly("Lee Interview");
+                assertThat(column.applications())
+                    .extracting(app -> app.name())
+                    .containsExactly("Lee Interview");
               }
             })
         .anySatisfy(
@@ -242,7 +245,8 @@ class GET_specs {
     try {
       return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
           .findFirst()
-          .orElseGet(() -> groupRepository.save(GroupEntity.create("applications-board", "#3B82F6")))
+          .orElseGet(
+              () -> groupRepository.save(GroupEntity.create("applications-board", "#3B82F6")))
           .getId();
     } finally {
       TenantContext.clear();
