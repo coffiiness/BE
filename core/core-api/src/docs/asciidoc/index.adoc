@@ -187,6 +187,32 @@ include::{snippets}/application-templates/delete/response-fields.adoc[]
 
 == Applications API
 
+=== Get Application Kanban Board
+==== Curl Request
+include::{snippets}/applications/board/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/applications/board/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/applications/board/http-response.adoc[]
+==== Response Fields
+include::{snippets}/applications/board/response-fields.adoc[]
+
+'''
+
+=== Update Application Stage
+==== Curl Request
+include::{snippets}/applications/update-stage/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/applications/update-stage/path-parameters.adoc[]
+==== Request Fields
+include::{snippets}/applications/update-stage/request-fields.adoc[]
+==== Http Response
+include::{snippets}/applications/update-stage/http-response.adoc[]
+==== Response Fields
+include::{snippets}/applications/update-stage/response-fields.adoc[]
+
+'''
+
 === Export Applicants Excel
 ==== Curl Request
 include::{snippets}/applications/excel-export/curl-request.adoc[]
@@ -404,6 +430,86 @@ include::{snippets}/announcements/delete/path-parameters.adoc[]
 include::{snippets}/announcements/delete/http-response.adoc[]
 ==== Response Fields
 include::{snippets}/announcements/delete/response-fields.adoc[]
+
+'''
+
+== Notifications API
+
+=== Get Notification List
+==== Curl Request
+include::{snippets}/notifications/list/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/notifications/list/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/notifications/list/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/list/response-fields.adoc[]
+
+'''
+
+=== Get Unread Notification List
+==== Curl Request
+include::{snippets}/notifications/unread/curl-request.adoc[]
+==== Query Parameters
+include::{snippets}/notifications/unread/query-parameters.adoc[]
+==== Http Response
+include::{snippets}/notifications/unread/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/unread/response-fields.adoc[]
+
+'''
+
+=== Get Unread Notification Count
+==== Curl Request
+include::{snippets}/notifications/unread-count/curl-request.adoc[]
+==== Http Response
+include::{snippets}/notifications/unread-count/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/unread-count/response-fields.adoc[]
+
+'''
+
+=== Read Notification
+==== Curl Request
+include::{snippets}/notifications/read/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/notifications/read/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/notifications/read/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/read/response-fields.adoc[]
+
+'''
+
+=== Read All Notifications
+==== Curl Request
+include::{snippets}/notifications/read-all/curl-request.adoc[]
+==== Http Response
+include::{snippets}/notifications/read-all/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/read-all/response-fields.adoc[]
+
+'''
+
+=== Delete Notification
+==== Curl Request
+include::{snippets}/notifications/delete/curl-request.adoc[]
+==== Path Parameters
+include::{snippets}/notifications/delete/path-parameters.adoc[]
+==== Http Response
+include::{snippets}/notifications/delete/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/delete/response-fields.adoc[]
+
+'''
+
+=== Delete All Notifications
+==== Curl Request
+include::{snippets}/notifications/delete-all/curl-request.adoc[]
+==== Http Response
+include::{snippets}/notifications/delete-all/http-response.adoc[]
+==== Response Fields
+include::{snippets}/notifications/delete-all/response-fields.adoc[]
 
 '''
 
