@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class POST_specs {
 
   @Test
-  void 지원자_회원가입에_성공한다(
+  void 지원자는_회원가입할_수_있다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -36,6 +36,7 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(response.getData().email()).isEqualTo(email);
+    assertThat(response.getData().name()).isEqualTo(name);
     assertThat(response.getData().workspaceId()).isEqualTo(workspaceId);
   }
 
@@ -59,6 +60,7 @@ public class POST_specs {
     assertThat(firstResponse.getResult()).isEqualTo(ResultType.SUCCESS);
     assertThat(secondResponse.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(secondResponse.getError()).isNotNull();
+    assertThat(secondResponse.getError().getCode()).isEqualTo("E400");
   }
 
   @Test
@@ -76,6 +78,7 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
   }
 
   @Test
@@ -92,6 +95,24 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
+  }
+
+  @Test
+  void 지원자는_비밀번호_길이가_4자_미만이면_회원가입할_수_없다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String hrToken = userFixture.createUserAndGetToken();
+    ApiResponse<WorkspaceResponse> workspace = workspaceFixture.createWorkspace(hrToken);
+    String workspaceId = workspace.getData().workspaceId();
+
+    ApiResponse<ApplicantResponse> response =
+        applicantFixture.signUp(workspaceId, "short-pass@test.com", "123", "applicant");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
   }
 
   @Test
@@ -109,6 +130,25 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
+  }
+
+  @Test
+  void 지원자는_이름_길이가_2자_미만이면_회원가입할_수_없다(
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture,
+      @Autowired ApplicantFixture applicantFixture) {
+    String hrToken = userFixture.createUserAndGetToken();
+    ApiResponse<WorkspaceResponse> workspace = workspaceFixture.createWorkspace(hrToken);
+    String workspaceId = workspace.getData().workspaceId();
+
+    ApiResponse<ApplicantResponse> response =
+        applicantFixture.signUp(
+            workspaceId, "short-name@test.com", applicantFixture.randomPassword(), "A");
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
   }
 
   @Test
@@ -122,10 +162,11 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E404");
   }
 
   @Test
-  void 지원자는_이름_길이_제한을_초과하면_회원가입할_수_없다(
+  void 지원자는_이름_길이가_50자를_초과하면_회원가입할_수_없다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
@@ -139,10 +180,11 @@ public class POST_specs {
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
     assertThat(response.getError()).isNotNull();
+    assertThat(response.getError().getCode()).isEqualTo("E400");
   }
 
   @Test
-  void 지원자는_다른_워크스페이스에서_같은_이메일로_가입할_수_있다(
+  void 지원자는_다른_워크스페이스에서는_같은_이메일로_가입할_수_있다(
       @Autowired UserFixture userFixture,
       @Autowired WorkspaceFixture workspaceFixture,
       @Autowired ApplicantFixture applicantFixture) {
