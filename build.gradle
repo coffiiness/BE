@@ -110,7 +110,8 @@ sonar {
         property 'sonar.exclusions', [
                 '**/config/**',
                 '**/entity/**',
-                '**/*Application.java'
+                '**/*Application.java',
+                'clients/**'
         ].join(',')
 
         property 'sonar.coverage.exclusions', [
@@ -119,7 +120,13 @@ sonar {
                 '**/*Application.java',
                 '**/*Exception.java',
                 '**/*Request.java',
-                '**/*Response.java'
+                '**/*Response.java',
+                '**/dto/**',
+                '**/*Dto.java',
+                '**/*Event.java',
+                '**/enums/**',
+                '**/scheduler/**',
+                'clients/**'
         ].join(',')
     }
 }

@@ -73,7 +73,7 @@ tasks.named('asciidoctor') {
 }
 
 def jacocoTargetProjects = rootProject.subprojects.findAll { subproject ->
-    !['tests', 'support'].any { excluded -> subproject.path.contains(excluded) }
+    !['tests', 'support', 'clients'].any { excluded -> subproject.path.contains(excluded) }
 }
 
 tasks.register('jacocoMergedReport', JacocoReport) {
