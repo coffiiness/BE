@@ -26,6 +26,19 @@ public record ApplicationExcelFixture(BaseFixture base) {
     return exchange("/api/v1/applications/excel?keyword={keyword}", token, tenantId, keyword);
   }
 
+  public ResponseEntity<byte[]> exportWithRecruitmentId(
+      String token, String tenantId, Long recruitmentId) {
+    return exchange("/api/v1/applications/excel?recruitmentId=" + recruitmentId, token, tenantId);
+  }
+
+  public ResponseEntity<byte[]> exportWithStageId(String token, String tenantId, Long stageId) {
+    return exchange("/api/v1/applications/excel?stageId=" + stageId, token, tenantId);
+  }
+
+  public ResponseEntity<byte[]> exportViaExportPath(String token, String tenantId) {
+    return exchange("/api/v1/applications/export", token, tenantId);
+  }
+
   private ResponseEntity<byte[]> exchange(
       String url, String token, String tenantId, Object... urlVariables) {
     HttpHeaders headers = new HttpHeaders();

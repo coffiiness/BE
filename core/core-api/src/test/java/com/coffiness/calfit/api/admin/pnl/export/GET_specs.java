@@ -1,49 +1,67 @@
 package com.coffiness.calfit.api.admin.pnl.export;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.coffiness.calfit.api.CalfitApiTest;
-import org.junit.jupiter.api.Disabled;
+import com.coffiness.calfit.api.fixture.BillingFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 
-/**
- * GET /api/v1/admin/pnl/export
- *
- * <p>손익계산서 Excel 내보내기 API. 현재 AdminPnlController에 /export 엔드포인트가 미구현 상태. Apache POI 등 Excel 라이브러리
- * 연동 및 컨트롤러 구현 후 활성화할 것.
- */
 @CalfitApiTest
 @DisplayName("GET /api/v1/admin/pnl/export")
 public class GET_specs {
 
   @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void 올바르게_요청하면_성공_응답을_반환한다() {}
+  void 올바르게_요청하면_Excel_파일을_반환한다(@Autowired BillingFixture fixture) {
+    String token = fixture.adminToken();
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(token);
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    ResponseEntity<byte[]> response =
+        fixture
+            .base()
+            .client()
+            .exchange("/api/v1/admin/pnl/export?months=3", HttpMethod.GET, entity, byte[].class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getHeaders().getContentType().toString()).contains("spreadsheetml.sheet");
+    assertThat(response.getHeaders().getContentDisposition().getFilename())
+        .contains("PnL_report.xlsx");
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().length).isGreaterThan(0);
+  }
 
   @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void 올바르게_요청하면_Content_Type이_Excel_형식이다() {}
+  void 인증되지_않은_사용자는_에러_응답을_반환한다(@Autowired BillingFixture fixture) {
+    HttpEntity<Void> entity = new HttpEntity<>(new HttpHeaders());
+
+    ResponseEntity<byte[]> response =
+        fixture
+            .base()
+            .client()
+            .exchange("/api/v1/admin/pnl/export", HttpMethod.GET, entity, byte[].class);
+
+    assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.OK);
+  }
 
   @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void 응답_헤더의_파일명에_조회_월이_포함된다() {}
+  void 관리자가_아닌_사용자는_403을_반환한다(@Autowired BillingFixture fixture) {
+    String token = fixture.memberToken();
 
-  @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void Excel_파일에_손익_데이터가_올바르게_포함된다() {}
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(token);
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-  @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void 인증되지_않은_사용자는_에러_응답을_반환한다() {}
+    ResponseEntity<byte[]> response =
+        fixture
+            .base()
+            .client()
+            .exchange("/api/v1/admin/pnl/export", HttpMethod.GET, entity, byte[].class);
 
-  @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void month_파라미터_없이_요청하면_현재_월_기준으로_응답한다() {}
-
-  @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void 잘못된_월_형식으로_요청하면_에러_응답을_반환한다() {}
-
-  @Test
-  @Disabled("P&L Excel export 엔드포인트 미구현 — Apache POI 연동 후 활성화")
-  void 데이터가_없는_월을_조회하면_빈_Excel_파일을_반환한다() {}
+    assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.OK);
+  }
 }

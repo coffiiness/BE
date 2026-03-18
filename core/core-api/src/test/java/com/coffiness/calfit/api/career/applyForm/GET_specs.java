@@ -1,4 +1,4 @@
-package com.coffiness.calfit.api.career.companyInfo;
+package com.coffiness.calfit.api.career.applyForm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,7 +9,7 @@ import com.coffiness.calfit.api.fixture.RecruitmentFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
 import com.coffiness.calfit.api.v1.request.RecruitmentCreateRequest;
 import com.coffiness.calfit.api.v1.request.RecruitmentStageRequest;
-import com.coffiness.calfit.api.v1.response.CareerCompnayResponse;
+import com.coffiness.calfit.api.v1.response.CareerApplyFormResponse;
 import com.coffiness.calfit.core.enums.CareerType;
 import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.RecruitmentStageType;
@@ -25,11 +25,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @CalfitApiTest
-@DisplayName("GET /api/v1/careers")
+@DisplayName("GET /api/v1/careers/{workspaceId}/recruitments/{recruitmentId}/apply-form")
 public class GET_specs {
 
   @Test
-  void 채용공고가_있는_회사_목록을_조회한다(
+  void OPEN_상태인_채용공고의_지원서_양식을_조회한다(
       @Autowired MemberFixture memberFixture,
       @Autowired UserFixture userFixture,
       @Autowired RecruitmentFixture recruitmentFixture,
@@ -41,11 +41,11 @@ public class GET_specs {
     String tenantId = context.workspaceId();
     Long hrUserId = userFixture.me(token).getData().id();
     Long leadGroupId = findLeadGroupId(tenantId, groupRepository);
-    Long templateId = applicationTemplateFixture.createUsedTemplateId(token, tenantId, "career");
+    Long templateId = applicationTemplateFixture.createUsedTemplateId(token, tenantId, "form");
 
     RecruitmentCreateRequest request =
         new RecruitmentCreateRequest(
-            "채용 테스트",
+            "지원서 테스트",
             3,
             templateId,
             "desc",
@@ -62,41 +62,44 @@ public class GET_specs {
                 new RecruitmentStageRequest("합격", RecruitmentStageType.PASS, 2),
                 new RecruitmentStageRequest("불합격", RecruitmentStageType.FAIL, 3)));
     recruitmentFixture.createRecruitment(token, tenantId, request);
-    recruitmentFixture.publishRecruitment(
-        token,
-        tenantId,
+
+    Long recruitmentId =
         recruitmentFixture.getRecruitmentList(token, tenantId).getData().stream()
-            .filter(r -> "채용 테스트".equals(r.title()))
+            .filter(r -> "지원서 테스트".equals(r.title()))
             .findFirst()
             .orElseThrow()
-            .id());
+            .id();
+    recruitmentFixture.publishRecruitment(token, tenantId, recruitmentId);
 
-    ApiResponse<CareerCompnayResponse[]> response =
-        memberFixture.base().get("/api/v1/careers", CareerCompnayResponse[].class);
-
-    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(response.getData()).isNotNull();
-    assertThat(response.getData().length).isGreaterThanOrEqualTo(1);
-  }
-
-  @Test
-  void 채용공고가_없으면_빈_리스트를_반환한다(@Autowired MemberFixture memberFixture) {
-    ApiResponse<CareerCompnayResponse[]> response =
-        memberFixture.base().get("/api/v1/careers", CareerCompnayResponse[].class);
-
-    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(response.getData()).isNotNull();
-  }
-
-  @Test
-  void search_파라미터로_회사명을_검색할_수_있다(@Autowired MemberFixture memberFixture) {
-    ApiResponse<CareerCompnayResponse[]> response =
+    ApiResponse<CareerApplyFormResponse> response =
         memberFixture
             .base()
-            .get("/api/v1/careers?search=nonexistent999", CareerCompnayResponse[].class);
+            .get(
+                "/api/v1/careers/" + tenantId + "/recruitments/" + recruitmentId + "/apply-form",
+                CareerApplyFormResponse.class);
 
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(response.getData()).isEmpty();
+    CareerApplyFormResponse data = response.getData();
+    assertThat(data).isNotNull();
+    assertThat(data.recruitmentId()).isEqualTo(recruitmentId);
+    assertThat(data.title()).isEqualTo("지원서 테스트");
+    assertThat(data.templateId()).isEqualTo(templateId);
+    assertThat(data.firstStageId()).isNotNull();
+    assertThat(data.customFields()).isNotNull();
+  }
+
+  @Test
+  void 존재하지_않는_채용공고_ID로_조회하면_에러를_반환한다(@Autowired MemberFixture memberFixture) {
+    MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
+
+    ApiResponse<CareerApplyFormResponse> response =
+        memberFixture
+            .base()
+            .get(
+                "/api/v1/careers/" + context.workspaceId() + "/recruitments/999999/apply-form",
+                CareerApplyFormResponse.class);
+
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }
 
   private Long findLeadGroupId(String tenantId, GroupRepository groupRepository) {
@@ -104,7 +107,7 @@ public class GET_specs {
     try {
       return groupRepository.findByStatus(EntityStatus.ACTIVE).stream()
           .findFirst()
-          .orElseGet(() -> groupRepository.save(GroupEntity.create("career-test", "#3B82F6")))
+          .orElseGet(() -> groupRepository.save(GroupEntity.create("form-test", "#3B82F6")))
           .getId();
     } finally {
       TenantContext.clear();

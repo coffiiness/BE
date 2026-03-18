@@ -198,6 +198,134 @@ public class GET_specs {
   }
 
   @Test
+  void hr_can_filter_by_recruitmentId(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired ApplicantFixture applicantFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
+      @Autowired RecruitmentRepository recruitmentRepository,
+      @Autowired RecruitmentStageRepository recruitmentStageRepository,
+      @Autowired ApplicationRepository applicationRepository)
+      throws Exception {
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    Long hrUserId = userFixture.me(workspace.hrToken()).getData().id();
+    Long leadGroupId = findLeadGroupId(workspace.workspaceId(), groupRepository);
+    Long templateId =
+        createApplicationTemplate(
+            workspace.workspaceId(), applicationTemplateRepository, "filter-template");
+    Long recruitmentId =
+        createRecruitment(
+            workspace.workspaceId(),
+            recruitmentRepository,
+            hrUserId,
+            templateId,
+            leadGroupId,
+            "filter-recruitment");
+    Long stageId =
+        createRecruitmentStage(
+            workspace.workspaceId(), recruitmentStageRepository, recruitmentId, "서류");
+
+    ApiResponse<ApplicantResponse> applicant =
+        applicantFixture.signUp(
+            workspace.workspaceId(),
+            "filter@test.com",
+            applicantFixture.randomPassword(),
+            "filter-user");
+    InterviewApplicantTestHelper.createPendingApplication(
+        workspace.workspaceId(),
+        applicationRepository,
+        recruitmentId,
+        stageId,
+        templateId,
+        applicant.getData().id(),
+        "filter-user",
+        "filter@test.com");
+
+    ResponseEntity<byte[]> response =
+        applicationExcelFixture.exportWithRecruitmentId(
+            workspace.hrToken(), workspace.workspaceId(), recruitmentId);
+
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
+      assertThat(workbook.getSheetAt(0).getLastRowNum()).isGreaterThanOrEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(2).getStringCellValue())
+          .isEqualTo("filter-recruitment");
+    }
+  }
+
+  @Test
+  void hr_can_filter_by_stageId(
+      @Autowired MemberFixture memberFixture,
+      @Autowired UserFixture userFixture,
+      @Autowired ApplicantFixture applicantFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture,
+      @Autowired GroupRepository groupRepository,
+      @Autowired ApplicationTemplateRepository applicationTemplateRepository,
+      @Autowired RecruitmentRepository recruitmentRepository,
+      @Autowired RecruitmentStageRepository recruitmentStageRepository,
+      @Autowired ApplicationRepository applicationRepository)
+      throws Exception {
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+    Long hrUserId = userFixture.me(workspace.hrToken()).getData().id();
+    Long leadGroupId = findLeadGroupId(workspace.workspaceId(), groupRepository);
+    Long templateId =
+        createApplicationTemplate(
+            workspace.workspaceId(), applicationTemplateRepository, "stage-filter-template");
+    Long recruitmentId =
+        createRecruitment(
+            workspace.workspaceId(),
+            recruitmentRepository,
+            hrUserId,
+            templateId,
+            leadGroupId,
+            "stage-filter-recruitment");
+    Long stageId =
+        createRecruitmentStage(
+            workspace.workspaceId(), recruitmentStageRepository, recruitmentId, "면접");
+
+    ApiResponse<ApplicantResponse> applicant =
+        applicantFixture.signUp(
+            workspace.workspaceId(),
+            "stagefilter@test.com",
+            applicantFixture.randomPassword(),
+            "stage-user");
+    InterviewApplicantTestHelper.createPendingApplication(
+        workspace.workspaceId(),
+        applicationRepository,
+        recruitmentId,
+        stageId,
+        templateId,
+        applicant.getData().id(),
+        "stage-user",
+        "stagefilter@test.com");
+
+    ResponseEntity<byte[]> response =
+        applicationExcelFixture.exportWithStageId(
+            workspace.hrToken(), workspace.workspaceId(), stageId);
+
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(response.getBody()))) {
+      assertThat(workbook.getSheetAt(0).getLastRowNum()).isGreaterThanOrEqualTo(1);
+      assertThat(workbook.getSheetAt(0).getRow(1).getCell(3).getStringCellValue()).isEqualTo("면접");
+    }
+  }
+
+  @Test
+  void export_경로로도_동일하게_동작한다(
+      @Autowired MemberFixture memberFixture,
+      @Autowired ApplicationExcelFixture applicationExcelFixture) {
+    WorkspaceContext workspace = memberFixture.setupWorkspace();
+
+    ResponseEntity<byte[]> response =
+        applicationExcelFixture.exportViaExportPath(workspace.hrToken(), workspace.workspaceId());
+
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(response.getHeaders().getContentType().toString()).contains("spreadsheetml.sheet");
+  }
+
+  @Test
   void applicant_cannot_download_applicant_excel(
       @Autowired MemberFixture memberFixture,
       @Autowired ApplicantFixture applicantFixture,
