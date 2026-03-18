@@ -128,7 +128,10 @@ sonar {
                 '**/scheduler/**',
                 'clients/**',
                 'storage/**',
-                'support/**'
+                'support/**',
+                '**/LocalInterviewDemoInitializer.java',
+                '**/GoogleCalendarClient.java',
+                '**/GoogleOAuthClient.java'
         ].join(',')
     }
 }
