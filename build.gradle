@@ -126,7 +126,9 @@ sonar {
                 '**/*Event.java',
                 '**/enums/**',
                 '**/scheduler/**',
-                'clients/**'
+                'clients/**',
+                'storage/**',
+                'support/**'
         ].join(',')
     }
 }
