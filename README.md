@@ -599,20 +599,20 @@
   ### 기획 및 설계
 
   - 프로젝트 기획서: [링크 입력]
-  - 요구사항 정의서: [링크 입력]
-  - WBS: [링크 입력]
-  - ERD: [링크 입력]
+  - 요구사항 정의서: [https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=363935461#gid=363935461]
+  - WBS: [https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=330943484#gid=330943484]
+  - ERD: [https://www.erdcloud.com/d/QKvKe7J6yBHRCFsF4]
 
   ### UI / UX
 
-  - 화면 설계서(Figma): [링크 입력]
-  - UI/UX 테스트 결과서: [링크 입력]
+  - 화면 설계서(Figma): [https://www.figma.com/design/bHbzp6OqQBrMYL8ORDcqDA/Final?node-id=1367-13362&p=f&t=BnkS9WJrOH5kW9d0-0]
+  - UI/UX 테스트 결과서: [https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=1206072661#gid=1206072661]
 
   ### API & 테스트
 
   - API 명세서: [링크 입력]
-  - 단위 테스트 결과: [링크 입력]
-  - 통합 테스트 결과: [링크 입력]
+  - 단위 테스트 결과: [https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=977820475#gid=977820475]
+  - 통합 테스트 결과: [https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=337106314#gid=337106314]
 
   ### CI/CD
 
@@ -622,8 +622,7 @@
   ### 협업 및 형상 관리
 
   - Git Strategy: [링크 입력]
-  - Jira: [링크 입력]
-  - Notion: [링크 입력]
+  - Notion: [https://www.notion.so/coffit23/6-coffiness-2efa02b1ffb180ab9fead1b12654a555]
   <br/>
 
   ———
