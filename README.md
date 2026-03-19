@@ -10,7 +10,7 @@
   </div>
 
   <div align="center">
-  **BEYOND SW CAMP 21기 Team Coffinees**
+  BEYOND SW CAMP 21기 Team Coffinees
 
   </div>
 
@@ -682,8 +682,8 @@
 
   - 기능 구현에 집중하면서 성능 최적화까지 충분히 신경쓰지 못했습니다.
   - Fetch Join, QueryDSL 기반 벌크 조회 등으로 추가 개선할 여지가 있습니다.
-  - 
-  ![Limitation](docs/images/자료 사진/한계.png)
+    
+  ![Limitation] (docs/images/자료 사진/한계.png)
 
   <br/>
 
