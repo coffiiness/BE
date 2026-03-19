@@ -69,7 +69,21 @@ tasks.named('restDocsTest') {
 
 tasks.named('asciidoctor') {
     inputs.dir snippetsDir
-    attributes 'snippets': snippetsDir
+    baseDirFollowsSourceDir()
+    options doctype: 'book'
+    attributes 'snippets': snippetsDir,
+               'encoding': 'utf-8'
+
+    doLast {
+        def htmlFile = file("$outputDir/index.html")
+        def cssFile = file('src/docs/asciidoc/docinfo.html')
+        if (htmlFile.exists() && cssFile.exists()) {
+            def html = htmlFile.text
+            def css = cssFile.text
+            html = html.replace('</head>', "${css}\n</head>")
+            htmlFile.text = html
+        }
+    }
 }
 
 def jacocoTargetProjects = rootProject.subprojects.findAll { subproject ->

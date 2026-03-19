@@ -9,6 +9,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
@@ -104,22 +105,28 @@ public class ApplicationApiDocs extends RestDocsTest {
             document(
                 "applications/board",
                 responsePreprocessor(),
-                queryParameters(
-                    parameterWithName("recruitmentId").description("채용 공고 ID")),
+                queryParameters(parameterWithName("recruitmentId").description("채용 공고 ID")),
                 responseFields(
                     fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.columns[].recruitmentProcessId").description("전형 단계 ID"),
                     fieldWithPath("data.columns[].name").description("전형 단계 이름"),
                     fieldWithPath("data.columns[].order").description("전형 단계 순서"),
                     fieldWithPath("data.columns[].stageType").description("전형 단계 타입"),
-                    fieldWithPath("data.columns[].applications[].applicationId").description("지원서 ID"),
-                    fieldWithPath("data.columns[].applications[].applicantId").description("지원자 ID"),
-                    fieldWithPath("data.columns[].applications[].recruitmentId").description("채용 공고 ID"),
-                    fieldWithPath("data.columns[].applications[].templateId").description("지원서 템플릿 ID"),
+                    fieldWithPath("data.columns[].applications[].applicationId")
+                        .description("지원서 ID"),
+                    fieldWithPath("data.columns[].applications[].applicantId")
+                        .description("지원자 ID"),
+                    fieldWithPath("data.columns[].applications[].recruitmentId")
+                        .description("채용 공고 ID"),
+                    fieldWithPath("data.columns[].applications[].templateId")
+                        .description("지원서 템플릿 ID"),
                     fieldWithPath("data.columns[].applications[].name").description("지원자 이름"),
                     fieldWithPath("data.columns[].applications[].email").description("지원자 이메일"),
                     fieldWithPath("data.columns[].applications[].phone").description("지원자 전화번호"),
                     fieldWithPath("data.columns[].applications[].createdAt").description("지원 일시"),
+                    subsectionWithPath("data.columns[].applications[]")
+                        .description("해당 단계의 지원서 목록")
+                        .optional(),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 
@@ -142,8 +149,7 @@ public class ApplicationApiDocs extends RestDocsTest {
                 "applications/update-stage",
                 responsePreprocessor(),
                 pathParameters(parameterWithName("applicationId").description("지원서 ID")),
-                requestFields(
-                    fieldWithPath("recruitmentProcessId").description("변경할 전형 단계 ID")),
+                requestFields(fieldWithPath("recruitmentProcessId").description("변경할 전형 단계 ID")),
                 responseFields(
                     fieldWithPath("result").description("결과 상태"),
                     fieldWithPath("data.applicationId").description("지원서 ID"),
@@ -204,17 +210,9 @@ public class ApplicationApiDocs extends RestDocsTest {
     return new KanbanBoard(
         List.of(
             new KanbanColumn(
-                1001L,
-                "서류 전형",
-                1,
-                RecruitmentStageType.DOCUMENT,
-                List.of(documentApplicant)),
+                1001L, "서류 전형", 1, RecruitmentStageType.DOCUMENT, List.of(documentApplicant)),
             new KanbanColumn(
-                1002L,
-                "면접 전형",
-                2,
-                RecruitmentStageType.INTERVIEW,
-                List.of(interviewApplicant)),
+                1002L, "면접 전형", 2, RecruitmentStageType.INTERVIEW, List.of(interviewApplicant)),
             new KanbanColumn(1003L, "최종 합격", 3, RecruitmentStageType.PASS, List.of()),
             new KanbanColumn(1004L, "불합격", 4, RecruitmentStageType.FAIL, List.of())));
   }
