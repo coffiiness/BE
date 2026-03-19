@@ -3,14 +3,13 @@
 
   <div align="center">
     <img
-      src="[대표 이미지 URL 입력]"
+      src="docs/images/자료 사진/로고.png"
       alt="CalFit 대표 이미지"
       width="280"
     />
   </div>
 
   <div align="center">
-
   **BEYOND SW CAMP 21기 Team Coffinees**
 
   </div>
@@ -62,13 +61,6 @@
   - 단순한 ATS 기능 제공을 넘어서, **면접 일정 확정 과정에서 발생하는 조율 비용과 커뮤니케이션 비용을 줄이는 scheduling-first 서비스**를 지향합니다.
   - 채용 담당자는 공고, 지원자, 일정, 회의실, 알림, 리포트를 한 플랫폼에서 관리할 수 있고, 면접관은 배정된 일정을 즉시 확인할 수 있습니다.
 
-  ### 대표 스크린샷 추천
-  - 메인 대시보드 전체 화면
-  - 채용 공고 + 칸반보드 + 일정 기능이 드러나는 대표 화면
-  - 서비스 메인 랜딩 또는 대시보드 GIF
-  - 
-  <!-- 대표 이미지/GIF 예시 -->
-  ![CalFit Main](./docs/images/main-dashboard.gif)
   <br/>
 
   ———
@@ -87,11 +79,11 @@
     </thead>
     <tbody>
       <tr align="center">
-        <td><img src="[강윤혜 이미지 URL]" width="80%" /></td>
-        <td><img src="[송형욱 이미지 URL]" width="80%" /></td>
-        <td><img src="[이관호 이미지 URL]" width="80%" /></td>
-        <td><img src="[이인재 이미지 URL]" width="80%" /></td>
-        <td><img src="[진희헌 이미지 URL]" width="80%" /></td>
+        <td><img src="docs/images/윤혜님.jpg" width="80%" /></td>
+        <td><img src="docs/images/형욱님.jpg" width="80%" /></td>
+        <td><img src="docs/images/관호님.jpg" width="80%" /></td>
+        <td><img src="docs/images/인재님.jpg" width="80%" /></td>
+        <td><img src="docs/images/내 사진.jpg" width="80%" /></td>
       </tr>
     </tbody>
     <tbody>
@@ -135,13 +127,7 @@
   - 일정 하나를 확정하기 위해 담당자와 면접관 간 반복적인 확인이 필요했습니다.
   - 변경 사항도 즉시 공유되기 어려워 불필요한 커뮤니케이션 비용이 발생했습니다.
 
-  ### 추천 삽입 이미지
-
-  - 문제 정의 슬라이드 이미지
-  - “기존 분산 도구 구조”를 보여주는 도식
-  - 수동 커뮤니케이션 플로우 차트
-
-  ![Problem Definition](./docs/images/problem-definition.png)
+  ![Problem Definition](docs/images/자료 사진/문제정의.png)
   <br/>
 
   ———
@@ -160,13 +146,7 @@
   - 정보 일관성 확보
   - 채용 경험 개선
 
-  ### 추천 삽입 이미지
-
-  - 시장/필요성 설명 슬라이드
-  - 통계/리포트 대시보드 화면
-  - 자동화 필요성을 보여주는 인포그래픽
-
-  ![Need for Service](./docs/images/need-for-service.png)
+  ![Need for Service](docs/images/자료 사진/서비스의 필요성.png)
   <br/>
 
   ———
@@ -190,13 +170,7 @@
 
   - 담당자와 면접관의 협업 효율을 높이고, 지원자에게도 일관되고 신뢰도 높은 채용 경험을 제공하고자 했습니다.
 
-  ### 추천 삽입 이미지
-
-  - 기획 의도 슬라이드
-  - 워크스페이스 생성 화면
-  - 통합 대시보드 화면
-
-  ![Project Objective](./docs/images/project-objective.png)
+  ![Project Objective](docs/images/자료 사진/기획의도.png)
   <br/>
 
   ———
@@ -220,13 +194,7 @@
   5. 생성된 일정은 알림, 내 일정, 구글 캘린더와 연동됩니다.
   6. 리포트와 결제 기능으로 운영 현황과 SaaS 수익 구조를 함께 관리합니다.
 
-  ### 추천 삽입 이미지
-
-  - 핵심 사용자 정의 슬라이드
-  - 서비스 흐름도
-  - “공고 생성 → 지원자 관리 → 일정 생성 → 캘린더 반영” GIF
-
-  ![Core Scenario](./docs/images/core-scenario.png)
+  ![Core Scenario](docs/images/자료 사진/핵심_시나리오.png)
   <br/>
 
   ———
@@ -251,13 +219,8 @@
   - 면접관, 회의실, 면접 단계 등 복수 자원을 동시에 최적화합니다.
   - 채용 담당자의 재조율 비용과 커뮤니케이션 비용을 줄이는 데 집중합니다.
 
-  ### 추천 삽입 이미지
 
-  - 서비스 차별점 슬라이드
-  - scheduling-first를 설명하는 비교 도식
-  - 자동 배정 화면 또는 일정 추천 화면
-
-  ![Differentiator](./docs/images/differentiator.png)
+  ![Differentiator](docs/images/자료 사진/차별점.png)
   <br/>
 
   ———
@@ -321,24 +284,13 @@
   - 외부 연동 기능은 Google Calendar, 결제 시스템 등과 연결되며, 데이터 저장은 MariaDB와 Redis를 활용합니다.
   - 배포는 Docker, GitHub Actions, EC2, S3, CloudFront 기반으로 자동화하였습니다.
 
-  ### 추천 삽입 이미지
-
-  - 시스템 아키텍처 다이어그램
-  - 프론트/백/외부 서비스/배포 구조가 모두 포함된 이미지
-
-  ![System Architecture](./docs/images/system-architecture.png)
+  ![System Architecture](docs/images/자료 사진/시스템 아키텍쳐.png)
   <br/>
 
   ———
   <br/>
 
   ## 10. 프로젝트 구조
-
-  ### 추천 삽입 이미지
-
-  - 백엔드 패키지 구조 이미지
-  - 프론트엔드 구조 이미지
-  - 도메인 구조를 설명하는 트리 이미지
 
   ![Project Structure](./docs/images/project-structure.png)
   <br/>
@@ -357,12 +309,7 @@
   - TDD 및 API 문서화
   - CI / CD
 
-  ### 추천 삽입 이미지
-
-  - WBS 전체 표
-  - 작업 기간별 간트차트
-
-  ![WBS](./docs/images/wbs.png)
+  ![WBS](docs/images/자료 사진/WBS.png)
   <br/>
 
   ———
@@ -373,12 +320,7 @@
   - 워크스페이스, 사용자, 그룹, 채용 공고, 지원자, 지원서, 면접 일정, 회의실, 알림, 결제, 리포트 도메인을 중심으로 설계하였습니다.
   - 채용 도메인과 일정 도메인이 자연스럽게 연결되도록 관계를 구성하였습니다.
 
-  ### 추천 삽입 이미지
-
-  - 전체 ERD
-  - 핵심 도메인별 ERD 분리 이미지
-
-  ![ERD](./docs/images/erd.png)
+  ![ERD](docs/images/자료 사진/ERD.png)
   <br/>
 
   ———
@@ -396,12 +338,11 @@
   - 최소한의 입력으로 빠르게 서비스 시작 가능
   - 워크스페이스 단위 데이터 격리를 통한 기업별 데이터 보안 확보
 
-  추천 이미지/GIF
-
-  - 워크스페이스 생성 화면
-  - 조직/멤버 초대 화면
-
-  ![Workspace Create](./docs/gifs/workspace-create.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/관호님_워크스페이스 생성.gif" alt="Workspace Create" width="100%" />
+  </details>
 
   ———
 
@@ -415,13 +356,11 @@
   - 포지션별로 다른 채용 프로세스를 유연하게 수용
   - 구조화된 템플릿 및 조직 데이터와 이후 일정 배정 로직 연결
 
-  추천 이미지/GIF
-
-  - 공고 생성 화면 GIF
-  - 전형 단계 추가 화면
-  - 조직 지정 화면
-
-  ![Recruitment Create](./docs/gifs/recruitment-create.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/형욱님_채용_공고_생성.gif" alt="Recruitment Create" width="100%" />
+  </details>
 
   ———
 
@@ -439,13 +378,11 @@
   - 수동 예약이 필요한 상황에서도 빠른 대응 가능
   - 회의실 사용 현황을 한 화면에서 효율적으로 관리 가능
 
-  추천 이미지/GIF
-
-  - 일간 회의실 캘린더 GIF
-  - 주간 회의실 캘린더 이미지
-  - 수동 예약 모달 GIF
-
-  ![Meeting Room Booking](./docs/gifs/meeting-room-booking.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/나_회의실 칸반보드 예약.gif" alt="Meeting Room Booking" width="100%" />
+  </details>
 
   ———
 
@@ -462,13 +399,11 @@
   - 지원 편의성과 검토 효율 동시 향상
   - 채용 운영 흐름의 일관성과 관리 편의성 확보
 
-  추천 이미지/GIF
-
-  - 지원서 작성 화면
-  - 지원자 상세 화면
-  - 파일 업로드/다운로드 화면
-
-  ![Application Form](./docs/gifs/application-form.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/윤혜님_지원서_첨부_다운.gif" alt="Application Form" width="100%" />
+  </details>
 
   ———
 
@@ -485,13 +420,11 @@
   - 후속 작업 자동화
   - 운영 실수 최소화 및 협업 효율 향상
 
-  추천 이미지/GIF
-
-  - 칸반보드 전체 GIF
-  - 단계 이동 시연 GIF
-  - 자동화 설정 화면 이미지
-
-  ![Applicant Kanban](./docs/gifs/applicant-kanban.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/유혜님_지원서 칸반.gif" alt="Applicant Kanban" width="100%" />
+  </details>
 
   ———
 
@@ -507,13 +440,11 @@
   - 데이터 깨짐 및 재검토 비용 절감
   - 2차 데이터 가공 작업에 활용 가능
 
-  추천 이미지/GIF
-
-  - 지원자 목록 화면
-  - 엑셀 다운로드 버튼
-  - 다운로드된 엑셀 샘플
-
-  ![Applicant Excel Export](./docs/images/applicant-excel-export.png)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/윤혜님_지원서_첨부_다운.gif" alt="Applicant Excel Export" width="100%" />
+  </details>
 
   ———
 
@@ -532,14 +463,11 @@
   - 면접관, 회의실 정보를 통합해 일정 조율 효율 향상
   - 수작업 조율 과정을 줄여 면접 운영 편의성 강화
 
-  추천 이미지/GIF
-
-  - 채용 공고 상세 화면
-  - 면접 일정 생성 GIF
-  - 회의실 시간 선택 화면
-  - 생성 완료 결과 화면
-
-  ![Interview Create](./docs/gifs/interview-create.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/나_일정 생성하기.gif" alt="Interview Create" width="100%" />
+  </details>
 
   ———
 
@@ -560,13 +488,11 @@
   - 면접관의 일정 확인 속도 향상
   - 일정 확인과 협업에 드는 시간 감소
 
-  추천 이미지/GIF
-
-  - 생성 직후 알림 화면
-  - 면접관 내 일정 반영 GIF
-  - 일정 상세 보기 화면
-
-  ![Interviewer Schedule Sync](./docs/gifs/interviewer-schedule-sync.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/나_면접관 일정 확정.gif" alt="Interviewer Schedule Sync" width="100%" />
+  </details>
 
   ———
 
@@ -580,14 +506,11 @@
   - 면접관이 별도 앱 접속 없이 기존 업무 환경에서 일정 확인 가능
   - B2B 환경에서 가장 범용적인 캘린더와 자연스럽게 연동
 
-  추천 이미지/GIF
-
-  - 내 일정 화면
-  - 구글 캘린더 연동 버튼
-  - 인증 화면
-  - 동기화 후 결과 GIF
-
-  ![Google Calendar Sync](./docs/gifs/google-calendar-sync.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/형욱님_내 일정 구글 캘린더 연동.gif" alt="Google Calendar Sync" width="100%" />
+  </details>
 
   ———
 
@@ -602,13 +525,11 @@
   - 시간 및 공간의 중복 예약 원천 차단
   - 실시간 일정 정합성 유지
 
-  추천 이미지/GIF
-
-  - 참석자 일정 현황 패널
-  - 회의실 충돌 경고 메시지
-  - 알림 발송 결과 화면
-
-  ![Availability Check](./docs/gifs/availability-check.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/형욱님_내일정_참석자_연동.gif" alt="Availability Check" width="100%" />
+  </details>
 
   ———
 
@@ -622,13 +543,11 @@
   - 면접 외 타 업무 일정도 자동 추천 알고리즘의 기반 데이터로 활용
   - 개인 업무와 면접 일정 간 충돌 사전 방지
 
-  추천 이미지/GIF
-
-  - 개인 일정 화면
-  - 채용 대시보드 캘린더
-  - 동기화 전후 비교 화면
-
-  ![Calendar Sync](./docs/gifs/calendar-sync.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/형욱님_면접관_일정_공고_연동.gif" alt="Calendar Sync" width="100%" />
+  </details>
 
   ———
 
@@ -645,15 +564,11 @@
   - 데이터 기반 채용 의사결정 지원
   - 병목 구간과 공고별 효율을 시각적으로 파악해 개선점 도출
 
-  추천 이미지/GIF
-
-  - KPI 대시보드 화면
-  - 파이프라인 차트
-  - 공고 성과 화면
-  - 면접 운영 통계 화면
-  - 자동화 통계 화면
-
-  ![Report Dashboard](./docs/gifs/report-dashboard.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/관호님_리포트.gif" alt="Report Dashboard" width="100%" />
+  </details>
 
   ———
 
@@ -670,13 +585,11 @@
 
   - SaaS 수익성을 체계적으로 분석하고 운영 의사결정 지원
 
-  추천 이미지/GIF
-
-  - 구독 대시보드
-  - 인보이스 목록
-  - 손익 차트 화면
-
-  ![Billing Dashboard](./docs/gifs/billing-dashboard.gif)
+  <details>
+    <summary>GIF 보기</summary>
+    <br/>
+    <img src="docs/gif/관호님_통계.gif" alt="Billing Dashboard" width="100%" />
+  </details>
   <br/>
 
   ———
@@ -721,19 +634,13 @@
 
   ### 1. 중복 예약 Race Condition 문제
 
-  문제
+  문제: 복수의 인사 담당자가 동일 시간대, 동일 회의실로 면접 일정을 동시에 생성할 경우 중복 예약 발생
 
-  - 복수의 인사 담당자가 동일 시간대, 동일 회의실로 면접 일정을 동시에 생성할 경우 중복 예약 발생
+  원인: 저장 이전에 예약 가능 여부를 선조회하는 구조로 인해 검증 시점과 저장 시점 사이 Race Condition 발생
 
-  원인
+  해결: 핵심 자원에 비관적 락을 적용하고, 락 획득 후 충돌 여부를 재검증하는 방식으로 동시성 제어 적용
 
-  - 저장 이전에 예약 가능 여부를 선조회하는 구조로 인해 검증 시점과 저장 시점 사이 Race Condition 발생
-
-  해결
-
-  - 핵심 자원에 비관적 락을 적용하고, 락 획득 후 충돌 여부를 재검증하는 방식으로 동시성 제어 적용
-
-  결과
+  결과:
 
   - 동시 요청 중복 예약 차단
   - 면접 일정, 회의실 예약, 연관 엔티티 간 데이터 정합성 안정적으로 확보
@@ -742,30 +649,18 @@
 
   ### 2. 회의실 예약 목록 조회의 N+1 문제
 
-  문제
+  문제: 회의실 예약 목록 조회 시 예약마다 상세 정보 조회가 반복되어 예약 수가 늘수록 응답 성능 저하
 
-  - 회의실 예약 목록 조회 시 예약마다 상세 정보 조회가 반복되어 예약 수가 늘수록 응답 성능 저하
+  원인: 예약별로 일정, 참석자, 면접관, 지원자, 회의실, 사용자 정보를 반복 조회하는 N+1 구조 발생
 
-  원인
-
-  - 예약별로 일정, 참석자, 면접관, 지원자, 회의실, 사용자 정보를 반복 조회하는 N+1 구조 발생
-
-  해결
-
-  - 필요한 ID를 먼저 수집한 뒤 관련 데이터를 일괄 조회하고 메모리에서 조합하는 방식으로 개선
+  해결: 한 ID를 먼저 수집한 뒤 관련 데이터를 일괄 조회하고 메모리에서 조합하는 방식으로 개선
 
   결과
 
   - 예약 10건 기준 SQL 호출 수를 81회에서 8회로 줄여 약 90.1% 성능 개선
 
-  ### 추천 삽입 이미지
-
-  - 트러블 슈팅 슬라이드
-  - 락 적용 흐름도
-  - 성능 개선 전후 쿼리 호출 수 비교표
-
-  ![Troubleshooting 1](./docs/images/troubleshooting-race-condition.png)
-  ![Troubleshooting 2](./docs/images/troubleshooting-nplus1.png)
+  ![Troubleshooting 1](docs/images/자료 사진/트러블슈팅_1.png)
+  ![Troubleshooting 2](docs/images/자료 사진/트러블슈팅_2.png)
   <br/>
 
   ———
@@ -787,11 +682,9 @@
 
   - 기능 구현에 집중하면서 성능 최적화까지 충분히 신경쓰지 못했습니다.
   - Fetch Join, QueryDSL 기반 벌크 조회 등으로 추가 개선할 여지가 있습니다.
+  - 
+  ![Limitation](docs/images/자료 사진/한계.png)
 
-  ### 추천 삽입 이미지
-
-  - 아키텍처 before/after 도식
-  - 성능 최적화 포인트 설명 이미지
   <br/>
 
   ———
@@ -807,10 +700,7 @@
   - 읽기 빈도가 높은 API에 Redis 캐싱 적용
   - 자주 변경되지 않는 데이터 캐싱을 통한 응답 속도 개선
 
-  ### 추천 삽입 이미지
-
-  - 향후 아키텍처 방향도
-  - 모니터링/캐싱 구조 다이어그램
+  ![Plan](docs/images/자료 사진/향후계획.png)
   <br/>
 
   ———
@@ -821,14 +711,16 @@
   <summary style="font-size:1.1em;">강윤혜</summary>
   <div markdown="1">
 
-  [회고 내용 입력]
+  지원자 로그인/회원가입, 지원서 파일 업로드, 칸반 기능을 맡아 프로젝트에 참여하였다. 구현과 테스트를 진행하면서 각 기능이 독립적으로 동작하는 것보다 권한 처리, 상태 변화, 데이터 흐름이 자연스럽게 이어지도록 설계하는 일이 중요하다는 점을 깨달았다. 특히 파일 업로드에서는 업로드 전후 상태를 나누어 흐름을 구성하며 데이터 정합성을 맞추고자 하였고, 칸반에서는 단계 이동 시 데이터가 꼬이지 않도록 상태 전이를 기준으로 로직을 정리하였다. 이 과정을 통해 데이터가 저장되고 연결되는 흐름까지 염두에 두고 로직을 설계하는 시각을 기를 수 있었다. 
   </div>
   </details>
   <details>
   <summary style="font-size:1.1em;">송형욱</summary>
   <div markdown="1">
 
-  [회고 내용 입력]
+  채용·면접·일정처럼 서로 강하게 연결된 도메인을 직접 설계하고 구현하면서, 기능 하나를 만드는 것보다 각 도메인의 책임과 정합성을 어떻게 나눌지가 서비스 완성도에 훨씬 큰 영향을 준다는 점을 배웠다. 특히 상태 변화와 권한, 일정 충돌처럼 실제 업무 흐름이 얽힌 문제를 다루며, 도메인 로직을 명확하게 설계하는 것이 곧 사용자 경험과 운영 안정성으로 이어진다는 것을 체감했다.
+
+  또한 이번 프로젝트를 통해 멀티테넌시, 도메인 분리, 성능 최적화까지 함께 고려하는 아키텍처 설계의 중요성을 크게 느꼈고, 현재 구조도 의미 있었지만 일부 영역은 더 클린하게 분리하고 경계를 명확히 했다면 유지보수성과 확장성이 더 좋아졌겠다는 아쉬움도 남았다. 앞으로는 이런 경험을 바탕으로 기능 구현을 넘어, 장기적인 운영과 확장까지 고려한 구조를 설계할 수 있는 개발자로 성장하고 싶다.
   </div>
   </details>
   <details>
@@ -849,9 +741,7 @@
   <summary style="font-size:1.1em;">진희헌</summary>
   <div markdown="1">
 
-  회의실 일정 알고리즘과 자동 배정 기능을 구현하는 과정은 가장 도전적인 부분이었습니다. 여러 조건을 동시에 고려해 가능한 시간과 자원을 조율해야 했기 때문에 구현 난도가 높
-  았지만, 그만큼 문제를 하나씩 해결해 나가는 과정에서 많은 성장을 느낄 수 있었습니다. 특히 일정 처리 과정에서 race condition 문제를 직접 겪으면서, 데이터가 동시에 갱신되
-  는 상황을 고려한 설계와 검증이 얼마나 중요한지 배울 수 있었습니다.
+  회의실 일정 알고리즘과 자동 배정 기능을 구현하는 과정은 가장 도전적인 부분이었습니다. 여러 조건을 동시에 고려해 가능한 시간과 자원을 조율해야 했기 때문에 구현 난도가 높 았지만, 그만큼 문제를 하나씩 해결해 나가는 과정에서 많은 성장을 느낄 수 있었습니다. 특히 일정 처리 과정에서 race condition 문제를 직접 겪으면서, 데이터가 동시에 갱신되 는 상황을 고려한 설계와 검증이 얼마나 중요한지 배울 수 있었습니다.
   </div>
   </details>
   <br/>
