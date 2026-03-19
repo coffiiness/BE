@@ -10,7 +10,7 @@
   </div>
 
   <div align="center">
-  **BEYOND SW CAMP 21기 Team Coffinees**
+  BEYOND SW CAMP 21기 Team Coffinees
 
   </div>
 
