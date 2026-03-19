@@ -12,6 +12,7 @@ public record WeeklyInterviewScheduleItem(
     LocalDateTime endAt,
     Long interviewerUserId,
     String interviewerName,
+    String creatorName,
     String title,
     String applicantName,
     String description,

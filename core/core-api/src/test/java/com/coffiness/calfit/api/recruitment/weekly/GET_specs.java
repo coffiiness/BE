@@ -126,6 +126,8 @@ class GET_specs {
     assertThat(response.getData().get(0).title()).isEqualTo("상반기 백엔드 채용 · 실무 면접");
     assertThat(response.getData().get(0).interviewerName()).isEqualTo("면접관 A");
     assertThat(response.getData().get(0).applicantName()).startsWith("Applicant-");
+    assertThat(response.getData().get(0).creatorName())
+        .isEqualTo(userFixture.me(hrToken).getData().name());
     assertThat(response.getData().get(0).location()).isEqualTo("A회의실 (3층)");
     assertThat(response.getData().get(0).description()).isEqualTo("1차 실무 면접");
   }

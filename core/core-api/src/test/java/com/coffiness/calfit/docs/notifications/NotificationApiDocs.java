@@ -158,7 +158,8 @@ public class NotificationApiDocs extends RestDocsTest {
 
   @Test
   void document_read_notification() throws Exception {
-    when(notificationFacade.readNotification(anyLong(), anyLong())).thenReturn(mockReadNotification());
+    when(notificationFacade.readNotification(anyLong(), anyLong()))
+        .thenReturn(mockReadNotification());
 
     mockMvc
         .perform(
@@ -171,7 +172,9 @@ public class NotificationApiDocs extends RestDocsTest {
             document(
                 "notifications/read",
                 responsePreprocessor(),
-                pathParameters(parameterWithName("notificationId").description("Notification ID to mark as read")),
+                pathParameters(
+                    parameterWithName("notificationId")
+                        .description("Notification ID to mark as read")),
                 responseFields(notificationSingleResponseFields())));
   }
 
@@ -211,7 +214,8 @@ public class NotificationApiDocs extends RestDocsTest {
             document(
                 "notifications/delete",
                 responsePreprocessor(),
-                pathParameters(parameterWithName("notificationId").description("Notification ID to delete")),
+                pathParameters(
+                    parameterWithName("notificationId").description("Notification ID to delete")),
                 responseFields(
                     fieldWithPath("result").description("Result status"),
                     fieldWithPath("data").description("Response payload").optional(),
@@ -282,9 +286,13 @@ public class NotificationApiDocs extends RestDocsTest {
       fieldWithPath("data.contents[].content").description("Notification content"),
       fieldWithPath("data.contents[].targetType").description("Notification target type"),
       fieldWithPath("data.contents[].targetId").description("Notification target ID").optional(),
-      fieldWithPath("data.contents[].actionUrl").description("Navigation URL for the notification").optional(),
+      fieldWithPath("data.contents[].actionUrl")
+          .description("Navigation URL for the notification")
+          .optional(),
       fieldWithPath("data.contents[].isRead").description("Whether the notification has been read"),
-      fieldWithPath("data.contents[].readAt").description("Timestamp when the notification was read").optional(),
+      fieldWithPath("data.contents[].readAt")
+          .description("Timestamp when the notification was read")
+          .optional(),
       fieldWithPath("data.contents[].createdAt").description("Notification creation timestamp"),
       fieldWithPath("data.hasNext").description("Whether there is another page"),
       fieldWithPath("error").description("Error information").optional()
@@ -302,7 +310,9 @@ public class NotificationApiDocs extends RestDocsTest {
       fieldWithPath("data.targetId").description("Notification target ID").optional(),
       fieldWithPath("data.actionUrl").description("Navigation URL for the notification").optional(),
       fieldWithPath("data.isRead").description("Whether the notification has been read"),
-      fieldWithPath("data.readAt").description("Timestamp when the notification was read").optional(),
+      fieldWithPath("data.readAt")
+          .description("Timestamp when the notification was read")
+          .optional(),
       fieldWithPath("data.createdAt").description("Notification creation timestamp"),
       fieldWithPath("error").description("Error information").optional()
     };

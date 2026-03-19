@@ -9,6 +9,7 @@ public record InterviewScheduleCalendarItem(
     Long meetingRoomId,
     Long interviewerUserId,
     String interviewerName,
+    String creatorName,
     String title,
     String applicantName,
     String description,
