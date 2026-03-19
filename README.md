@@ -3,7 +3,7 @@
 
   <div align="center">
     <img
-      src="docs/images/자료 사진/로고.png"
+      src="docs/images/assets/logo.png"
       alt="CalFit 대표 이미지"
       width="280"
     />
@@ -127,7 +127,7 @@
   - 일정 하나를 확정하기 위해 담당자와 면접관 간 반복적인 확인이 필요했습니다.
   - 변경 사항도 즉시 공유되기 어려워 불필요한 커뮤니케이션 비용이 발생했습니다.
 
-  ![Problem Definition](docs/images/자료 사진/문제정의.png)
+  ![Problem Definition](docs/images/assets/problem-definition.png)
   <br/>
 
   ———
@@ -146,7 +146,7 @@
   - 정보 일관성 확보
   - 채용 경험 개선
 
-  ![Need for Service](docs/images/자료 사진/서비스의 필요성.png)
+  ![Need for Service](docs/images/assets/service-need.png)
   <br/>
 
   ———
@@ -170,7 +170,7 @@
 
   - 담당자와 면접관의 협업 효율을 높이고, 지원자에게도 일관되고 신뢰도 높은 채용 경험을 제공하고자 했습니다.
 
-  ![Project Objective](docs/images/자료 사진/기획의도.png)
+  ![Project Objective](docs/images/assets/planning-intent.png)
   <br/>
 
   ———
@@ -194,7 +194,7 @@
   5. 생성된 일정은 알림, 내 일정, 구글 캘린더와 연동됩니다.
   6. 리포트와 결제 기능으로 운영 현황과 SaaS 수익 구조를 함께 관리합니다.
 
-  ![Core Scenario](docs/images/자료 사진/핵심_시나리오.png)
+  ![Core Scenario](docs/images/assets/core-scenario.png)
   <br/>
 
   ———
@@ -220,7 +220,7 @@
   - 채용 담당자의 재조율 비용과 커뮤니케이션 비용을 줄이는 데 집중합니다.
 
 
-  ![Differentiator](docs/images/자료 사진/차별점.png)
+  ![Differentiator](docs/images/assets/differentiator.png)
   <br/>
 
   ———
@@ -241,8 +241,7 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
 
   ### Database
-  <img src="https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white" />
-  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" />
 
   ### Backend
   <img src="https://img.shields.io/badge/Java_17-007396?style=for-the-badge&logo=openjdk&logoColor=white" />
@@ -281,10 +280,10 @@
   ### System Architecture
 
   - 프론트엔드는 Vue 기반 SPA로 구성하고, 백엔드는 Spring Boot 멀티 모듈 구조로 설계하였습니다.
-  - 외부 연동 기능은 Google Calendar, 결제 시스템 등과 연결되며, 데이터 저장은 MariaDB와 Redis를 활용합니다.
+  - 외부 연동 기능은 Google Calendar, 결제 시스템 등과 연결되며, 데이터 저장은 MySQL을 활용합니다.
   - 배포는 Docker, GitHub Actions, EC2, S3, CloudFront 기반으로 자동화하였습니다.
 
-  ![System Architecture](docs/images/자료 사진/시스템 아키텍쳐.png)
+  ![System Architecture](docs/images/assets/system-architecture.png)
   <br/>
 
   ———
@@ -309,7 +308,7 @@
   - TDD 및 API 문서화
   - CI / CD
 
-  ![WBS](docs/images/자료 사진/WBS.png)
+  ![WBS](docs/images/assets/wbs.png)
   <br/>
 
   ———
@@ -320,7 +319,7 @@
   - 워크스페이스, 사용자, 그룹, 채용 공고, 지원자, 지원서, 면접 일정, 회의실, 알림, 결제, 리포트 도메인을 중심으로 설계하였습니다.
   - 채용 도메인과 일정 도메인이 자연스럽게 연결되도록 관계를 구성하였습니다.
 
-  ![ERD](docs/images/자료 사진/ERD.png)
+  ![ERD](docs/images/assets/erd.png)
   <br/>
 
   ———
@@ -659,8 +658,8 @@
 
   - 예약 10건 기준 SQL 호출 수를 81회에서 8회로 줄여 약 90.1% 성능 개선
 
-  ![Troubleshooting 1](docs/images/자료 사진/트러블슈팅_1.png)
-  ![Troubleshooting 2](docs/images/자료 사진/트러블슈팅_2.png)
+  ![Troubleshooting 1](docs/images/assets/troubleshooting-1.png)
+  ![Troubleshooting 2](docs/images/assets/troubleshooting-2.png)
   <br/>
 
   ———
@@ -682,8 +681,8 @@
 
   - 기능 구현에 집중하면서 성능 최적화까지 충분히 신경쓰지 못했습니다.
   - Fetch Join, QueryDSL 기반 벌크 조회 등으로 추가 개선할 여지가 있습니다.
-  - 
-  ![Limitation](docs/images/자료 사진/한계.png)
+
+  ![Limitation](docs/images/assets/limitation.png)
 
   <br/>
 
@@ -700,7 +699,7 @@
   - 읽기 빈도가 높은 API에 Redis 캐싱 적용
   - 자주 변경되지 않는 데이터 캐싱을 통한 응답 속도 개선
 
-  ![Plan](docs/images/자료 사진/향후계획.png)
+  ![Plan](docs/images/assets/future-plan.png)
   <br/>
 
   ———
@@ -727,14 +726,14 @@
   <summary style="font-size:1.1em;">이관호</summary>
   <div markdown="1">
 
-  [회고 내용 입력]
+멀티테넌시, 요금제/결제, 관리자 통계, 멤버/그룹 권한을 맡아 참여하였습니다. 워크스페이스 생성에 테넌트 설정, 구독, 멤버 등록이 엮여 있어 도메인 간 연결 설계의 중요성을 느꼈고, 결제 생명주기를 직접 설계하며 상태 전이와 예외 처리의 중요성을 배웠습니다. 통합 테스트를 마무리하지 못한 점이 아쉬우며, 앞으로는 도메인 연결과 운영까지 고려하는 개발자가 되고 싶습니다.
   </div>
   </details>
   <details>
   <summary style="font-size:1.1em;">이인재</summary>
   <div markdown="1">
 
-  [회고 내용 입력]
+Calfit 프로젝트에서 서비스 전반의 보안을 책임지는 안전한 인증/인가 체계를 구축하고 동적인 폼 생성을 위한 커스텀 지원서 템플릿 구조화, 합격/불합격 안내를 위한 이메일 시스템, 대용량 지원자 데이터 Excel 다운로드 등 실사용자(HR 담당자)에게 밀접한 편의 기능들을 구현하는 역할을 맡았습니다. 프로젝트를 이끌어주신 팀장과 팀원분들께 감사합니다.
   </div>
   </details>
   <details>
