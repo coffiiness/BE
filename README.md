@@ -291,7 +291,79 @@
 
   ## 10. 프로젝트 구조
 
-  ![Project Structure](./docs/images/project-structure.png)
+### Backend (BE)
+
+  ```text
+
+  BE
+  ├─ core
+  │  ├─ core-api
+  │  ├─ core-enum
+  │  ├─ domain-announcement-board
+  │  ├─ domain-applicant
+  │  ├─ domain-application
+  │  ├─ domain-billing
+  │  ├─ domain-calendar
+  │  ├─ domain-career
+  │  ├─ domain-interview
+  │  ├─ domain-meeting-room
+  │  ├─ domain-notification
+  │  ├─ domain-payment
+  │  ├─ domain-recruitment
+  │  ├─ domain-report
+  │  ├─ domain-user
+  │  └─ domain-workspace
+  ├─ storage
+  │  └─ db-core
+  ├─ support
+  │  ├─ email
+  │  ├─ error
+  │  ├─ event
+  │  ├─ logging
+  │  ├─ monitoring
+  │  └─ security
+  ├─ clients
+  │  └─ google-calendar
+  ├─ docker
+  ├─ gradle
+  ├─ scripts
+  ├─ build.gradle
+  ├─ settings.gradle
+  ├─ Dockerfile
+  └─ docker-compose.yml
+```
+
+### Frontend (FE)
+
+```text
+
+  FE
+  ├─ public
+  ├─ src
+  │  ├─ api
+  │  ├─ components
+  │  ├─ composables
+  │  ├─ data
+  │  ├─ layouts
+  │  ├─ router
+  │  ├─ stores
+  │  ├─ types
+  │  ├─ utils
+  │  ├─ views
+  │  │  ├─ admin
+  │  │  ├─ billing
+  │  │  ├─ interview
+  │  │  └─ meeting-rooms
+  │  ├─ App.vue
+  │  ├─ main.js
+  │  └─ style.css
+  ├─ index.html
+  ├─ package.json
+  ├─ package-lock.json
+  ├─ vite.config.js
+  ├─ tailwind.config.js
+  └─ postcss.config.js
+```
   <br/>
 
   ———
@@ -598,7 +670,6 @@
 
 ### 기획 및 설계
 
-- 프로젝트 기획서: [링크 입력]
 - [요구사항 정의서](https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=363935461#gid=363935461)
 - [WBS](https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=330943484#gid=330943484)
 - [ERD](https://www.erdcloud.com/d/QKvKe7J6yBHRCFsF4)
@@ -610,7 +681,6 @@
 
 ### API & 테스트
 
-- API 명세서: [링크 입력]
 - [단위 테스트 결과](https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=977820475#gid=977820475)
 - [통합 테스트 결과](https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=337106314#gid=337106314)
 
