@@ -291,9 +291,65 @@
 
   ## 10. 프로젝트 구조
 
-  ![Project Structure](./docs/images/project-structure.png)
-  <br/>
+![Project Structure](./docs/images/project-structure.png)
+<br/>
 
+### 🖥️ 프론트엔드 (FE)
+```text
+FE
+├── public
+├── src
+│   ├── api 
+│   ├── components 
+│   ├── composables
+│   ├── data 
+│   ├── layouts 
+│   ├── reference 
+│   ├── router 
+│   ├── stores 
+│   ├── types 
+│   ├── utils 
+│   ├── views 
+│   ├── App.vue 
+│   ├── main.js 
+│   └── style.css 
+├── index.html
+├── package.json 
+├── postcss.config.js 
+├── tailwind.config.js 
+└── vite.config.js
+```
+### ⚙️ 백엔드 (BE)
+```text 
+BE
+├── clients 
+│   └── google-calendar
+├── core 
+│   ├── core-api
+│   ├── core-enum
+│   ├── domain-announcement-board
+│   ├── domain-applicant
+│   ├── domain-application
+│   ├── domain-billing
+│   ├── domain-calendar
+│   ├── domain-career
+│   ├── domain-interview
+│   ├── domain-meeting-room
+│   ├── domain-notification
+│   ├── domain-payment
+│   ├── domain-recruitment
+│   ├── domain-user
+│   └── domain-workspace
+├── storage
+│   └── db-core
+└── support 
+    ├── email
+    ├── error
+    ├── event
+    ├── logging
+    ├── monitoring
+    └── security
+```
   ———
   <br/>
 
