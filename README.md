@@ -614,15 +614,8 @@
 - [단위 테스트 결과](https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=977820475#gid=977820475)
 - [통합 테스트 결과](https://docs.google.com/spreadsheets/d/1RoJoCTA-AA3jKplup3AmF92ofQRGaEgE5Nc6EgAMMRc/edit?gid=337106314#gid=337106314)
 
-### CI/CD
-
-- 백엔드 CI/CD 문서: [링크 입력]
-- 프론트엔드 CI/CD 문서: [링크 입력]
-
 ### 협업 및 형상 관리
 
-- Git Strategy: [링크 입력]
-- Jira: [링크 입력]
 - [Notion](https://www.notion.so/coffit23/6-coffiness-2efa02b1ffb180ab9fead1b12654a555)
 
   <br/>
