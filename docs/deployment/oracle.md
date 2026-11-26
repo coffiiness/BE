@@ -130,6 +130,10 @@ DataInitializer/시연 데이터가 생성되지 않는다. 회원가입·워크
 
 ## Windows에서 Oracle로 소스 전송
 
+이미 운영 중인 서버에서 없는 URL의 500을 404로 고치는 변경은
+[수정 파일만 반영하는 절차](oracle-endpoint-fix.md)를 따른다. 기존 환경변수/볼륨을 유지하고
+백엔드만 재빌드·재생성한다. 최초 DB 초기화용 update 절차를 다시 실행하지 않는다.
+
 현재 수정/미추적 파일도 포함하는 allowlist 패키징 스크립트와 SCP·SHA-256 검증 절차는
 [소스 전송 가이드](oracle-source-transfer.md)에 있다. 폴더 전체 `scp -r`나 HEAD만 담는
 git archive 대신, 검토한 소스 압축본을 관리자 IP의 SSH 22번으로 전송한다. 실제 환경변수와
@@ -249,7 +253,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T mysql sh 
 | Connector/J 9.2.0 (두 버전) | 인증, PreparedStatement, 한글 JSON, TIMESTAMP(3), rollback 통과 |
 | 기존 저장소 native SQL 7개 (두 버전) | 빈 업무 테이블에서 문법/실행 통과 |
 | Pages CORS | 지정 Origin OPTIONS=200 및 Allow-Origin/credentials 확인, 미허용 Origin=403 |
-| 관리 health의 API 포트 분리 | API 포트에서는 health 미제공. 기존 공통 오류 처리로 500 응답, 8081에서만 UP |
+| 관리 health의 API 포트 분리 (404 수정 전 기록) | API 포트에서는 health 미제공. 당시 공통 오류 처리로 500 응답, 8081에서만 UP. 이후 404 수정 결과는 oracle-endpoint-fix.md 참고 |
 | 기존 local H2 로그인 API | 6개 테스트 통과 (실패 0) |
 | 비즈니스/로컬 설정/기존 Compose·Actions·FE 변경 | git diff로 변경 없음 확인 |
 

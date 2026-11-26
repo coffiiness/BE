@@ -102,6 +102,8 @@ cors:
 ---
 spring.config.activate.on-profile: prod
 
+spring.h2.console.enabled: false
+
 cors:
   allowed-origins:
     - https://calfit.co.kr

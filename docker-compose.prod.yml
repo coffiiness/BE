@@ -78,6 +78,7 @@ services:
       TZ: Asia/Seoul
       # Keep management endpoints off the API port forwarded by the tunnel.
       MANAGEMENT_SERVER_PORT: "8081"
+      MANAGEMENT_SERVER_ADDRESS: "127.0.0.1"
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health
       MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS: never
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
