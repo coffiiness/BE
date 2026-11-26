@@ -282,8 +282,7 @@ public class RecruitmentReaderImpl implements RecruitmentReader {
 
     // D-Day 및 링크 URL
     int dDay = (int) ChronoUnit.DAYS.between(LocalDate.now(), entity.getEndDate().toLocalDate());
-    // TODO : 공고 링크 연결
-    String shareUrl = "https://careers.nexus.ai/jobs/" + recruitmentId;
+    String shareUrl = "/careers/" + tenantId + "/" + recruitmentId + "/apply";
     int totalApplicants = countTotalApplicants(tenantId, recruitmentId);
     int processingInterviewCount = countProcessingInterviewCount(tenantId, recruitmentId);
 
