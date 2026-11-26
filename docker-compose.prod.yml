@@ -1,0 +1,148 @@
+# Standalone Oracle configuration. Do NOT merge with docker-compose.yml:
+# merging would retain its public MySQL/API port mappings.
+name: calfit-oracle
+
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  mysql:
+    # Fresh portfolio/demo DB only. Never attach an old MySQL 8.0 data volume.
+    image: mysql:8.4.13
+    platform: linux/arm64
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.prod}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env.prod}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env.prod}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env.prod}
+      TZ: Asia/Seoul
+    # No ports: MySQL is reachable only on the private Docker network.
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      # An authenticated query verifies DB/user readiness; mysqladmin ping can
+      # return success even when authentication fails. $$ defers to the container.
+      test:
+        - CMD-SHELL
+        - >-
+          MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --protocol=TCP
+          --host=127.0.0.1 --user="$${MYSQL_USER}"
+          --database="$${MYSQL_DATABASE}" --connect-timeout=5
+          --execute='SELECT 1' >/dev/null 2>&1
+      interval: 10s
+      timeout: 8s
+      retries: 12
+      start_period: 60s
+    mem_limit: 1g
+    networks:
+      - database
+    logging: *bounded-logging
+
+  core-api:
+    image: ${BACKEND_IMAGE:-calfit-backend:oracle-arm64}
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 45s
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      STORAGE_DATABASE_CORE_DB_URL: mysql:3306/${MYSQL_DATABASE:?Set MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      STORAGE_DATABASE_CORE_DB_USERNAME: ${MYSQL_USER:?Set MYSQL_USER}
+      STORAGE_DATABASE_CORE_DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}
+      STORAGE_DATASOURCE_CORE_MAXIMUMPOOLSIZE: ${DB_POOL_SIZE:-10}
+      # The legacy prod value (1100ms) is too tight for a cold DB/auth handshake.
+      STORAGE_DATASOURCE_CORE_CONNECTIONTIMEOUT: ${DB_CONNECTION_TIMEOUT_MS:-30000}
+      # validate prevents implicit schema upgrades. On a NEW empty database only,
+      # bootstrap once with JPA_DDL_AUTO=update, then restore validate.
+      SPRING_JPA_HIBERNATE_DDLAUTO: ${JPA_DDL_AUTO:-validate}
+      JWT_SECRET: ${JWT_SECRET:?Set a random JWT_SECRET of at least 32 bytes}
+      CORS_ALLOWEDORIGINS: ${CORS_ALLOWED_ORIGINS:?Set the exact HTTPS Pages origins}
+      SERVER_FORWARDHEADERSSTRATEGY: framework
+      SERVER_TOMCAT_THREADS_MAX: ${TOMCAT_THREADS_MAX:-100}
+      SERVER_TOMCAT_THREADS_MINSPARE: ${TOMCAT_THREADS_MIN_SPARE:-10}
+      APP_TIME_ZONE: Asia/Seoul
+      TZ: Asia/Seoul
+      # Keep management endpoints off the API port forwarded by the tunnel.
+      MANAGEMENT_SERVER_PORT: "8081"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health
+      MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS: never
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      LOGGING_CONFIG: /app/config/logback-oracle.xml
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx768m}
+      # File uploads still use AWS S3. OCI does not inherit the EC2 IAM role.
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_EC2_METADATA_DISABLED: "true"
+      S3_APPLICANT_BUCKET: ${S3_APPLICANT_BUCKET:?Set the existing S3 bucket name}
+      S3_KEY_PREFIX: ${S3_KEY_PREFIX:-uploads}
+      PRESIGN_EXPIRE_MINUTES: ${PRESIGN_EXPIRE_MINUTES:-10}
+      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:-}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      CALENDAR_GOOGLE_WATCH_CALLBACK_URL: ${PUBLIC_API_BASE_URL:?Set the public HTTPS API origin}/api/v1/calendars/google/notifications
+      CALENDAR_GOOGLE_WATCH_TOKEN_SECRET: ${CALENDAR_GOOGLE_WATCH_TOKEN_SECRET:?Set a random watch token secret}
+      APP_EMAIL_ENABLED: ${APP_EMAIL_ENABLED:-false}
+      APP_EMAIL_SENDER: ${APP_EMAIL_SENDER:-no-reply@example.com}
+      APP_EMAIL_API_BASE_URL: ${PUBLIC_API_BASE_URL:?Set the public HTTPS API origin}
+      APP_EMAIL_FRONTEND_BASE_URL: ${PUBLIC_FRONTEND_BASE_URL:?Set the public HTTPS frontend origin}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_SMTP_AUTH: ${SPRING_MAIL_SMTP_AUTH:-true}
+      SPRING_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      SPRING_MAIL_SMTP_STARTTLS_REQUIRED: ${SPRING_MAIL_SMTP_STARTTLS_REQUIRED:-true}
+      SPRING_MAIL_SMTP_SSL_ENABLE: ${SPRING_MAIL_SMTP_SSL_ENABLE:-false}
+      SPRING_MAIL_SMTP_SSL_PROTOCOLS: ${SPRING_MAIL_SMTP_SSL_PROTOCOLS:-TLSv1.2}
+      SPRING_MAIL_SMTP_SSL_TRUST: ${SPRING_MAIL_SMTP_SSL_TRUST:-}
+      SPRING_MAIL_SMTP_CONNECTION_TIMEOUT: ${SPRING_MAIL_SMTP_CONNECTION_TIMEOUT:-5000}
+      SPRING_MAIL_SMTP_TIMEOUT: ${SPRING_MAIL_SMTP_TIMEOUT:-5000}
+      SPRING_MAIL_SMTP_WRITE_TIMEOUT: ${SPRING_MAIL_SMTP_WRITE_TIMEOUT:-5000}
+    # Host-installed cloudflared connects to http://127.0.0.1:8080.
+    # This never binds 0.0.0.0; keep NSG inbound restricted to admin SSH.
+    ports:
+      - "127.0.0.1:${API_BIND_PORT:-8080}:8080"
+    volumes:
+      - ./deploy/oracle/logback.xml:/app/config/logback-oracle.xml:ro
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--max-time", "5", "http://127.0.0.1:8081/actuator/health"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: ${API_HEALTH_START_PERIOD:-120s}
+    mem_limit: 1536m
+    networks:
+      - database
+      - application
+    logging: *bounded-logging
+
+networks:
+  database:
+    internal: true
+  # API requires outbound access to Google, Toss, SMTP and S3.
+  application:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    # Create this NEW 8.4 volume explicitly before startup. No AWS data import.
+    # Compose does not own or delete the external volume.
+    external: true
+    name: ${MYSQL_VOLUME_NAME:-calfit_oracle_mysql84}
