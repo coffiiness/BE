@@ -27,6 +27,11 @@ tool=sys.argv[1]; case=s['case']; sha='a'*40; digest='sha256:'+'d'*64
 old='sha256:'+'c'*64; new='sha256:'+'b'*64
 run_id=100; deployment_id=55
 if s.get('release')==2: sha='2'*40; digest='sha256:'+'1'*64; new='sha256:'+'3'*64; run_id=101; deployment_id=56
+if s.get('identity_fixture'):
+    digest=s['identity_fixture']['digest']; new=s['identity_fixture']['config']
+config=new
+if s.get('store')=='containerd': new=digest
+if s.get('old_store')=='containerd': old='sha256:'+'7'*64
 image='ghcr.io/coffiiness/calfit-backend@'+digest
 s['calls'].append([tool]+args)
 def emit(value=None,code=0):
@@ -47,7 +52,7 @@ if tool=='curl':
     if case=='api-after-pull' and n>1: emit(code=22)
     if endpoint.startswith('deployments?'):
         payload={'schemaVersion':1,'repository':'coffiiness/BE','image':'ghcr.io/coffiiness/calfit-backend',
-                 'commitSha':sha,'digest':digest,'imageId':new,'workflowRunId':run_id,'workflowRunAttempt':1}
+                 'commitSha':sha,'digest':digest,'imageId':config,'workflowRunId':run_id,'workflowRunAttempt':1}
         if case=='bad-digest': payload['digest']='sha256:not-a-digest'
         if case=='injection': payload['commitSha']='$(touch /tmp/calfit-must-never-execute)'
         if case=='wrong-repository': payload['repository']='someone/BE'
@@ -115,6 +120,16 @@ if tool=='docker':
     if args[0]=='pull':
         assert args==['pull','--platform','linux/arm64',image]
         emit(code=1 if case=='pull-failure' else 0)
+    if args[:2]==['manifest','inspect']:
+        assert args==['manifest','inspect',image], 'Manifest must be fetched by the exact registry digest'
+        if case in ['manifest-error','unknown-manifest-digest']: emit(code=1)
+        manifest={'schemaVersion':2,'mediaType':'application/vnd.oci.image.manifest.v1+json',
+                  'config':{'digest':config}}
+        if case=='docker-schema2': manifest['mediaType']='application/vnd.docker.distribution.manifest.v2+json'
+        if case=='wrong-config-digest': manifest['config']['digest']='sha256:'+'9'*64
+        if case=='missing-config-digest': manifest['config']={}
+        if case=='manifest-index': manifest['mediaType']='application/vnd.oci.image.index.v1+json'
+        emit(manifest)
     if args[:2]==['image','tag']:
         assert args[2]==old; s['rollbackTag']=args[3]; emit()
     if args[:2]==['image','inspect']:
@@ -174,6 +189,13 @@ class DeployTest(unittest.TestCase):
 
     def set_case(self, case):
         self.mock_state.write_text(json.dumps({'case': case, 'calls': []}))
+
+    def configure_store(self, store, old_store='classic', identity_fixture=None):
+        record = json.loads(self.mock_state.read_text())
+        record.update(store=store, old_store=old_store)
+        if identity_fixture:
+            record['identity_fixture'] = identity_fixture
+        self.mock_state.write_text(json.dumps(record))
 
     def run_script(self, *flags):
         result = subprocess.run(['bash', str(SCRIPT), '--root', str(self.root), *flags],
@@ -488,6 +510,97 @@ class DeployTest(unittest.TestCase):
                                 env=self.env, capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls(), [])
+
+    def test_containerd_success_separates_config_manifest_and_local_id(self):
+        self.configure_store('containerd')
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        current = json.loads((self.state / 'current.json').read_text())
+        self.assertEqual(current['imageId'], NEW)
+        self.assertEqual(current['configDigest'], NEW)
+        self.assertEqual(current['digest'], DIGEST)
+        self.assertEqual(current['manifestDigest'], DIGEST)
+        self.assertEqual(current['localImageId'], DIGEST)
+        self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], DIGEST)
+        self.assertFalse((self.state / 'pending.json').exists())
+
+    def test_classic_success_keeps_config_based_local_id(self):
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        current = json.loads((self.state / 'current.json').read_text())
+        self.assertEqual(current['imageId'], NEW)
+        self.assertEqual(current['configDigest'], NEW)
+        self.assertEqual(current['localImageId'], NEW)
+        self.assertEqual(current['manifestDigest'], DIGEST)
+
+    def test_observed_oracle_digests_with_containerd_store(self):
+        identity = {
+            'digest': 'sha256:a5161e6a1e0226856451573fc9f0babd6bf96b4aec1b10e5314a32f473201fdc',
+            'config': 'sha256:0ed0373e7ae777ac1231f558d212140c3924220eb550a3ad9fb31803f4240f4f',
+        }
+        self.configure_store('containerd', identity_fixture=identity)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        current = json.loads((self.state / 'current.json').read_text())
+        self.assertEqual(current['configDigest'], identity['config'])
+        self.assertEqual(current['imageId'], identity['config'])
+        self.assertEqual(current['localImageId'], identity['digest'])
+
+    def test_manifest_errors_and_unrelated_local_ids_fail_before_replacement(self):
+        for store in ['classic', 'containerd']:
+            for case in ['wrong-config-digest', 'missing-config-digest', 'manifest-index',
+                         'manifest-error', 'unknown-manifest-digest', 'wrong-image-id',
+                         'wrong-repodigest', 'wrong-architecture', 'wrong-revision']:
+                with self.subTest(store=store, case=case):
+                    self.set_case(case)
+                    self.configure_store(store)
+                    result = self.run_script()
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertFalse(json.loads(self.mock_state.read_text()).get('applied'))
+                    self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+                    self.assertFalse((self.state / 'pending.json').exists())
+
+    def test_docker_schema2_manifest_is_supported(self):
+        self.set_case('docker-schema2')
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_containerd_rollback_uses_previous_local_id_and_preserves_state(self):
+        old_local = 'sha256:' + '7' * 64
+        self.previous(imageId=OLD, localImageId=old_local, configDigest=OLD,
+                      manifestDigest=old_local, digest=old_local)
+        previous = (self.state / 'current.json').read_bytes()
+        self.set_case('actuator-down')
+        self.configure_store('containerd', old_store='containerd')
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.state / 'current.json').read_bytes(), previous)
+        self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+        self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], old_local)
+        recovery = json.loads((self.state / 'backups/55/recovery.json').read_text())
+        self.assertEqual(recovery['previousImageId'], old_local)
+        failed = json.loads((self.state / 'failures/requests/55.json').read_text())
+        self.assertEqual(failed['imageId'], NEW)
+        self.assertEqual(failed['localImageId'], DIGEST)
+        self.assertFalse((self.state / 'pending.json').exists())
+        self.assertEqual(len([c for c in self.calls() if c[0] == 'docker' and 'pull' in c]), 1)
+
+    def test_containerd_pending_identity_survives_interruption_and_recovery(self):
+        self.set_case('process-kill')
+        self.configure_store('containerd')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        pending = json.loads((self.state / 'pending.json').read_text())
+        self.assertEqual(pending['imageId'], NEW)
+        self.assertEqual(pending['configDigest'], NEW)
+        self.assertEqual(pending['manifestDigest'], DIGEST)
+        self.assertEqual(pending['localImageId'], DIGEST)
+        record = json.loads(self.mock_state.read_text())
+        record.update(case='new', calls=[])
+        self.mock_state.write_text(json.dumps(record))
+        result = self.run_script('--recover')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], OLD)
+        self.assertFalse((self.state / 'pending.json').exists())
 
 
 if __name__ == '__main__':

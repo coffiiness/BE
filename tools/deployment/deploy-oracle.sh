@@ -313,13 +313,26 @@ old_id=$(dkr inspect "$api_container" --format '{{.Image}}')
 if [[ -f $version_file ]]; then previous_selection="$version_file"; else previous_selection=; fi
 version_matches "$previous_selection" "$old_id" || die 'Previous version selection does not match the running image; repair before deployment'
 dkr pull --platform linux/arm64 "$image"
-dkr image inspect "$image" | jq -e --arg id "$image_id" --arg sha "$sha" --arg image "$image" '
-  length == 1 and .[0].Id == $id and .[0].Os == "linux" and .[0].Architecture == "arm64" and
+# The payload imageId is the config digest. Docker's local ID may instead be
+# the manifest digest with the containerd image store. Bind both through the
+# exact immutable registry reference, never through a mutable tag.
+dkr manifest inspect "$image" > "$work/registry-manifest.json" || die 'Could not inspect the pinned registry manifest'
+jq -e --arg config "$image_id" '
+  .schemaVersion == 2 and
+  (.mediaType == "application/vnd.oci.image.manifest.v1+json" or .mediaType == "application/vnd.docker.distribution.manifest.v2+json") and
+  .config.digest == $config
+' "$work/registry-manifest.json" >/dev/null || die 'Pinned registry manifest config digest does not match Deployment imageId'
+config_digest=$(jq -r '.config.digest' "$work/registry-manifest.json")
+dkr image inspect "$image" > "$work/local-image.json" || die 'Could not inspect the pulled local image'
+jq -e --arg config "$config_digest" --arg manifest "$digest" --arg sha "$sha" --arg image "$image" '
+  length == 1 and (.[0].Id == $config or .[0].Id == $manifest) and
+  .[0].Os == "linux" and .[0].Architecture == "arm64" and
   .[0].Config.Labels["org.opencontainers.image.source"] == "https://github.com/coffiiness/BE" and
   .[0].Config.Labels["org.opencontainers.image.revision"] == $sha and
   (.[0].RepoDigests | index($image)) != null and
   .[0].Config.Labels["com.calfit.java.runtime"] == "17.0.21.1+2"
-' >/dev/null || die 'Pulled image identity, architecture or revision mismatch'
+' "$work/local-image.json" >/dev/null || die 'Pulled local ID is not the verified config/manifest, or image metadata mismatches'
+local_image_id=$(jq -r '.[0].Id' "$work/local-image.json")
 
 # Recheck after the potentially slow pull. No replacement on new API failures.
 get 'git/ref/heads/main' "$work/main.json"
@@ -344,8 +357,9 @@ if [[ -f $state/current.json ]]; then cp -p -- "$state/current.json" "$backup/cu
 jq -n --arg old "$old_id" --arg rollback "$rollback_image" --arg mysql "$mysql_container" --arg started "$mysql_started" \
   --arg envHash "$env_hash" '{previousImageId:$old,rollbackImage:$rollback,mysqlContainer:$mysql,mysqlStarted:$started,productionEnvSHA256:$envHash}' > "$backup/recovery.json"
 jq -n --argjson deployment "$deployment" --argjson run "$run" --argjson attempt "$attempt" --arg sha "$sha" \
-  --arg digest "$digest" --arg id "$image_id" --arg backup "$backup" \
-  '{status:"in_progress",phase:"prepared",deploymentId:$deployment,workflowRunId:$run,workflowRunAttempt:$attempt,commitSha:$sha,digest:$digest,imageId:$id,backup:$backup}' > "$work/pending.json"
+  --arg digest "$digest" --arg id "$image_id" --arg localId "$local_image_id" --arg config "$config_digest" --arg backup "$backup" \
+  '{status:"in_progress",phase:"prepared",deploymentId:$deployment,workflowRunId:$run,workflowRunAttempt:$attempt,commitSha:$sha,
+    digest:$digest,manifestDigest:$digest,imageId:$id,configDigest:$config,localImageId:$localId,backup:$backup}' > "$work/pending.json"
 mv -- "$work/pending.json" "$state/pending.json"
 attempt_started=true
 # Same directory/filesystem: image selection changes atomically. Secret env untouched.
@@ -360,7 +374,7 @@ dc_active() {
 jq '.phase="replacing"' "$state/pending.json" > "$work/replacing.json"
 mv -f -- "$work/replacing.json" "$state/pending.json"
 dc_active up -d --no-deps --no-build --pull never --wait --wait-timeout 600 core-api || die 'Backend replacement/health failed; rolling back'
-candidate_file="$active_file" internal_health "$image_id" || die 'Internal health failed; rolling back'
+candidate_file="$active_file" internal_health "$local_image_id" || die 'Internal health failed; rolling back'
 candidate_file="$active_file" invariants || die 'MySQL or production env invariant changed; recovery will fail closed'
 external=up
 if ! external_health; then external=degraded; log 'WARN: external API unavailable; internal health passed, no rollback'; fi
