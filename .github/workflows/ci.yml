@@ -216,6 +216,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      deployments: write
     steps:
       # No checkout, Gradle invocation or Docker build in this privileged job.
       - name: Download the tested image from this run
@@ -277,3 +278,35 @@ jobs:
           path: ${{ runner.temp }}/publication/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Request Oracle deployment after verified publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REGISTRY_DIGEST: ${{ steps.push.outputs.digest }}
+          VERIFIED_IMAGE_ID: ${{ needs.arm64.outputs.image_id }}
+        run: |
+          set -euo pipefail
+          jq -n --arg sha "$GITHUB_SHA" --arg repository "$GITHUB_REPOSITORY" \
+            --arg digest "$REGISTRY_DIGEST" --arg imageId "$VERIFIED_IMAGE_ID" \
+            --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
+            '{ref: $sha, auto_merge: false, required_contexts: [], task: "deploy",
+              environment: "oracle-production", production_environment: true, transient_environment: false,
+              payload: {schemaVersion: 1, repository: $repository, commitSha: $sha,
+                image: "ghcr.io/coffiiness/calfit-backend", digest: $digest, imageId: $imageId,
+                workflowRunId: ($run | tonumber), workflowRunAttempt: ($attempt | tonumber)}}' \
+            > "$RUNNER_TEMP/deployment-request.json"
+          status=$(curl --silent --show-error --proto '=https' --tlsv1.2 \
+            --connect-timeout 10 --max-time 30 --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --data-binary "@$RUNNER_TEMP/deployment-request.json" \
+            --output "$RUNNER_TEMP/deployment-response.json" --write-out '%{http_code}' \
+            https://api.github.com/repos/coffiiness/BE/deployments)
+          test "$status" = 201
+          jq -e --arg sha "$GITHUB_SHA" \
+            '.id > 0 and .sha == $sha and .ref == $sha and .environment == "oracle-production"' \
+            "$RUNNER_TEMP/deployment-response.json"
+          deployment_id=$(jq -r '.id' "$RUNNER_TEMP/deployment-response.json")
+          printf 'Requested Oracle deployment `%s`; Oracle must verify this entire run has completed successfully. No deployment success status was posted.\n' \
+            "$deployment_id" >> "$GITHUB_STEP_SUMMARY"

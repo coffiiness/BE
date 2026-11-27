@@ -496,3 +496,160 @@ Docker Compose v2.40.3에서 실제 `.env.prod` 대신 합성 값과 격리한 �
 Health Check, 메모리, 네트워크, 포트, 로그가 유지된다. 이미지 파일들의 gitignore도 확인했다.
 15-8 Workflow/검증 스크립트/문서와 Dockerfile/Quality Gate/Baseline의 SHA-256도 일치한다.
 실제 digest pull/ARM64 실행/운영 복구 성공은 이번 설정 검증에 포함하지 않는다.
+
+## 15-10 Oracle 배포 요청 수신 및 수동 실행 준비
+
+구현 파일은 `tools/deployment/deploy-oracle.sh`다. 운영 기본 경로는
+`/home/ubuntu/calfit/BE`이며 기존 Compose 프로젝트 `calfit-oracle`을 사용한다.
+아래 명령은 후속 운영 적용을 위한 예시이며 이번 작업에서는 서버에 접속하거나 실행하지 않았다.
+systemd 서비스/Timer와 상세 자동 롤백은 이 단계에서 만들지 않았다.
+
+### GitHub에서 전달하는 요청
+
+Publish Job의 발행·digest/config ID 확인 및 publication Artifact 보관이 성공한 뒤
+`GITHUB_TOKEN`으로 Deployments API에 요청한다. 발행 Job에만 `deployments: write`를
+추가했고 기존 Gate/ARM64 빌드·검증 코드는 유지했다.
+
+- environment: `oracle-production`, task: `deploy`
+- ref: 전체 commit SHA, `auto_merge=false`
+- payload: schemaVersion/repository/commitSha/image/digest/imageId/workflowRunId/workflowRunAttempt
+- `required_contexts=[]`: 요청 생성 시 현재 Workflow가 아직 끝나지 않았기 때문에 사용한다.
+  실제 배포는 Oracle의 전체 Run 및 세 필수 Job 성공 확인을 거쳐야 하며 Gate를 생략하지 않는다.
+
+GitHub에 Deployment `success` 상태를 쓰는 단계는 없다. Oracle은 공개 API만 읽으며
+PAT/GitHub App/GITHUB_TOKEN을 저장하거나 요구하지 않는다. 따라서 서버에서 성공한 뒤에도
+GitHub Deployment의 success 표시를 자동 갱신하지 않는다. **운영 성공의 확인 지점은
+로컬 `current.json`과 컨테이너 health**다. GitHub UI의 배포 요청을 운영 성공으로 해석하지 않는다.
+
+### Oracle의 실행 전 조건
+
+Ubuntu 24.04의 Bash, curl, jq, flock(util-linux), coreutils와 기존 Docker Engine/Compose가
+필요하다. Python 3는 Mock 테스트에만 필요하다. 기존 Docker 설치를 다른 패키지로 교체하지 않는다.
+실행 사용자 ubuntu는 기존 로컬 Docker socket 사용 권한이 있어야 한다.
+
+```bash
+# 필요 패키지 설치는 운영 적용 승인 후에만 실행한다.
+sudo apt-get update
+sudo apt-get install -y curl jq util-linux coreutils
+cd /home/ubuntu/calfit/BE
+chmod 700 tools/deployment/deploy-oracle.sh
+bash -n tools/deployment/deploy-oracle.sh
+bash tools/deployment/deploy-oracle.sh --dry-run
+```
+
+운영 Compose, read-only 로그 설정 파일과 기존 `.env.prod`는 서버에 그대로 둔다.
+이 스크립트는 소스를 pull하거나 빌드하지 않고 운영 Secret을 전송·복사하지 않는다.
+GHCR package가 Public이며 Ubuntu에서 익명 digest pull이 가능한지 별도로 확인해야 한다.
+GitHub/레지스트리/Oracle 접속을 추가하기 위한 PAT는 요구하지 않는다.
+
+dry-run은 공개 API/기존 로컬 이력만 검증한다. `.oracle-deploy` 디렉터리와 lock/임시 응답은
+사용하지만 Docker 명령, `.env.prod` 읽기, 이미지 Pull/태깅, `.env.image` 수정, 성공 기록은 없다.
+따라서 dry-run 성공은 원격 이미지 가용성이나 실제 Compose 기동 성공을 뜻하지 않는다.
+
+### 수신 검증과 역행 방지
+
+가장 최신 `oracle-production` 요청 하나만 검토한다. 잘못되거나 실패한 최신 요청이 있으면
+이전 요청을 찾아 대신 배포하지 않는다. 요청 생성자가 GitHub Actions bot인지 확인하고,
+repository/commit/digest/image ID/run ID/attempt 형식을 검사한다. 이후 공개 API로 다음을 확인한다.
+
+1. 요청 SHA가 최신 main의 SHA와 일치
+2. 기존 `.github/workflows/ci.yml` / `Backend CI/CD`의 동일 workflow ID
+3. 같은 repository의 main Push, 동일 SHA/run ID/attempt, completed/success
+4. 기존 품질 검증·ARM64 검증·발행 세 Job이 모두 completed/success
+5. Deployment 요청이 실패/취소/완료 상태로 변경되지 않음
+6. 로컬 성공 이력보다 Deployment ID 및 run/attempt가 전진함
+7. 다른 commit이면 이전 성공 SHA에서 새 SHA로 GitHub compare 결과가 ahead임
+
+main의 강제 되돌리기나 diverged 이력은 자동 배포하지 않고 수동 판단을 기다린다. 이미
+성공한 digest는 재적용하지 않는다. 로컬 이력을 삭제하면 역행 방지 기준도 사라지므로
+`.oracle-deploy`는 배포 사이에 유지한다. 최초 도입 시에는 로컬 성공 이력이 없으므로
+최신 main/성공 Workflow/최신 요청을 기준으로 시작하며 현재 실행 이미지를 복구용으로 보존한다.
+
+이 검증은 공개 GitHub 메타데이터와 repository의 Actions 권한을 신뢰하는 모델이다.
+독립적인 서명/attestation 검증을 추가한 것은 아니다. main/Workflow 및 Actions의 쓰기 권한을
+보호해야 하며 원격 응답을 source/eval하거나 원격 스크립트를 실행하지 않는다.
+
+### 교체와 상태 파일
+
+실제 배포는 후속 운영 적용 승인 후 아래 명령을 한 번 실행한다. 주기적 실행은 15-12에서
+설정한다. `--root`는 격리 검증 또는 동일 설정의 준비 경로를 지정할 때만 사용한다.
+
+```bash
+cd /home/ubuntu/calfit/BE
+bash tools/deployment/deploy-oracle.sh
+```
+
+`flock`으로 같은 운영 디렉터리의 실행을 직렬화한다. Docker는 명시적으로 로컬 Unix socket을
+사용하고 상속한 DOCKER_HOST/CONTEXT 및 Compose 파일/프로젝트 override는 제거한다.
+BACKEND_IMAGE를 검증한 digest로, JPA_DDL_AUTO를 validate로 명령 범위에서 지정한 뒤
+실제 Compose 해석 결과도 검사하므로 상속된 다른 이미지/update 값이 적용되지 않는다.
+
+Pull 후 RepoDigests/image ID/linux-arm64/source/revision/Java label을 검사한다. 느린 Pull 동안
+새 main/요청/재실행/취소가 생기지 않았는지 API를 다시 확인하고 API 오류라면 교체하지 않는다.
+원격 GitHub와 Docker 사이에 분산 트랜잭션은 없으므로 최종 확인 직후의 작은 경합 구간까지
+원자적으로 막는 것은 아니다. 다음 실행은 새 최신 요청만 검토한다.
+
+현재 backend 컨테이너의 실제 image ID에 복구 태그를 붙이고 기존 `.env.image` 원본(또는
+없었다는 표시)을 보존한다. `.env.prod`는 수정하거나 백업 내용에 복사하지 않으며 hash만
+전후 비교한다. `.env.image`는 같은 디렉터리의 임시 파일을 rename하여 원자적으로 갱신한다.
+그 뒤 `core-api`만 `--no-deps --no-build --pull never --wait --wait-timeout 600`으로 교체한다.
+기존 Compose Health Check 및 MySQL ID/시작 시각, 실행 image ID를 확인한 뒤에만 성공으로 기록한다.
+단일 컨테이너 교체 중 짧은 API 중단이 생길 수 있다.
+
+`.oracle-deploy/`는 gitignore되며 소유 사용자 전용 권한으로 관리한다.
+
+| 경로 | 의미 |
+| --- | --- |
+| lock | 프로세스 간 flock |
+| current.json | 마지막 정상 배포의 SHA/digest/image ID/run/attempt/Deployment ID |
+| digests/<digest hex>.json | 성공한 digest 이력, 재적용 차단 |
+| backups/<Deployment ID>/recovery.env | 직전 실제 실행 이미지의 로컬 복구 태그 |
+| backups/<Deployment ID>/env.image.previous | 직전 이미지 버전 파일 원본 |
+| backups/<Deployment ID>/env.image.absent | 이전 버전 파일이 없었음 |
+| backups/<Deployment ID>/recovery.json | 이전 image ID, MySQL ID/시작 시각, env hash |
+| pending.json | 진행 중 또는 실패/중단된 교체, 존재하면 다음 실행 차단 |
+
+### 실패 처리 및 15-11 경계
+
+API 오류/Rate Limit/네트워크 오류/잘못된 요청/실패 Workflow는 교체 전에 종료하므로 기존
+서비스를 유지한다. Pull 실패나 image/label 불일치도 기존 컨테이너와 `.env.image`를 유지한다.
+익명 GitHub API 한도는 공유되므로 짧은 주기 반복을 피한다. 예를 들어 15분 이상 주기로
+설계하되 실제 Timer 및 backoff 정책은 15-12에서 결정한다. API 오류를 과거 요청으로 우회하지 않는다.
+
+**교체가 시작된 뒤 실패하면 기존 컨테이너가 이미 교체됐을 수 있다.** 이때 자동 복구를
+성공했다고 가정하지 않는다. `current.json`은 갱신하지 않고 `pending.json`에 실패를 남겨
+추가 자동 실행을 차단한다. 프로세스가 강제 종료된 경우에도 진행 중 기록을 남긴다.
+`.env.image`는 실패한 후보를 가리킬 수 있으므로 active 파일만 보고 성공으로 판정하지 않는다.
+상세 자동 롤백은 15-11에서 구현한다.
+
+수동 복구가 필요하면 위 15-9의 로컬 복구 절차와 해당 backup의 recovery.env를 사용한다.
+기존 MySQL/volume/.env.prod는 그대로 두고 이전 로컬 이미지로 core-api만 교체한다. 이전 버전
+파일이 있었다면 보존본을 같은 디렉터리 임시 파일로 복사한 뒤 rename하여 되돌린다. 파일이
+없었다면 recovery.env를 새 버전 파일로 사용할 수 있다. 실제 실행/health/이미지와 로컬 이력을
+대조해 복구를 확인하기 전에는 pending 기록을 지우거나 성공 이력을 임의로 재작성하지 않는다.
+복구 확인 및 상태 정리는 15-11 운영 절차에서 구체화한다. 복구 이미지/상태 파일 prune은 하지 않는다.
+
+### 로컬 검증
+
+```bash
+bash -n tools/deployment/deploy-oracle.sh
+python3 tools/deployment/test_deploy_oracle.py
+```
+
+테스트는 Python 표준 라이브러리 unittest와 실제 Bash/jq/flock을 사용한다. curl/Docker/uname은
+테스트 전용 명령으로 대체하고 Linux 임시 디렉터리의 합성 `.env.prod`만 사용한다.
+외부 API 또는 실제 Docker daemon과 통신하지 않는다. Windows에서는 WSL에서 실행한다.
+Workflow는 actionlint로 YAML/context/Job 의존성을 검사한다. 프로젝트 품질 도구/Gradle Gate에
+새 검사를 추가하지 않았고 전체 Gradle 테스트나 ARM64 이미지 빌드를 반복하지 않았다.
+
+이번 로컬 결과: Bash 구문/actionlint 검사 통과, Workflow inline Bash 8개 구문 통과,
+기존 Gate/ARM64 및 기존 Publish 본문 보존 비교 통과, Linux Mock 테스트 **14개 성공/실패 0**.
+신규/최초 배포, 같은 digest/과거 digest skip, 잘못된 digest·repository·creator·SHA,
+실패/진행 중/다른 Workflow·skip Job, API/Rate Limit/네트워크 오류, Pull/ID/아키텍처/label 불일치,
+Pull 중 main/요청/attempt 변경, 역행/diverged 이력, 실제 flock 경합, 실패 health/교체,
+손상된 로컬 이력 및 중단 pending 차단을 확인했다. 모든 API/Docker는 대역이었다.
+실제 main Push의 API 요청 생성과 Oracle의 실제 익명 조회·Pull·기동은 후속 검증 대상이다.
+
+참고: [Deployments API](https://docs.github.com/en/rest/deployments/deployments),
+[공개 Workflow Run API](https://docs.github.com/en/rest/actions/workflow-runs),
+[공개 Deployment Status API](https://docs.github.com/en/rest/deployments/statuses).
