@@ -9,6 +9,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
@@ -123,6 +124,9 @@ public class ApplicationApiDocs extends RestDocsTest {
                     fieldWithPath("data.columns[].applications[].email").description("지원자 이메일"),
                     fieldWithPath("data.columns[].applications[].phone").description("지원자 전화번호"),
                     fieldWithPath("data.columns[].applications[].createdAt").description("지원 일시"),
+                    subsectionWithPath("data.columns[].applications[]")
+                        .description("해당 단계의 지원서 목록")
+                        .optional(),
                     fieldWithPath("error").description("에러 정보").optional())));
   }
 

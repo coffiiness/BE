@@ -1,0 +1,117 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+def policy = new GroovyShell(getClass().classLoader).evaluate(file('gradle/quality/policy.groovy'))
+def scans = []
+subprojects.toList().sort { it.path }.each { module ->
+    module.sourceSets.each { sourceSet ->
+        String name = 'spotbugs' + sourceSet.name.capitalize()
+        def xml = module.layout.buildDirectory.file("reports/spotbugs/${name}.xml")
+        def html = module.layout.buildDirectory.file("reports/spotbugs/${name}.html")
+        def aux = module.files(sourceSet.compileClasspath, module.configurations.spotbugsAuxiliary)
+        def task = module.tasks.register(name + 'Report', JavaExec) {
+            group = 'verification'
+            description = 'Generate full unfiltered SpotBugs reports; policy is enforced by spotbugsVerification.'
+            dependsOn module.tasks.named(sourceSet.classesTaskName), rootProject.tasks.named('verifyQualityRuntime')
+            classpath = module.files(module.configurations.spotbugs, module.configurations.spotbugsSlf4j)
+            mainClass = 'edu.umd.cs.findbugs.LaunchAppropriateUI'
+            maxHeapSize = providers.gradleProperty('spotbugsMaxHeapSize').getOrElse('512m')
+            jvmArgs '-XX:ActiveProcessorCount=2'
+            inputs.files(sourceSet.output.classesDirs).withPropertyName('analyzedClasses')
+            inputs.files(aux).withPropertyName('auxiliaryClasspath').withNormalizer(ClasspathNormalizer)
+            inputs.files(sourceSet.allJava).withPropertyName('sources')
+            outputs.files(xml, html)
+            onlyIf { !sourceSet.output.classesDirs.asFileTree.matching { include '**/*.class' }.empty }
+            doFirst {
+                [xml.get().asFile, html.get().asFile].each { report ->
+                    report.parentFile.mkdirs()
+                    if (report.exists() && !report.delete()) { throw new GradleException("Cannot remove stale report: ${report}") }
+                }
+                def auxFile = module.layout.buildDirectory.file("tmp/spotbugs/${name}-aux.txt").get().asFile
+                auxFile.parentFile.mkdirs()
+                auxFile.setText(aux.files.findAll { it.exists() }.collect { it.absolutePath }.join('\n'), 'UTF-8')
+                // Official reporting mode: no filter, suppression or exit-code
+                // swallowing. JavaExec fails on nonzero process exit. XML integrity
+                // and every warning are independently checked by the required gate.
+                setArgs(['-textui', '-effort:max', '-low',
+                         "-xml:withMessages=${xml.get().asFile.absolutePath}",
+                         "-html=${html.get().asFile.absolutePath}",
+                         '-auxclasspathFromFile', auxFile.absolutePath,
+                         '-sourcepath', sourceSet.allJava.srcDirs.collect { it.absolutePath }.join(File.pathSeparator)] +
+                        sourceSet.output.classesDirs.files.findAll { it.exists() }.collect { it.absolutePath })
+            }
+            doLast {
+                if (!xml.get().asFile.exists() || !html.get().asFile.exists() ||
+                        policy.completeness(policy.readXml(xml.get().asFile)).incomplete) {
+                    throw new GradleException("SpotBugs analysis incomplete: ${module.path}/${sourceSet.name}")
+                }
+            }
+        }
+        scans << [module: module, sourceSet: sourceSet, task: task, xml: xml]
+        module.tasks.register(name) {
+            group = 'verification'
+            description = 'Verify the complete reviewed SpotBugs policy, including all modules and source sets.'
+            dependsOn ':spotbugsVerification'
+        }
+    }
+    module.tasks.named('check') { dependsOn ':spotbugsVerification' }
+}
+ext.qualitySpotbugsScans = scans
+ext.qualityReadSpotbugs = {
+    def findings = []
+    def analysis = []
+    scans.each { scan ->
+        if (scan.sourceSet.output.classesDirs.asFileTree.matching { include '**/*.class' }.empty) {
+            analysis << [module: scan.module.path, task: scan.task.name, status: 'N/A - no bytecode']
+        } else if (!scan.xml.get().asFile.exists()) {
+            analysis << [module: scan.module.path, task: scan.task.name, status: 'MISSING REPORT', incomplete: true]
+        } else {
+            def xml = policy.readXml(scan.xml.get().asFile)
+            def status = policy.completeness(xml)
+            analysis << ([module: scan.module.path, task: scan.task.name, status: 'reported'] + status)
+            def sources = scan.sourceSet.allJava.files.collectEntries { java ->
+                def relative = scan.sourceSet.allJava.srcDirs.find { java.toPath().startsWith(it.toPath()) }
+                relative ? [(relative.toPath().relativize(java.toPath()).toString().replace('\\', '/')): java] : [:]
+            }
+            xml.BugInstance.each { findings << policy.finding(scan.module.path, scan.sourceSet.name.capitalize(), sources, it) }
+        }
+    }
+    [findings: findings, analysis: analysis, incomplete: analysis.any { it.incomplete }]
+}
+tasks.register('spotbugsReport') {
+    group = 'verification'
+    description = 'Full unfiltered XML/HTML in every module, irrespective of baseline membership.'
+    dependsOn scans.collect { it.task }
+    doLast {
+        def scan = rootProject.qualityReadSpotbugs()
+        def findings = scan.findings
+        def report = layout.buildDirectory.file('reports/quality/spotbugs-summary.json').get().asFile
+        report.parentFile.mkdirs()
+        report.setText(JsonOutput.prettyPrint(JsonOutput.toJson([
+                pluginVersion: rootProject.spotbugsPluginVersion, toolVersion: rootProject.spotbugsVersion,
+                policy: 'Always unfiltered; baseline is not applied to analysis or reports', analysis: scan.analysis,
+                byPriority: findings.countBy { it.priority }, byRank: findings.countBy { it.rank },
+                byCategory: findings.countBy { it.category }, byType: findings.countBy { it.type },
+                byModule: findings.countBy { it.module }, findings: findings])), 'UTF-8')
+        if (scan.incomplete) { throw new GradleException('SpotBugs analysis incomplete; see full reports.') }
+    }
+}
+tasks.register('spotbugsVerification') {
+    group = 'verification'
+    description = 'Zero High/new/escalated findings; reviewed identity baseline is read-only.'
+    dependsOn tasks.named('spotbugsReport')
+    inputs.file('gradle/quality/spotbugs-baseline.json')
+    outputs.upToDateWhen { false }
+    doLast {
+        def baseline = new JsonSlurper().parse(file('gradle/quality/spotbugs-baseline.json'), 'UTF-8')
+        def result = policy.verify(baseline, rootProject.qualityReadSpotbugs(), rootProject.spotbugsVersion)
+        def report = layout.buildDirectory.file('reports/quality/spotbugs-gate.json').get().asFile
+        report.parentFile.mkdirs()
+        report.setText(JsonOutput.prettyPrint(JsonOutput.toJson(result)), 'UTF-8')
+        logger.lifecycle("SpotBugs gate: total=${result.total}, known=${result.known}, new=${result.newFindings.size()}, " +
+                "High=${result.highFindings.size()}, escalated=${result.escalatedFindings.size()}, resolved=${result.resolvedEntries.size()}")
+        if (!result.passed) { throw new GradleException("SpotBugs Quality Gate failed; see ${report}") }
+    }
+}
+apply from: 'gradle/quality/policy-tests.gradle'
+

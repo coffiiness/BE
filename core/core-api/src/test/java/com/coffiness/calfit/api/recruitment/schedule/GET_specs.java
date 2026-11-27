@@ -130,6 +130,7 @@ public class GET_specs {
     assertThat(response.getData().get(0).applicantName()).isEqualTo("지원자#201");
     assertThat(response.getData().get(0).creatorName())
         .isEqualTo(userFixture.me(token).getData().name());
+    assertThat(response.getData().get(0).description()).isEqualTo("실무 면접");
     assertThat(response.getData().get(0).meetingRoomId()).isEqualTo(meetingRoomId);
     assertThat(response.getData().get(0).location()).isEqualTo("A회의실 (3층)");
   }

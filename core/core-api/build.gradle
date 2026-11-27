@@ -69,7 +69,21 @@ tasks.named('restDocsTest') {
 
 tasks.named('asciidoctor') {
     inputs.dir snippetsDir
-    attributes 'snippets': snippetsDir
+    baseDirFollowsSourceDir()
+    options doctype: 'book'
+    attributes 'snippets': snippetsDir,
+               'encoding': 'utf-8'
+
+    doLast {
+        def htmlFile = file("$outputDir/index.html")
+        def cssFile = file('src/docs/asciidoc/docinfo.html')
+        if (htmlFile.exists() && cssFile.exists()) {
+            def html = htmlFile.text
+            def css = cssFile.text
+            html = html.replace('</head>', "${css}\n</head>")
+            htmlFile.text = html
+        }
+    }
 }
 
 def jacocoTargetProjects = rootProject.subprojects.findAll { subproject ->
@@ -86,7 +100,13 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     additionalSourceDirs.from(files(jacocoTargetProjects*.sourceSets.main*.allSource.srcDirs))
     sourceDirectories.from(files(jacocoTargetProjects*.sourceSets.main*.allSource.srcDirs))
     classDirectories.from(files(jacocoTargetProjects*.sourceSets.main*.output))
-    executionData.from(fileTree(rootProject.projectDir).include('**/build/jacoco/test.exec'))
+    // Preserve all regular test.exec inputs without a root-wide file tree that
+    // Gradle would treat as consuming unrelated report task outputs.
+    def regularTests = rootProject.subprojects.collect { it.tasks.named('test', Test) }
+    dependsOn regularTests
+    executionData.from(regularTests.collect { task ->
+        task.map { it.extensions.getByType(org.gradle.testing.jacoco.plugins.JacocoTaskExtension).destinationFile }
+    })
 
     reports {
         xml.required = true

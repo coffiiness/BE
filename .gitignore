@@ -3,11 +3,15 @@
 .gradle-user-home/
 build/
 .env
+.env.*
+!.env.example
+!.env.prod.example
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**
 !**/src/test/**
 .gradle-user/
 .gradle-user-codex/
+.oracle-deploy/
 
 ### IDEA ###
 .idea
@@ -28,3 +32,45 @@ CLAUDE.md
 *service-account*.json
 application-local.yml
 /k8s/secret.yaml
+
+### Oracle deployment: environment, private keys and DB backups ###
+# Keep these after the src/main and src/test exceptions above.
+.env
+.env.*
+*.env
+!.env.example
+!.env.prod.example
+**/.ssh/
+**/ssh/
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+id_ecdsa.*
+*.pem
+*.key
+*.ppk
+*.p12
+*.pfx
+*.jks
+*.keystore
+/backups/
+/db-backups/
+/dumps/
+**/backups/
+**/db-backups/
+**/dumps/
+# Root SQL exports are backups; classpath schema/migration SQL stays versionable.
+/*.sql
+*backup*.sql
+*dump*.sql
+*.sql.gz
+*.sql.zip
+*.sql.xz
+*.sql.bz2
+*.sql.zst
+*.dump
+*.dmp
+*.bak
+*.backup

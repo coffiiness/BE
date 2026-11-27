@@ -1,0 +1,47 @@
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.testing.Test
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JvmVendorSpec
+import org.gradle.util.GradleVersion
+
+def policy = new Properties()
+file('gradle/quality/runtime.properties').withInputStream { policy.load(it) }
+tasks.register('verifyQualityRuntime') {
+    group = 'verification'
+    description = 'Require the same Temurin Java patch and Gradle version on every quality/build host.'
+    doLast {
+        if (GradleVersion.current().version != policy.gradleVersion ||
+                System.getProperty('java.runtime.version') != policy.javaRuntimeVersion ||
+                System.getProperty('java.vendor') != policy.javaVendor) {
+            throw new GradleException("Use ${policy.javaVendor} ${policy.javaRuntimeVersion} and Gradle ${policy.gradleVersion}; " +
+                    "actual JVM: ${System.getProperty('java.vendor')} ${System.getProperty('java.runtime.version')}, " +
+                    "Gradle ${GradleVersion.current().version}. Set JAVA_HOME to the pinned JDK.")
+        }
+        def installations = rootProject.allprojects.collectMany { project ->
+            project.tasks.withType(JavaCompile).collect { it.javaCompiler.get().metadata } +
+                    project.tasks.withType(Test).collect { it.javaLauncher.get().metadata } +
+                    project.tasks.withType(JavaExec).collect { it.javaLauncher.get().metadata }
+        }
+        if (installations.any { it.javaRuntimeVersion != policy.javaRuntimeVersion }) {
+            throw new GradleException('Compiler, test and analyzer launchers must all use the pinned Java runtime version.')
+        }
+        logger.lifecycle("Quality runtime: ${policy.javaVendor} ${policy.javaRuntimeVersion}; Gradle ${policy.gradleVersion}; all launchers verified")
+    }
+}
+allprojects { project ->
+    pluginManager.withPlugin('java') {
+        extensions.getByType(JavaPluginExtension).toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+            vendor = JvmVendorSpec.ADOPTIUM
+        }
+        tasks.withType(JavaCompile).configureEach { dependsOn rootProject.tasks.named('verifyQualityRuntime') }
+        tasks.withType(Test).configureEach {
+            dependsOn rootProject.tasks.named('verifyQualityRuntime')
+            // Bound CPU-dependent pools consistently on Windows and Linux.
+            jvmArgs '-XX:ActiveProcessorCount=2'
+        }
+    }
+}
+

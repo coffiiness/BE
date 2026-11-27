@@ -1,0 +1,347 @@
+<style>
+/* ── Base ── */
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  color: #111827 !important;
+  background: #ffffff !important;
+  line-height: 1.7 !important;
+}
+
+/* ── TOC (Left Sidebar) ── */
+#toc.toc2 {
+  background: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  padding: 1.5rem 1rem !important;
+}
+
+#toc.toc2 #toctitle {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem !important;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #2563eb;
+}
+
+#toc.toc2 a {
+  color: #1f2937 !important;
+  text-decoration: none !important;
+}
+
+#toc.toc2 a:hover {
+  color: #2563eb !important;
+}
+
+#toc.toc2 ul {
+  padding-left: 1rem !important;
+}
+
+#toc.toc2 li {
+  margin: 0.3rem 0 !important;
+  line-height: 1.5 !important;
+}
+
+/* ── Content Area ── */
+#content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+}
+
+/* ── Headings ── */
+h1 {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  color: #111827 !important;
+  letter-spacing: -0.03em;
+  border-bottom: 3px solid #2563eb !important;
+  padding-bottom: 0.75rem !important;
+  margin-bottom: 2rem !important;
+}
+
+h2 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  letter-spacing: -0.02em;
+  margin-top: 3rem !important;
+  margin-bottom: 1.25rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 2px solid #d1d5db !important;
+}
+
+h3, #toctitle, .sidebarblock > .content > .title {
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+  margin-top: 2rem !important;
+  margin-bottom: 0.75rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background: #f3f4f6 !important;
+  border-left: 3px solid #2563eb !important;
+  border-radius: 0 4px 4px 0;
+}
+
+h4, h5 {
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* ── Section Dividers ── */
+hr {
+  border: none !important;
+  border-top: 1px solid #d1d5db !important;
+  margin: 2rem 0 !important;
+}
+
+/* ── Paragraphs & Body Text ── */
+p, .paragraph p, td.content, dl dt, dl dd {
+  color: #111827 !important;
+}
+
+/* ── Code Blocks ── */
+.listingblock > .content > pre,
+.listingblock > .content > pre:not(.highlight),
+.listingblock > .content > pre[class="highlight"],
+.listingblock > .content > pre[class^="highlight "],
+.literalblock pre,
+pre {
+  background: #f8f9fa !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  padding: 1.25rem !important;
+  font-size: 0.85rem !important;
+  line-height: 1.6 !important;
+  overflow-x: auto;
+}
+
+.listingblock > .content > pre.highlightjs > code,
+pre code,
+pre code * {
+  background: transparent !important;
+  color: #111827 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Droid Sans Mono', monospace !important;
+  font-size: 0.85rem !important;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Droid Sans Mono', monospace !important;
+  font-size: 0.85em !important;
+  color: #111827 !important;
+}
+
+:not(pre) > code {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  padding: 0.15em 0.4em !important;
+  border-radius: 4px !important;
+  font-size: 0.85em !important;
+  font-weight: 500;
+}
+
+/* ── Listing Block Title (e.g. "Curl request", "Response body") ── */
+.listingblock > .title,
+.admonitionblock td.content > .title,
+.exampleblock > .title,
+.imageblock > .title,
+.paragraph > .title,
+table.tableblock > .title,
+.dlist > .title,
+.olist > .title,
+.ulist > .title {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  font-style: normal !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem !important;
+}
+
+.listingblock > .content {
+  margin-bottom: 1rem;
+}
+
+/* ── Tables ── */
+table.tableblock {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
+  border: 1px solid #000000 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  margin: 0.75rem 0 1.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+table thead tr th,
+table thead tr td,
+table.tableblock thead th,
+table.tableblock thead th p {
+  background: #f9fafb !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  padding: 0.75rem 1rem !important;
+  border-bottom: 2px solid #000000 !important;
+  font-size: 0.85rem !important;
+}
+
+table tr th,
+table tr td,
+table.tableblock tbody td,
+table.tableblock tbody td p,
+table.tableblock tbody td p.tableblock {
+  padding: 0.625rem 1rem !important;
+  border-bottom: 1px solid #000000 !important;
+  color: #000000 !important;
+  background: #ffffff !important;
+  vertical-align: top !important;
+  font-size: 0.875rem !important;
+}
+
+table code,
+table.tableblock code,
+table.tableblock td code,
+table.tableblock th code,
+table.tableblock tbody td code,
+table.tableblock thead th code,
+table.tableblock tbody td p code,
+table.tableblock tbody td p.tableblock code {
+  color: #000000 !important;
+}
+
+table.tableblock tbody td:first-child p,
+table.tableblock tbody td:first-child p.tableblock,
+table.tableblock tbody td:first-child code,
+table.tableblock tbody td:first-child p code {
+  color: #000000 !important;
+}
+
+table.tableblock tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+table.tableblock tbody tr:hover td {
+  background: #eef2ff !important;
+}
+
+/* ── Path column: plain text style (first column in REST Docs tables) ── */
+table.tableblock tbody td:first-child code {
+  background: transparent !important;
+  color: #000000 !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: 500 !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+table.tableblock thead th:first-child {
+  border-right: 1px solid #000000 !important;
+}
+
+table.tableblock tbody td:first-child {
+  border-right: 1px solid #000000 !important;
+}
+
+/* ── Admonition Blocks ── */
+.admonitionblock {
+  border-radius: 8px !important;
+  padding: 1rem 1.25rem !important;
+  margin: 1rem 0 !important;
+}
+
+.admonitionblock td.content {
+  color: #111827 !important;
+}
+
+.admonitionblock > table > tbody > tr > td.icon .title {
+  color: #111827 !important;
+}
+
+.admonitionblock.note,
+table tr td.icon .title[data-value="Note"] {
+  color: #1e40af !important;
+}
+
+.admonitionblock.note {
+  background: #eff6ff !important;
+  border-left: 3px solid #2563eb !important;
+}
+
+.admonitionblock.tip {
+  background: #f0fdf4 !important;
+  border-left: 3px solid #16a34a !important;
+}
+
+.admonitionblock.tip .icon .title {
+  color: #166534 !important;
+}
+
+.admonitionblock.warning {
+  background: #fffbeb !important;
+  border-left: 3px solid #d97706 !important;
+}
+
+.admonitionblock.important {
+  background: #fef2f2 !important;
+  border-left: 3px solid #dc2626 !important;
+}
+
+/* ── Links ── */
+a {
+  color: #2563eb !important;
+  text-decoration: none !important;
+}
+
+a:hover {
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+}
+
+#content h1 > a.link, h2 > a.link, h3 > a.link, h4 > a.link, h5 > a.link {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* ── Section Number Styling ── */
+.sectnum {
+  color: #6b7280 !important;
+  margin-right: 0.3em;
+}
+
+/* ── Description for endpoint sections ── */
+h3 + .paragraph {
+  margin-top: -0.25rem;
+  margin-bottom: 1rem;
+}
+
+h3 + .paragraph p {
+  color: #374151 !important;
+  font-size: 0.925rem;
+}
+
+/* ── Scrollbar ── */
+pre::-webkit-scrollbar {
+  height: 6px;
+}
+
+pre::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: 3px;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 3px;
+}
+</style>

@@ -1,0 +1,43 @@
+// Original root plugin: id 'org.sonarqube' version "${sonarqubeVersion}"
+// Original property: sonarqubeVersion=6.0.1.5171
+sonar {
+    properties {
+        property 'sonar.projectKey', 'coffiiness_BE'
+        property 'sonar.organization', 'coffiiness'
+        property 'sonar.host.url', 'https://sonarcloud.io'
+
+        property 'sonar.coverage.jacoco.xmlReportPaths',
+                "${rootProject.projectDir}/core/core-api/build/reports/jacoco/jacocoMergedReport/jacocoMergedReport.xml"
+
+        property 'sonar.exclusions', [
+                '**/config/**',
+                '**/entity/**',
+                '**/*Application.java',
+                'clients/**'
+        ].join(',')
+
+        property 'sonar.coverage.exclusions', [
+                '**/config/**',
+                '**/entity/**',
+                '**/*Application.java',
+                '**/*Exception.java',
+                '**/*Request.java',
+                '**/*Response.java',
+                '**/dto/**',
+                '**/*Dto.java',
+                '**/*Event.java',
+                '**/enums/**',
+                '**/scheduler/**',
+                'clients/**',
+                'storage/**',
+                'support/**',
+                '**/LocalInterviewDemoInitializer.java',
+                '**/GoogleCalendarClient.java',
+                '**/GoogleOAuthClient.java'
+        ].join(',')
+    }
+}
+
+tasks.sonar {
+    dependsOn ':core:core-api:jacocoMergedReport'
+}
