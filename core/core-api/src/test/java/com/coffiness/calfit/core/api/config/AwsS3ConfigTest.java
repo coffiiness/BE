@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -68,7 +69,7 @@ class AwsS3ConfigTest {
           assertThat(put.signedHeaders()).containsOnlyKeys("host", "content-type");
           assertThat(put.signedHeaders().get("content-type")).containsExactly(contentType);
           assertThat(put.httpRequest().rawQueryParameters().keySet())
-              .noneMatch(key -> key.toLowerCase().contains("checksum"))
+              .noneMatch(key -> key.toLowerCase(Locale.ROOT).contains("checksum"))
               .doesNotContain("X-Amz-Security-Token");
           assertThat(client.serviceClientConfiguration().region()).isEqualTo(Region.of("auto"));
           assertThat(client.serviceClientConfiguration().endpointOverride())
@@ -105,7 +106,7 @@ class AwsS3ConfigTest {
           assertThat(get.isBrowserExecutable()).isTrue();
           assertThat(get.signedHeaders()).containsOnlyKeys("host");
           assertThat(get.httpRequest().rawQueryParameters().keySet())
-              .noneMatch(key -> key.toLowerCase().contains("checksum"));
+              .noneMatch(key -> key.toLowerCase(Locale.ROOT).contains("checksum"));
         });
   }
 
