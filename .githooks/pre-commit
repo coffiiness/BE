@@ -1,7 +1,11 @@
 #!/bin/sh
-echo "Running format..."
+set -e
 
-GIT_DIR=$(git rev-parse --show-toplevel)
-$GIT_DIR/gradlew spotlessApply
+# Preserve Git's exported GIT_DIR, including linked-worktree metadata paths.
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+echo "Running format..."
+"$repo_root/gradlew" spotlessApply
 
 git add -u

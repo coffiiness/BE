@@ -1,10 +1,13 @@
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
+
 plugins {
     id 'java-library'
     id 'org.springframework.boot' apply(false)
     id 'io.spring.dependency-management'
     id 'com.diffplug.spotless' apply(false)
     id 'org.asciidoctor.jvm.convert' apply(false)
-    id 'org.sonarqube' version "${sonarqubeVersion}"
+    id 'com.github.spotbugs' version "${spotbugsPluginVersion}" apply(false)
     id 'jacoco'
 }
 
@@ -98,44 +101,35 @@ subprojects {
     }
 }
 
-sonar {
-    properties {
-        property 'sonar.projectKey', 'coffiiness_BE'
-        property 'sonar.organization', 'coffiiness'
-        property 'sonar.host.url', 'https://sonarcloud.io'
-
-        property 'sonar.coverage.jacoco.xmlReportPaths',
-                "${rootProject.projectDir}/core/core-api/build/reports/jacoco/jacocoMergedReport/jacocoMergedReport.xml"
-
-        property 'sonar.exclusions', [
-                '**/config/**',
-                '**/entity/**',
-                '**/*Application.java',
-                'clients/**'
-        ].join(',')
-
-        property 'sonar.coverage.exclusions', [
-                '**/config/**',
-                '**/entity/**',
-                '**/*Application.java',
-                '**/*Exception.java',
-                '**/*Request.java',
-                '**/*Response.java',
-                '**/dto/**',
-                '**/*Dto.java',
-                '**/*Event.java',
-                '**/enums/**',
-                '**/scheduler/**',
-                'clients/**',
-                'storage/**',
-                'support/**',
-                '**/LocalInterviewDemoInitializer.java',
-                '**/GoogleCalendarClient.java',
-                '**/GoogleOAuthClient.java'
-        ].join(',')
+subprojects {
+    // Use the analyzer's reporting mode and enforce the reviewed policy separately.
+    apply plugin: 'com.github.spotbugs-base'
+    // Spring's BOM otherwise downgrades the analyzer's BCEL dependency's
+    // commons-lang3 and causes NoClassDefFoundError: org/apache/commons/lang3/Strings.
+    // Scope this override to the analyzer; application dependencies stay unchanged.
+    dependencyManagement {
+        spotbugs {
+            dependencies {
+                dependency 'org.apache.commons:commons-lang3:3.21.0'
+            }
+        }
     }
+    // Annotation-only dependency for the analyzer; never added to application
+    // compile/runtime classpaths or the production artifact.
+    configurations.create('spotbugsAuxiliary') {
+        canBeConsumed = false
+        transitive = false
+    }
+    dependencies {
+        spotbugsAuxiliary 'org.checkerframework:checker-qual:3.37.0'
+    }
+    spotbugs {
+        toolVersion = rootProject.spotbugsVersion
+        effort = Effort.valueOf('MAX')
+        reportLevel = Confidence.valueOf('LOW')
+        ignoreFailures = false
+        maxHeapSize = providers.gradleProperty('spotbugsMaxHeapSize').getOrElse('1g')
+    }
+    tasks.named('check') { dependsOn tasks.named('spotlessCheck') }
 }
-
-tasks.sonar {
-    dependsOn ':core:core-api:jacocoMergedReport'
-}
+apply from: 'quality.gradle'

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Calfit production deployment requests every ten minutes
+
+[Timer]
+OnCalendar=*-*-* *:0/10:00
+AccuracySec=1s
+Persistent=true
+Unit=calfit-deploy.service
+
+[Install]
+WantedBy=timers.target

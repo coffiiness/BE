@@ -1,0 +1,18 @@
+[Unit]
+Description=Calfit verified GHCR deployment and rollback check
+Wants=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/calfit/BE
+ExecStart=/usr/local/sbin/calfit-deploy-oracle --root /opt/calfit/BE
+TimeoutStartSec=40min
+Restart=no
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=calfit-deploy

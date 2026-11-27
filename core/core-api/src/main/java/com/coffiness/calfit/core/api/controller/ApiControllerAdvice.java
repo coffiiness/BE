@@ -13,11 +13,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiControllerAdvice {
 
   private final Logger log = LoggerFactory.getLogger(getClass());
+
+  @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+  public ResponseEntity<?> handleNotFoundException(HttpServletRequest request) {
+    log.debug("Endpoint not found: {} {}", request.getMethod(), request.getRequestURI());
+    return buildErrorResponse(request, ErrorType.NOT_FOUND, ApiResponse.error(ErrorType.NOT_FOUND));
+  }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<?> handleValidationException(

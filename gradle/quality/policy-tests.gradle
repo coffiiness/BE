@@ -1,0 +1,61 @@
+import groovy.json.JsonOutput
+
+tasks.register('qualityGateSelfTest') {
+    group = 'verification'
+    description = 'Regression checks for identity matching, replacements, High/escalation, approval and incomplete analysis.'
+    dependsOn tasks.named('verifyQualityRuntime')
+    outputs.upToDateWhen { false }
+    doLast {
+        def policy = new GroovyShell(getClass().classLoader).evaluate(file('gradle/quality/policy.groovy'))
+        def identity = [module: ':fixture', sourceSet: 'Main', type: 'EI_EXPOSE_REP',
+                        instanceHash: 'same-engine-hash', occurrence: 0, className: 'Fixture',
+                        method: 'values()Ljava/util/List;', field: 'values:Ljava/util/List;',
+                        source: 'Fixture.java', line: 10, sourceAnchor: 'return values;']
+        def known = [identity: identity, id: policy.fingerprint(identity), priority: 2, rank: 18]
+        def review = [decision: 'accepted-debt', reviewId: 'TEST-ONLY', reviewedBy: 'regression fixture',
+                      approvedBy: 'regression fixture', approvedAt: '2026-11-27',
+                      rationale: 'Controlled fixture approval used exclusively to test matching and failure behavior.',
+                      evidence: 'Fixture.java:10']
+        def entry = known + [review: review]
+        def baseline = [schemaVersion: 1, engineVersion: rootProject.spotbugsVersion,
+                        javaRuntimeVersion: '17.0.21.1+2', entries: [entry]]
+        def cases = []
+        def expect = { String name, boolean expected, ledger, findings, boolean incomplete = false ->
+            def result = policy.verify(ledger, [findings: findings, incomplete: incomplete], rootProject.spotbugsVersion)
+            if (result.passed != expected) { throw new GradleException("Policy regression: ${name}") }
+            cases << [name: name, expectedPass: expected, actualPass: result.passed]
+        }
+        expect('reviewed individual normal warning', true, baseline, [known])
+        def replacementIdentity = identity + [line: 11, sourceAnchor: 'return otherValues;']
+        def replacement = known + [identity: replacementIdentity, id: policy.fingerprint(replacementIdentity)]
+        expect('same count: one resolved and one new', false, baseline, [replacement])
+        expect('new finding alongside known warning', false, baseline, [known, replacement])
+        expect('High even with known identity', false, baseline, [known + [priority: 1]])
+        expect('rank escalation without priority change', false, baseline, [known + [rank: 13]])
+        expect('analysis incomplete', false, baseline, [known], true)
+        expect('duplicate current identity', false, baseline, [known, known])
+        expect('unapproved entry', false, baseline + [entries: [entry + [review: [:]]]], [known])
+        expect('High cannot be accepted in baseline', false, baseline + [entries: [entry + [priority: 1]]], [known])
+        expect('baseline engine drift', false, baseline + [engineVersion: 'different'], [known])
+        expect('resolved warning stays visible', true, baseline, [])
+        def temp = layout.buildDirectory.dir('tmp/quality-policy-tests').get().asFile
+        temp.mkdirs()
+        [
+            ['analyzer error', '<Errors errors="1" missingClasses="0"><Error/></Errors>'],
+            ['missing class attribute', '<Errors errors="0" missingClasses="1"/>'],
+            ['missing class node', '<Errors errors="0" missingClasses="0"><MissingClass>Absent</MissingClass></Errors>']
+        ].each { fixture ->
+            def xml = new File(temp, 'diagnostic.xml')
+            xml.setText('<BugCollection><FindBugsSummary/>' + fixture[1] + '</BugCollection>', 'UTF-8')
+            if (!policy.completeness(policy.readXml(xml)).incomplete) {
+                throw new GradleException("Policy regression: ${fixture[0]}")
+            }
+            cases << [name: fixture[0], expectedPass: false, actualPass: false]
+        }
+        def report = layout.buildDirectory.file('reports/quality/policy-tests.json').get().asFile
+        report.parentFile.mkdirs()
+        report.setText(JsonOutput.prettyPrint(JsonOutput.toJson([passed: true, cases: cases])), 'UTF-8')
+        logger.lifecycle("Quality Gate policy regression cases passed: ${cases.size()}")
+    }
+}
+

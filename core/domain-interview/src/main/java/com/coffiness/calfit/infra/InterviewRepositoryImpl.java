@@ -254,6 +254,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     }
 
     List<Long> scheduleIds = schedules.stream().map(InterviewScheduleEntity::getId).toList();
+    Map<Long, String> creatorNameMap = resolveCreatorNameMap(tenantId, scheduleIds);
 
     Map<Long, List<InterviewScheduleInterviewerEntity>> interviewersByScheduleId =
         interviewerRepository
@@ -334,6 +335,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getMeetingRoomId(),
               interviewerUserId,
               interviewerName,
+              fallbackName(creatorNameMap.get(schedule.getId()), ""),
               buildWeeklyScheduleTitle(
                   recruitmentTitleMap.get(schedule.getRecruitmentId()),
                   stageNameMap.get(schedule.getRecruitmentStageId())),
@@ -434,6 +436,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     }
 
     List<Long> scheduleIds = schedules.stream().map(InterviewScheduleEntity::getId).toList();
+    Map<Long, String> creatorNameMap = resolveCreatorNameMap(tenantId, scheduleIds);
 
     Map<Long, List<InterviewScheduleInterviewerEntity>> interviewersByScheduleId =
         interviewerRepository
@@ -523,6 +526,7 @@ public class InterviewRepositoryImpl implements InterviewRepository {
               schedule.getEndTime(),
               firstInterviewerUserId,
               interviewerName,
+              fallbackName(creatorNameMap.get(schedule.getId()), ""),
               buildWeeklyScheduleTitle(recruitmentTitle, stageName),
               applicantName,
               fallbackName(schedule.getMemo(), ""),
@@ -852,14 +856,55 @@ public class InterviewRepositoryImpl implements InterviewRepository {
     return buildWeeklyScheduleTitle(recruitmentTitle, stageName);
   }
 
+  private Map<Long, String> resolveCreatorNameMap(String tenantId, List<Long> scheduleIds) {
+    if (scheduleIds == null || scheduleIds.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, Long> creatorIdsByScheduleId = new LinkedHashMap<>();
+    interviewScheduleHistoryRepository
+        .findAllByTenantIdAndInterviewScheduleIdInAndEventTypeOrderByCreatedAtAsc(
+            tenantId, scheduleIds, InterviewEventType.CREATED)
+        .forEach(
+            history -> {
+              Long scheduleId = history.getInterviewScheduleId();
+              if (scheduleId == null || creatorIdsByScheduleId.containsKey(scheduleId)) {
+                return;
+              }
+              creatorIdsByScheduleId.put(scheduleId, history.getCreatedBy());
+            });
+
+    if (creatorIdsByScheduleId.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<Long, String> userNameMap =
+        resolveUserNameMap(new ArrayList<>(creatorIdsByScheduleId.values()));
+    Map<Long, String> creatorNameMap = new HashMap<>();
+    creatorIdsByScheduleId.forEach(
+        (scheduleId, creatorId) -> {
+          if (creatorId == null || creatorId <= 0) {
+            creatorNameMap.put(scheduleId, "");
+            return;
+          }
+          creatorNameMap.put(
+              scheduleId, fallbackName(userNameMap.get(creatorId), "사용자#" + creatorId));
+        });
+    return creatorNameMap;
+  }
+
   private Map<Long, String> resolveInterviewerNameMap(List<Long> interviewerIds) {
-    if (interviewerIds == null || interviewerIds.isEmpty()) {
+    return resolveUserNameMap(interviewerIds);
+  }
+
+  private Map<Long, String> resolveUserNameMap(List<Long> userIds) {
+    if (userIds == null || userIds.isEmpty()) {
       return Map.of();
     }
 
     Map<Long, String> resolved = new HashMap<>();
     userRepository
-        .findAllById(interviewerIds.stream().filter(id -> id != null && id > 0).distinct().toList())
+        .findAllById(userIds.stream().filter(id -> id != null && id > 0).distinct().toList())
         .forEach(
             user -> {
               if (user.getId() != null && hasText(user.getName())) {
