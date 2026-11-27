@@ -955,7 +955,7 @@ sudo systemctl start calfit-deploy.service
 sudo systemctl show calfit-deploy.service -p WorkingDirectory -p ExecStart -p Result -p ExecMainStatus
 sudo journalctl -u calfit-deploy.service -n 100 --no-pager
 sudo test ! -e /opt/calfit/BE/.oracle-deploy/pending.json || exit 1
-sudo jq '{status,commitSha,digest,imageId,externalHealth}' /opt/calfit/BE/.oracle-deploy/current.json
+sudo jq '{status,commitSha,digest,imageId,configDigest,localImageId,externalHealth}' /opt/calfit/BE/.oracle-deploy/current.json
 ```
 
 Result=success/ExecMainStatus=0에 더해 실제 승인된 main digest·실행 image ID·내부 health와
@@ -976,7 +976,7 @@ sudo systemctl disable --now calfit-deploy.timer
 # 이미 실행 중인 Service/수동 작업은 종료할 때까지 기다린다.
 sudo systemctl status calfit-deploy.service --no-pager
 sudo journalctl -u calfit-deploy.service --since '1 hour ago' -n 100 --no-pager
-sudo jq '{status,commitSha,digest,imageId,externalHealth}' /opt/calfit/BE/.oracle-deploy/current.json
+sudo jq '{status,commitSha,digest,imageId,configDigest,localImageId,externalHealth}' /opt/calfit/BE/.oracle-deploy/current.json
 if sudo test -f /opt/calfit/BE/.oracle-deploy/pending.json; then
   sudo jq '{status,phase,deploymentId,digest,backup}' /opt/calfit/BE/.oracle-deploy/pending.json
 fi
@@ -1005,3 +1005,69 @@ Service 변경은 WorkingDirectory와 ExecStart의 --root 두 항목뿐이며, T
 /etc/systemd에 설치하거나 서버 파일을 복사하지 않았다. Timer 일정 검증, 기존 Mock/Gradle
 테스트 및 이미지 빌드는 재실행하지 않았다. 실제 mount 전환/MySQL 보존/운영 기동은 위
 후속 수동 적용에서 확인한다.
+
+## Docker 이미지 저장 방식별 Image ID 호환성
+
+Oracle의 containerd image store에서 `docker image inspect .Id`는 manifest digest일 수 있다.
+기존 저장 방식에서는 config digest인 경우가 있어 Deployment payload의 imageId와 로컬 .Id를
+직접 비교하지 않는다. Docker/Storage Driver를 변경하지 않고 다음 순서로 식별자를 검증한다.
+
+1. 요청의 정확한 `ghcr.io/coffiiness/calfit-backend@sha256:...`를 Pull한다. 태그로 대체하지 않는다.
+2. 동일 digest 참조의 registry manifest를 inspect하고 단일 OCI/Docker schema 2 이미지인지 확인한다.
+3. manifest의 config.digest가 Deployment payload.imageId와 같아야 한다. 조회 실패/다른 config는 중단한다.
+4. 해당 참조의 로컬 .Id가 검증한 config digest 또는 요청 manifest digest 중 하나와 같아야 한다.
+5. 기존 RepoDigests, linux/arm64, revision, source, Java runtime label 검사도 모두 통과해야 한다.
+6. 실제 컨테이너 .Image 및 내부 health 검사는 확인한 로컬 .Id를 사용한다.
+
+식별자는 pending.json/current.json과 그 성공/실패 기록에 아래 의미로 보존한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| digest / manifestDigest | GHCR의 불변 registry manifest digest |
+| imageId | 기존 API/상태 필드와 동일한 Deployment payload.imageId, 즉 config digest |
+| configDigest | 조회한 manifest의 config.digest. imageId와 같아야 함 |
+| localImageId | Oracle에서 실제 확인한 docker image inspect .Id. 컨테이너 .Image 비교용 |
+
+기존 imageId 값을 로컬 ID로 덮어쓰지 않는다. 예전 classic 저장 방식의 성공 기록은
+localImageId가 없으므로 운영 검증 명령은 `.localImageId // .imageId`로 읽는다. 상태 파일을
+임의로 수정하거나 새 digest를 검증 없이 성공으로 기록하지 않는다. 저장 방식을 별도로 변경해
+오래된 기록과 현재 로컬 ID가 달라진 경우에는 fallback을 신뢰해서 성공으로 간주하지 말고
+실행 이미지와 digest/config를 직접 대조한다.
+
+롤백의 recovery.json.previousImageId는 원래부터 직전 실행 컨테이너 .Image의 **로컬 ID**다.
+이 의미를 유지하므로 이전 로컬 이미지가 config ID이든 manifest ID이든 같은 방식으로 검증하고
+Pull/Build 없이 복구한다. current.previous.json의 과거 상태와 버전 파일도 기존처럼 그대로 복원한다.
+
+운영에서 기존 `current.json.imageId == container.Image` 비교를 사용했다면 아래처럼 변경한다.
+이는 후속 수동 확인 예시이며 이번 작업에서 서버에 실행하지 않았다.
+
+```bash
+set -o pipefail
+state=/opt/calfit/BE/.oracle-deploy/current.json
+local_id=$(sudo jq -er '.localImageId // .imageId' "$state")
+config_id=$(sudo jq -er '.configDigest // .imageId' "$state")
+manifest_digest=$(sudo jq -er '.manifestDigest // .digest' "$state")
+image="ghcr.io/coffiiness/calfit-backend@$manifest_digest"
+sudo docker --host unix:///var/run/docker.sock manifest inspect "$image" | \
+  jq -e --arg config "$config_id" '.config.digest==$config' >/dev/null || exit 1
+test "$(sudo docker --host unix:///var/run/docker.sock image inspect "$image" --format '{{.Id}}')" = "$local_id" || exit 1
+api_id=$(sudo docker --host unix:///var/run/docker.sock ps -q \
+  --filter label=com.docker.compose.project=calfit-oracle --filter label=com.docker.compose.service=core-api)
+test -n "$api_id" || exit 1
+test "$(sudo docker --host unix:///var/run/docker.sock inspect "$api_id" --format '{{.Image}}')" = "$local_id" || exit 1
+```
+
+이 변경은 배포 스크립트·관련 Mock·문서에만 적용한다. Workflow의 payload 의미나 이미지 빌드는
+변경하지 않는다. 실제 Oracle/운영 DB/Storage Driver에는 접근하거나 변경하지 않는다.
+검증은 기존 Mock 28개와 이미지 ID 방식·manifest/config/로컬 ID 불일치 차단·관련 롤백 테스트로
+한정한다. 제공받은 실제 Oracle manifest/config digest 쌍도 Mock fixture로 사용하며 실제 Pull은 하지 않는다.
+
+로컬 결과: 기존 테스트 28개의 본문이 AST 기준 그대로 유지됐고, 호환성 테스트 7개를 더한
+**35개가 모두 성공/실패 0개**로 통과했다(120.187초). Bash 구문과 git diff --check도 통과했다.
+manifest 조회/config mismatch, 지원하지 않는 index, 무관한 로컬 ID 및 기존 RepoDigests/ARM64/
+revision 불일치는 교체 전에 차단했다. containerd 방식의 성공 상태·pending, 로컬 ID 기반 롤백 및
+중단 복구도 확인했다. 모든 GitHub/registry/Docker 명령은 Mock이며 실제 운영 적용 결과는 아니다.
+
+참고: [Docker containerd image store](https://docs.docker.com/engine/storage/containerd/),
+[Docker manifest inspect](https://docs.docker.com/reference/cli/docker/manifest/inspect/),
+[OCI image manifest/config 설명](https://github.com/opencontainers/image-spec/blob/main/manifest.md).
