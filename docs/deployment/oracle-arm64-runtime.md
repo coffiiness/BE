@@ -214,3 +214,80 @@ docker compose --project-name $s.project --env-file $s.envFile -f docker-compose
 품질 보호 파일 11개와 Baseline의 전후 SHA-256이 일치하며,
 기존 Java 소스·테스트·DB 설정·main/dev·FE는 변경하지 않았다.
 
+## 15-8 GitHub Actions 연결
+
+`.github/workflows/ci.yml`을 기존 파일 경로에서 교체했다. GitHub의 Workflow 상태는
+`disabled_manually`로 확인했으며 활성화하지 않았다. 이 절은 Workflow 구현 및 정적 검증
+결과이며, 실제 hosted runner 실행이나 GHCR 발행 성공을 뜻하지 않는다.
+
+| 이벤트 | AMD64 Quality Gate / bootJar | ARM64 빌드 / MySQL QA | GHCR 발행 |
+| --- | --- | --- | --- |
+| dev/main 대상 PR | 실행 | 실행 안 함 | 실행 안 함 |
+| dev Push | 실행 | Gate 성공 후 실행 | 실행 안 함 |
+| main Push | 실행 | Gate 성공 후 실행 | 모든 선행 Job 성공 후 실행 |
+| integration/oracle-cicd Push | 트리거 없음 | 트리거 없음 | 트리거 없음 |
+
+`quality`는 ubuntu-24.04에서 기존 SHA 고정 JDK 설치·검증 스크립트를 사용한다.
+Temurin 17.0.21.1+2 / Gradle 8.14.3 및 기존 `check qualityCheck :core:core-api:bootJar`
+의존성을 유지한다. 설치한 JDK만 toolchain 탐색 대상으로 지정한다. 테스트 제외 옵션이나
+Gate 변경은 없다. 성공한 bootJar만 `app.jar`, SHA-256, source SHA 메타데이터로 전달한다.
+테스트 XML/HTML, 전체 모듈 JaCoCo, 미필터링 SpotBugs와 Gate 보고서는 실패 시에도
+14일 보관하고, 검증 JAR는 3일 보관한다.
+
+`arm64`는 ubuntu-24.04-arm에서 같은 run의 JAR를 내려받아 checksum 및 source SHA를
+검사한다. 임시 최소 context에는 Dockerfile, JAR 및 기존 Java 설치·검증 스크립트만
+포함한다. `runtime-from-jar` target으로 한 번만 빌드하며 Docker 내부에서 Gradle을
+실행하지 않는다. native ARM64 runner를 사용하며 QEMU를 설치하지 않는다.
+
+`tools/ci/verify-runtime.sh`는 GitHub Actions Linux/ARM64 환경에서만 실행 가능하다.
+독립 internal Docker network 및 MySQL 8.4.13의 tmpfs 저장소를 만들고, 운영 env나
+기존 QA/운영 볼륨을 읽거나 연결하지 않는다. 무작위 CI 전용 DB/JWT 값을 만들고 로그에
+마스킹하며 env 파일은 Artifact에 포함하지 않는다. 외부 서비스에는 CI dummy 값만
+전달하고 컨테이너의 외부 통신 및 모든 호스트 포트 게시를 차단한다.
+
+신규 임시 DB에 한해 첫 컨테이너를 `prod/update`로 기동해 스키마를 초기화한 뒤 정지한다.
+다른 컨테이너를 같은 이미지의 `prod/validate`로 기동하여 다음을 검사한다.
+
+- Java vendor/runtime/architecture 및 이미지의 JAR hash·commit label
+- 실제 MySQL 버전, DB 준비 상태, 초기화된 테이블 존재
+- 내부 8081 Actuator `UP`, 8080 `/health` 200
+- 8080 `/actuator/health`, `/h2-console/`, 공개 경로의 없는 URL 404
+- validate 전후 schema checksum 일치, 호스트 포트 게시 없음, DB tmpfs 사용
+
+컨테이너·네트워크·env 파일은 성공/실패 시 이번 실행이 만든 것만 정리한다.
+Docker prune, 기존 볼륨 삭제, 운영 Compose 실행은 하지 않는다. QA 결과와 Java 버전은
+14일 보관한다. 실패 시 컨테이너 로그 일부를 Actions 로그에 출력한다.
+
+`publish`만 `packages: write`를 가지며 일반 Job은 `contents: read`다. main Push 및
+`coffiiness/BE`에서 두 선행 Job이 모두 성공한 경우만 실행한다. 발행 Job에는 checkout,
+Gradle 실행, Docker 빌드가 없다. 검증한 이미지를 `docker save`로 전달하고(1일 보관),
+archive checksum·source SHA·JAR hash·image ID·ARM64 label을 재검사한 뒤 load/tag/push한다.
+`GITHUB_TOKEN`으로만 인증하며 별도 PAT/운영 Secret은 사용하지 않는다.
+
+발행 경로는 `ghcr.io/coffiiness/calfit-backend:sha-<전체 커밋 SHA>`다. push가 반환한
+registry manifest digest로 원격 manifest를 읽고 config digest가 검증 이미지 ID와
+같은지 확인한다. 실제 발행 digest는 Step Summary 및 `published-image.json` Artifact에
+30일 보관한다. image config ID와 registry manifest digest는 서로 다른 값이다.
+브랜치별 Workflow 실행을 직렬화하고 진행 중 발행을 자동 취소하지 않는다.
+
+로컬에서는 actionlint 1.7.12로 문법·expression context·Job 의존성을 검사했고,
+Workflow의 실제 조건식에 대해 PR/dev/main 및 실패·취소·skip·fork 등 66개 조합을
+검증했다. Bash 구문 및 CI 외 실행 거부도 확인했다. actionlint는 무시되는 검증 폴더에서만
+사용했으며 프로젝트 품질 도구나 CI 필수 검사로 추가하지 않았다.
+추가로 Workflow의 inline Bash 7개를 구문 검사했고, 변조한 이미지 archive를 주입하면
+실제 발행 준비 명령이 Docker load/push 전에 실패하는 것도 확인했다.
+
+후속 Push 및 별도 활성화 승인 후 실제 runner에서 확인할 항목:
+
+1. SHA 고정 JDK 다운로드, 모든 toolchain 및 기존 Gate/bootJar 성공 여부
+2. ARM runner 가용성, native runtime target 빌드, MySQL tmpfs 초기화 및 validate 성공
+3. dev/PR에서 발행 Job이 skip되고 main 실패 시 발행이 차단되는지 확인
+4. main 성공 시 archive load 전후 image ID, GHCR 실제 digest/config ID 일치 확인
+5. 최초 package의 Repository 연결·GITHUB_TOKEN 권한·가시성 및 Artifact 보관 결과 확인
+
+이번 단계에서 전체 Gradle 테스트, Linux/Windows 전체 검증, 로컬 ARM 이미지 재빌드를
+반복하지 않았다. Commit/Push/Merge/실제 발행/Oracle 자동 배포·systemd 변경은 하지 않았다.
+
+참고: [GitHub hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
+[GHCR의 GITHUB_TOKEN 인증](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+

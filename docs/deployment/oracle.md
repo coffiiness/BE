@@ -1,7 +1,10 @@
 # Calfit Oracle ARM64 포트폴리오·시연 배포
 
 이 문서는 설정 변경과 로컬 검증 결과를 기록한다. AWS 자원 삭제, Oracle 실제 배포,
-GitHub/레지스트리 Push는 수행하지 않는다. 로컬 H2와 기존 AWS Compose/Actions는 유지한다.
+GitHub/레지스트리 Push는 수행하지 않는다. 로컬 H2와 기존 개발용 Compose는 유지한다.
+
+이미 운영 중인 서버의 GHCR 전환은 아래 **15-9 GHCR digest 배포 준비**를 따른다.
+기존 DB에 최초 볼륨 생성/update 초기화 절차를 다시 실행하지 않는다.
 
 운영 목적은 포트폴리오와 프로젝트 시연이다. **기존 AWS DB 데이터는 이전하지 않는다.**
 Oracle에는 `mysql:8.4.13`과 **신규 external 볼륨 `calfit_oracle_mysql84`**로 빈 DB를 만든다.
@@ -97,12 +100,12 @@ AWS 데이터 덤프/복원과 기존 볼륨 연결은 이번 배포 절차에 �
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
-docker buildx build --platform linux/arm64 --load -t calfit-backend:oracle-arm64 .
 docker image inspect calfit-backend:oracle-arm64 --format '{{.Os}}/{{.Architecture}}'
 ```
 
-사전 빌드 이미지를 사용하는 경우 BACKEND_IMAGE에 검증한 불변 태그나 digest를 설정하고
-서버에서 pull한다. 생성한 로컬 태그와 .env.prod의 BACKEND_IMAGE가 같아야 한다.
+운영 Compose에는 build 항목이 없다. 위 inspect는 이미 준비된 로컬 이미지의 확인용이다.
+운영 서버에서 소스를 빌드하지 않는다. 기존 로컬 빌드 이미지는 최초 전환 복구에 보존하고,
+GHCR의 검증된 digest를 별도 이미지 버전 파일로 지정하는 절차는 아래 15-9를 따른다.
 
 ### 4. 최초 한 번 update로 초기화한 뒤 validate로 시작
 
@@ -132,7 +135,8 @@ DataInitializer/시연 데이터가 생성되지 않는다. 회원가입·워크
 
 이미 운영 중인 서버에서 없는 URL의 500을 404로 고치는 변경은
 [수정 파일만 반영하는 절차](oracle-endpoint-fix.md)를 따른다. 기존 환경변수/볼륨을 유지하고
-백엔드만 재빌드·재생성한다. 최초 DB 초기화용 update 절차를 다시 실행하지 않는다.
+백엔드만 교체한다. 해당 문서의 `dc build core-api`는 이전 소스 빌드 방식의 기록이며,
+15-9 이후에는 아래 GHCR pull 절차로 대체한다. 최초 DB 초기화용 update는 다시 실행하지 않는다.
 
 현재 수정/미추적 파일도 포함하는 allowlist 패키징 스크립트와 SCP·SHA-256 검증 절차는
 [소스 전송 가이드](oracle-source-transfer.md)에 있다. 폴더 전체 `scp -r`나 HEAD만 담는
@@ -302,3 +306,193 @@ storage:db-core:test에는 현재 구체적인 테스트 메서드가 없어 해
 전송 스크립트는 현재 수정된 소스를 패키징하며 환경변수 템플릿만 포함한다. 실제 환경변수,
 개인키, 백업·캐시 제외, 필요한 classpath SQL 포함, SHA-256 일치 여부를 로컬에서 확인했다.
 Oracle로 전송하거나 배포하지 않았다.
+
+## 15-9 GHCR digest 배포 준비
+
+이 절은 정상 운영 중인 기존 DB를 유지하는 수동 전환 절차다. **아래 서버 명령은 이번
+단계에서 실행하지 않았다.** 자동 배포 스크립트/systemd Timer는 다음 단계의 작업이다.
+새 Compose 파일 없이 기존 `BACKEND_IMAGE` 보간을 재사용하고 `core-api.build`만 제거했다.
+Health Check, 메모리, 네트워크, 포트, 로그, MySQL 설정은 유지한다.
+
+### 이미지 버전과 운영 Secret 분리
+
+- `.env.prod`: 기존 DB/JWT/S3 등 운영 설정. 복사·수정·출력하지 않는다.
+- `.env.image`: 마지막으로 성공한 이미지 주소 한 줄만 보관한다.
+- `.env.image.next-<시각>`: 다음 배포 후보의 GHCR digest 주소 한 줄.
+- `.env.image.rollback-<시각>`: 직전 실행 이미지에 붙인 로컬 복구 태그 한 줄.
+
+위 버전 파일은 기존 `.env.*` ignore 규칙으로 제외된다. `.env.prod.example`은 기존
+로컬 fallback 값을 유지하고 두 번째 env-file 사용법만 안내한다. 버전 파일에 DB 설정이나
+Secret을 넣지 않는다. 뒤에 지정한 env-file이 우선하지만 셸의 BACKEND_IMAGE는 파일보다
+우선하므로 아래 명령은 이를 명시적으로 제거한다. JPA는 명령 범위에서 validate로 고정한다.
+[Compose 보간 우선순위](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
+
+### 1. 현재 컨테이너와 로컬 복구 이미지 보존
+
+기존 운영 디렉터리의 Ubuntu Bash에서 실행한다. 프로젝트 이름을 바꾸면 다른 컨테이너를
+만들 수 있으므로 기존 `calfit-oracle` 프로젝트를 사용한다. 별도 이름으로 운영했다면
+기존 프로젝트 이름을 그대로 지정한다. 각 명령이 실패하면 이후 단계로 진행하지 않는다.
+
+```bash
+project=calfit-oracle
+envfile="$PWD/.env.prod"
+compose="$PWD/docker-compose.prod.yml"
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+base_dc() {
+  env -u BACKEND_IMAGE JPA_DDL_AUTO=validate docker compose --project-name "$project" \
+    --env-file "$envfile" -f "$compose" "$@"
+}
+base_dc config --quiet
+api_id=$(base_dc ps -q core-api)
+mysql_id=$(base_dc ps -q mysql)
+test -n "$api_id" && test -n "$mysql_id"
+test "$(docker inspect "$api_id" --format '{{.State.Running}}')" = true
+test "$(docker inspect "$mysql_id" --format '{{.State.Health.Status}}')" = healthy
+mysql_started=$(docker inspect "$mysql_id" --format '{{.State.StartedAt}}')
+mysql_volume=$(docker inspect "$mysql_id" --format '{{range .Mounts}}{{if eq .Destination "/var/lib/mysql"}}{{.Name}}{{end}}{{end}}')
+test "$mysql_volume" = calfit_oracle_mysql84
+env_hash=$(sha256sum "$envfile" | cut -d ' ' -f 1)
+previous_id=$(docker inspect "$api_id" --format '{{.Image}}')
+test "$(docker image inspect "$previous_id" --format '{{.Os}}/{{.Architecture}}')" = linux/arm64
+rollback_image="calfit-backend:rollback-$stamp"
+docker image tag "$previous_id" "$rollback_image"
+test "$(docker image inspect "$rollback_image" --format '{{.Id}}')" = "$previous_id"
+rollback_env="$PWD/.env.image.rollback-$stamp"
+(umask 077; set -o noclobber; printf 'BACKEND_IMAGE=%s\n' "$rollback_image" > "$rollback_env")
+```
+
+`.Config.Image`의 태그가 아닌 실행 컨테이너의 `.Image` ID를 보존하므로 기존 로컬 태그가
+다른 이미지로 바뀌었어도 실제 실행 중이던 버전을 복구할 수 있다. 복구 확인 전에는 이
+이미지·복구 파일을 삭제하거나 image/system prune을 실행하지 않는다.
+
+### 2. 실제 발행 digest로 후보 파일 생성 및 사전 검증
+
+15-8 main 성공 실행의 `published-image.json`에 기록된 **registry manifest digest**를
+사용한다. config/image ID, JAR checksum, `latest`, SHA 태그를 digest 대신 사용하지 않는다.
+아래 REPLACE 값을 실제 64자리 hex로 교체해야 형식 검사를 통과한다.
+
+```bash
+candidate_image='ghcr.io/coffiiness/calfit-backend@sha256:REPLACE_WITH_64_HEX_MANIFEST_DIGEST'
+[[ "$candidate_image" =~ ^ghcr\.io/coffiiness/calfit-backend@sha256:[0-9a-f]{64}$ ]]
+imagefile="$PWD/.env.image.next-$stamp"
+(umask 077; set -o noclobber; printf 'BACKEND_IMAGE=%s\n' "$candidate_image" > "$imagefile")
+dc_image() {
+  env -u BACKEND_IMAGE JPA_DDL_AUTO=validate docker compose --project-name "$project" \
+    --env-file "$envfile" --env-file "$imagefile" -f "$compose" "$@"
+}
+dc_image config --quiet
+# 전체 config를 출력/저장하지 않고 파이프로 필요한 항목만 검사한다.
+dc_image config --format json | python3 -c '
+import json,sys
+c=json.load(sys.stdin); a=c["services"]["core-api"]
+assert a["image"] == sys.argv[1] and "build" not in a
+assert a["platform"] == "linux/arm64"
+assert a["environment"]["SPRING_JPA_HIBERNATE_DDLAUTO"] == "validate"
+assert c["services"]["mysql"]["image"] == "mysql:8.4.13"
+assert c["volumes"]["mysql_data"]["external"] is True
+assert c["volumes"]["mysql_data"]["name"] == "calfit_oracle_mysql84"
+print("digest / no build / ARM64 / validate / existing MySQL volume verified")
+' "$candidate_image"
+```
+
+이미지 공개 여부 및 Oracle의 GHCR 읽기 권한을 먼저 확인한다. 공개 package라면 로그인
+없이 pull할 수 있다. private package의 읽기 인증은 별도 준비 사항이며, Actions의
+GITHUB_TOKEN을 Oracle에 복사하거나 `.env.prod`에 넣지 않는다. 이번 단계에서는 로그인이나
+pull을 실행하지 않았다.
+
+### 3. 백엔드만 Pull 및 교체
+
+```bash
+dc_image pull core-api
+# Pull/아키텍처 검사가 실패하면 기존 컨테이너는 그대로 두고 중단한다.
+test "$(docker image inspect "$candidate_image" --format '{{.Os}}/{{.Architecture}}')" = linux/arm64
+candidate_id=$(docker image inspect "$candidate_image" --format '{{.Id}}')
+dc_image up -d --no-deps --no-build --pull never --wait --wait-timeout 600 core-api
+test "$(docker inspect "$(dc_image ps -q core-api)" --format '{{.Image}}')" = "$candidate_id"
+dc_image exec -T core-api curl -fsS http://127.0.0.1:8081/actuator/health
+curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8080/health
+test "$mysql_id" = "$(dc_image ps -q mysql)"
+test "$mysql_started" = "$(docker inspect "$mysql_id" --format '{{.State.StartedAt}}')"
+test "$env_hash" = "$(sha256sum "$envfile" | cut -d ' ' -f 1)"
+# 위의 모든 확인이 성공한 뒤 이미지 버전 파일만 갱신한다.
+install -m 600 "$imagefile" "$PWD/.env.image"
+```
+
+`pull core-api`는 MySQL을 대상으로 하지 않는다. `--no-deps`는 MySQL 시작/재생성을
+막으며 `--no-build --pull never`는 이미 내려받은 이미지만 사용한다. 서비스 중단·재시작은
+core-api에 한정되며 단일 컨테이너 교체 중 짧은 API 중단이 생길 수 있다. API_BIND_PORT를
+기본 8080 외 값으로 운영한다면 호스트 health URL만 기존 포트에 맞춘다. Tunnel은 변경하지 않는다.
+[Compose up 옵션](https://docs.docker.com/reference/cli/docker/compose/up/)
+
+### 4. 교체 후 실패하면 수동 복구
+
+위와 같은 셸에서 직전에 만든 rollback 파일을 지정한다. 셸을 다시 열었다면 기존 경로와
+함수를 다시 설정하고 해당 `.env.image.rollback-<시각>`을 직접 선택한다. 이 경우 복구 태그와
+ID는 아래처럼 보존 파일 및 로컬 이미지에서 다시 읽는다. ID를 다시 읽은 경우 최초에
+보존한 ID와의 독립 비교는 할 수 없으므로, 복구 태그를 다른 이미지에 재사용하지 않는다.
+MySQL ID/시작 시각과 env hash도 복구 전 기준으로 다시 기록한다. 이전 로컬 이미지는
+GHCR pull 없이 사용할 수 있다.
+
+```bash
+# 새 셸에서만: 1단계의 project/envfile/compose 및 두 함수를 먼저 다시 설정한다.
+# 실제 보존한 파일 이름으로 바꾼다. .env.prod를 source하지 않는다.
+rollback_env="$PWD/.env.image.rollback-REPLACE_WITH_SAVED_TIMESTAMP"
+test -f "$rollback_env"
+rollback_image=$(python3 -c '
+import pathlib,re,sys
+text=pathlib.Path(sys.argv[1]).read_text().strip()
+assert re.fullmatch(r"BACKEND_IMAGE=calfit-backend:rollback-[0-9]{8}T[0-9]{6}Z", text)
+print(text.split("=",1)[1])
+' "$rollback_env")
+previous_id=$(docker image inspect "$rollback_image" --format '{{.Id}}')
+mysql_id=$(base_dc ps -q mysql)
+test -n "$mysql_id"
+mysql_started=$(docker inspect "$mysql_id" --format '{{.State.StartedAt}}')
+env_hash=$(sha256sum "$envfile" | cut -d ' ' -f 1)
+```
+
+```bash
+imagefile="$rollback_env"
+test -f "$imagefile"
+test "$(docker image inspect "$rollback_image" --format '{{.Id}}')" = "$previous_id"
+dc_image config --quiet
+dc_image up -d --no-deps --no-build --pull never --wait --wait-timeout 600 core-api
+test "$(docker inspect "$(dc_image ps -q core-api)" --format '{{.Image}}')" = "$previous_id"
+dc_image exec -T core-api curl -fsS http://127.0.0.1:8081/actuator/health
+test "$mysql_id" = "$(dc_image ps -q mysql)"
+test "$mysql_started" = "$(docker inspect "$mysql_id" --format '{{.State.StartedAt}}')"
+test "$env_hash" = "$(sha256sum "$envfile" | cut -d ' ' -f 1)"
+install -m 600 "$imagefile" "$PWD/.env.image"
+```
+
+이 복구는 애플리케이션 이미지 복구이며 DB 데이터 복원은 아니다. validate 실패를 update로
+우회하지 않는다. 운영/QA 볼륨, MySQL 컨테이너, 운영 env, Cloudflare 설정을 변경하지 않는다.
+이 절에서는 `down`, `up` 전체 서비스 실행, MySQL pull, volume create/rm/prune을 사용하지 않는다.
+
+후속 평상시 실행도 이미지 파일을 명시한다. `.env.prod`만으로 실행하면 기존 fallback
+이미지가 선택될 수 있으므로 아래 형식을 사용한다.
+
+```bash
+imagefile="$PWD/.env.image"
+dc_image config --quiet
+# 실제 백엔드 교체는 위 사전 보존·pull·health 절차를 모두 수행한 경우에만 한다.
+```
+
+### 15-9 로컬 설정 검증
+
+Docker Compose v2.40.3에서 실제 `.env.prod` 대신 합성 값과 격리한 빈 Docker CLI 설정을
+사용했다. config만 실행했으며 engine/registry 요청, pull/up, 이미지 태깅, 컨테이너 및
+볼륨 변경은 하지 않았다. 검증은 다음 9개 시나리오를 통과했다.
+
+- 변경 전 기준 모델과 변경 후 로컬 모델
+- BACKEND_IMAGE 미지정 fallback, 두 번째 env-file의 GHCR digest 선택
+- 두 번째 env-file의 로컬 rollback 태그 선택
+- 셸 BACKEND_IMAGE 우선 및 이를 제거한 후 digest 선택
+- 기존 env가 update인 경우 명령 범위의 validate 우선 적용
+- 필수 운영 값이 없는 config의 실패 확인
+
+전체 JSON 모델을 비교해 build 제거 외에는 설정이 동일하고, digest 선택 시 image 이외
+모든 설정이 같은 것을 확인했다. mysql:8.4.13, external `calfit_oracle_mysql84`, JPA validate,
+Health Check, 메모리, 네트워크, 포트, 로그가 유지된다. 이미지 파일들의 gitignore도 확인했다.
+15-8 Workflow/검증 스크립트/문서와 Dockerfile/Quality Gate/Baseline의 SHA-256도 일치한다.
+실제 digest pull/ARM64 실행/운영 복구 성공은 이번 설정 검증에 포함하지 않는다.

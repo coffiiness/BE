@@ -47,11 +47,10 @@ services:
     logging: *bounded-logging
 
   core-api:
+    # Select a GHCR digest via a second --env-file .env.image; retain the local
+    # fallback for first migration/rollback. Production Compose never builds.
     image: ${BACKEND_IMAGE:-calfit-backend:oracle-arm64}
     platform: linux/arm64
-    build:
-      context: .
-      dockerfile: Dockerfile
     init: true
     restart: unless-stopped
     stop_grace_period: 45s

@@ -6,153 +6,274 @@ on:
   pull_request:
     branches: [dev, main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  IMAGE: ghcr.io/coffiiness/calfit-backend
+
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-
+  quality:
+    name: Quality Gate and verified bootJar (AMD64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SPRING_PROFILES_ACTIVE: local
+      APP_EMAIL_ENABLED: 'false'
+      AWS_ACCESS_KEY_ID: ci-validation-only
+      AWS_SECRET_ACCESS_KEY: ci-validation-only
+      AWS_EC2_METADATA_DISABLED: 'true'
+    outputs:
+      jar_sha256: ${{ steps.jar.outputs.sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          persist-credentials: false
 
-      - name: Cache Gradle packages
+      - name: Install and verify the existing pinned Temurin JDK
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          export JAVA_HOME="$RUNNER_TEMP/temurin17"
+          sh docker/install-temurin17.sh jdk amd64 "$JAVA_HOME"
+          sh docker/verify-temurin17.sh amd64
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "GRADLE_USER_HOME=$RUNNER_TEMP/gradle-user-home" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Gradle dependencies and wrapper
         uses: actions/cache@v4
         with:
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ env.GRADLE_USER_HOME }}/caches
+            ${{ env.GRADLE_USER_HOME }}/wrapper
+          key: ${{ runner.os }}-${{ runner.arch }}-temurin-17.0.21.1-2-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle.properties', 'gradle/quality/runtime.properties') }}
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Run the full existing gate and produce bootJar
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 \
+            '-Dorg.gradle.jvmargs=-Xmx1g -XX:ActiveProcessorCount=2' \
+            -PspotbugsMaxHeapSize=1g \
+            -Porg.gradle.java.installations.auto-detect=false \
+            -Porg.gradle.java.installations.auto-download=false \
+            -Porg.gradle.java.installations.paths="$JAVA_HOME" \
+            check qualityCheck :core:core-api:bootJar
 
-      - name: Build without tests
-        run: ./gradlew build -x test
-
-      - name: Upload build artifacts
+      - name: Preserve full quality reports, including on failure
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
-          path: '**/build/libs/*.jar'
-          retention-days: 1
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref != 'refs/heads/main'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
+          name: quality-reports-${{ github.sha }}
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+            **/build/test-results/**
+            **/build/reports/tests/**
+            **/build/reports/jacoco/**
+            **/build/reports/spotbugs/**
+            build/reports/quality/**
+          if-no-files-found: error
+          retention-days: 14
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Package the gate-approved JAR and SHA-256
+        id: jar
+        run: |
+          set -euo pipefail
+          jq -e '.passed == true and (.highFindings | length) == 0 and (.newFindings | length) == 0 and (.escalatedFindings | length) == 0' build/reports/quality/spotbugs-gate.json
+          jq -e '.total.LINE.percent >= 75 and .total.BRANCH.percent >= 47' build/reports/quality/coverage-summary.json
+          mapfile -t jars < <(find core/core-api/build/libs -maxdepth 1 -type f -name 'core-api-*.jar' ! -name '*-plain.jar')
+          test "${#jars[@]}" -eq 1
+          mkdir -p "$RUNNER_TEMP/verified-jar"
+          cp "${jars[0]}" "$RUNNER_TEMP/verified-jar/app.jar"
+          cd "$RUNNER_TEMP/verified-jar"
+          sha256sum app.jar > app.jar.sha256
+          hash=$(cut -d ' ' -f 1 app.jar.sha256)
+          echo "sha256=$hash" >> "$GITHUB_OUTPUT"
+          jq -n --arg sha "$GITHUB_SHA" --arg jar "$hash" \
+            '{sourceSha: $sha, jarSHA256: $jar, javaRuntime: "17.0.21.1+2", gradle: "8.14.3"}' > verified-jar.json
 
-      - name: Run tests
-        run: ./gradlew test
-
-      - name: Upload JaCoCo report
+      - name: Upload verified JAR
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: jacoco-report
-          path: '**/build/reports/jacoco/'
+          name: verified-jar-${{ github.sha }}
+          path: ${{ runner.temp }}/verified-jar/
+          if-no-files-found: error
+          retention-days: 3
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: '**/build/reports/tests/'
-
-  docker:
-    name: Docker Build & Push
-    runs-on: ubuntu-latest
-    needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
+  arm64:
+    name: Build and verify the ARM64 runtime
+    needs: quality
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    outputs:
+      image_id: ${{ steps.export.outputs.image_id }}
+      archive_sha256: ${{ steps.export.outputs.archive_sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Set up Docker Buildx
+      - name: Download verified JAR from this run
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-jar-${{ github.sha }}
+          path: ${{ runner.temp }}/verified-jar
+
+      - name: Prepare minimal context and verify JAR provenance
+        env:
+          EXPECTED_JAR_SHA256: ${{ needs.quality.outputs.jar_sha256 }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = aarch64
+          cd "$RUNNER_TEMP/verified-jar"
+          sha256sum --check --strict app.jar.sha256
+          test "$(sha256sum app.jar | cut -d ' ' -f 1)" = "$EXPECTED_JAR_SHA256"
+          jq -e --arg sha "$GITHUB_SHA" --arg jar "$EXPECTED_JAR_SHA256" \
+            '.sourceSha == $sha and .jarSHA256 == $jar and .javaRuntime == "17.0.21.1+2" and .gradle == "8.14.3"' verified-jar.json
+          mkdir -p "$RUNNER_TEMP/runtime-context/docker"
+          cp app.jar "$RUNNER_TEMP/runtime-context/app.jar"
+          cp "$GITHUB_WORKSPACE/Dockerfile" "$RUNNER_TEMP/runtime-context/Dockerfile"
+          cp "$GITHUB_WORKSPACE/docker/"{install,verify}-temurin17.sh "$RUNNER_TEMP/runtime-context/docker/"
+
+      - name: Set up native Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push
+      - name: Build the runtime once using the verified JAR
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/final-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          context: ${{ runner.temp }}/runtime-context
+          file: ${{ runner.temp }}/runtime-context/Dockerfile
+          target: runtime-from-jar
+          platforms: linux/arm64
+          load: true
+          push: false
+          provenance: false
+          tags: calfit-ci:sha-${{ github.sha }}
+          build-args: APP_JAR_SHA256=${{ needs.quality.outputs.jar_sha256 }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/coffiiness/BE
+            org.opencontainers.image.revision=${{ github.sha }}
 
-  deploy:
-    name: Deploy to EC2
-    runs-on: ubuntu-latest
-    needs: docker
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Verify Java and prod/validate with disposable MySQL 8.4.13
+        env:
+          CI_IMAGE: calfit-ci:sha-${{ github.sha }}
+          EXPECTED_JAR_SHA256: ${{ needs.quality.outputs.jar_sha256 }}
+        run: bash tools/ci/verify-runtime.sh
 
+      - name: Preserve runtime verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-results-${{ github.sha }}
+          path: ${{ runner.temp }}/runtime-results/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Export the tested image without rebuilding (main only)
+        id: export
+        if: github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          jq -e '.passed == true and .profile == "prod" and .ddl == "validate"' "$RUNNER_TEMP/runtime-results/result.json"
+          mkdir -p "$RUNNER_TEMP/verified-image"
+          docker image save "calfit-ci:sha-$GITHUB_SHA" | gzip -1 > "$RUNNER_TEMP/verified-image/image.tar.gz"
+          cd "$RUNNER_TEMP/verified-image"
+          sha256sum image.tar.gz > image.tar.gz.sha256
+          image_id=$(docker image inspect "calfit-ci:sha-$GITHUB_SHA" --format '{{.Id}}')
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
+          echo "archive_sha256=$(cut -d ' ' -f 1 image.tar.gz.sha256)" >> "$GITHUB_OUTPUT"
+          cp "$RUNNER_TEMP/runtime-results/result.json" verification.json
+
+      - name: Upload tested image for publication (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-arm64-image-${{ github.sha }}
+          path: ${{ runner.temp }}/verified-image/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    name: Publish the tested image to GHCR
+    needs: [quality, arm64]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      github.repository == 'coffiiness/BE' &&
+      needs.quality.result == 'success' && needs.arm64.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Copy docker-compose to EC2
-        uses: appleboy/scp-action@v0.1.7
+      # No checkout, Gradle invocation or Docker build in this privileged job.
+      - name: Download the tested image from this run
+        uses: actions/download-artifact@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: "/home/ubuntu/app"
-          timeout: 120s
-          command_timeout: 10m
+          name: verified-arm64-image-${{ github.sha }}
+          path: ${{ runner.temp }}/verified-image
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1
+      - name: Verify and load the exact tested image
+        env:
+          EXPECTED_ARCHIVE_SHA256: ${{ needs.arm64.outputs.archive_sha256 }}
+          EXPECTED_IMAGE_ID: ${{ needs.arm64.outputs.image_id }}
+          EXPECTED_JAR_SHA256: ${{ needs.quality.outputs.jar_sha256 }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/verified-image"
+          sha256sum --check --strict image.tar.gz.sha256
+          test "$(sha256sum image.tar.gz | cut -d ' ' -f 1)" = "$EXPECTED_ARCHIVE_SHA256"
+          jq -e --arg sha "$GITHUB_SHA" --arg id "$EXPECTED_IMAGE_ID" --arg jar "$EXPECTED_JAR_SHA256" \
+            '.passed == true and .sourceSha == $sha and .imageId == $id and .jarSHA256 == $jar and .profile == "prod" and .ddl == "validate"' verification.json
+          gunzip -c image.tar.gz | docker image load
+          test "$(docker image inspect "calfit-ci:sha-$GITHUB_SHA" --format '{{.Id}}')" = "$EXPECTED_IMAGE_ID"
+          test "$(docker image inspect "$EXPECTED_IMAGE_ID" --format '{{.Os}}/{{.Architecture}}')" = linux/arm64
+          docker image inspect "$EXPECTED_IMAGE_ID" | jq -e --arg sha "$GITHUB_SHA" --arg jar "$EXPECTED_JAR_SHA256" \
+            '.[0].Config.Labels | .["org.opencontainers.image.revision"] == $sha and .["com.calfit.jar.sha256"] == $jar and .["com.calfit.java.runtime"] == "17.0.21.1+2"'
+          docker image tag "$EXPECTED_IMAGE_ID" "$IMAGE:sha-$GITHUB_SHA"
+
+      - name: Authenticate with the job GITHUB_TOKEN
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/app
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
-            echo "${{ secrets.ENV_FILE_BASE64 }}" | base64 -d > .env
+      - name: Push without rebuilding and record the registry digest
+        id: push
+        env:
+          EXPECTED_IMAGE_ID: ${{ needs.arm64.outputs.image_id }}
+          EXPECTED_JAR_SHA256: ${{ needs.quality.outputs.jar_sha256 }}
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:sha-$GITHUB_SHA" | tee "$RUNNER_TEMP/ghcr-push.log"
+          digest=$(sed -nE 's/^sha-[0-9a-f]{40}: digest: (sha256:[0-9a-f]{64}) size: [0-9]+$/\1/p' "$RUNNER_TEMP/ghcr-push.log")
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          mkdir -p "$RUNNER_TEMP/publication"
+          docker manifest inspect "$IMAGE@$digest" > "$RUNNER_TEMP/publication/manifest.json"
+          jq -e --arg id "$EXPECTED_IMAGE_ID" '.config.digest == $id' "$RUNNER_TEMP/publication/manifest.json"
+          jq -n --arg image "$IMAGE" --arg tag "sha-$GITHUB_SHA" --arg digest "$digest" \
+            --arg id "$EXPECTED_IMAGE_ID" --arg sha "$GITHUB_SHA" --arg jar "$EXPECTED_JAR_SHA256" \
+            '{image: $image, tag: $tag, digest: $digest, imageId: $id, sourceSha: $sha, jarSHA256: $jar, platform: "linux/arm64"}' \
+            > "$RUNNER_TEMP/publication/published-image.json"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          printf 'Published `%s:sha-%s`\n\nDigest: `%s`\n' "$IMAGE" "$GITHUB_SHA" "$digest" >> "$GITHUB_STEP_SUMMARY"
 
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/final-backend:latest
-            sudo docker-compose down
-            sudo docker-compose up -d
-
-            sudo docker image prune -f
+      - name: Preserve the actual registry publication record
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghcr-publication-${{ github.sha }}
+          path: ${{ runner.temp }}/publication/
+          if-no-files-found: error
+          retention-days: 30
