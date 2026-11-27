@@ -175,11 +175,11 @@ VITE_API_BASE_URL=https://API주소/api/v1로 빌드한다. 필요하면 VITE_PU
 
 Google OAuth redirect URI는 `https://프론트주소/auth/callback`, Calendar webhook은
 `https://API주소/api/v1/calendars/google/notifications`로 등록한다. 메일 링크와 Toss 결제
-콜백도 새 주소에서 확인한다. 파일 저장은 현재 AWS S3를 유지하며 VM 이전만으로 R2로 바뀌지
-않는다. EC2 IAM role은 OCI에 전달되지 않으므로 최소 권한 자격증명이나 별도 워크로드 인증을
-준비해야 한다. .env.prod에는 실제 키를 넣되 Git/Docker build context에 포함하지 않는다.
-S3 버킷 CORS에 새 Pages Origin이 허용되는지도 실제 연동 단계에서 확인한다.
-이번 작업에서는 S3 코드·버킷 설정·AWS 자원을 변경하지 않는다.
+콜백도 새 주소에서 확인한다. 파일 저장소는 아래 **Cloudflare R2 첨부파일 저장소 전환** 절차로
+별도 설정한다. VM 이전만으로 저장소가 전환되지는 않는다. `S3_ENDPOINT`가 비어 있으면 기존
+AWS S3 구성을 유지한다. EC2 IAM role은 OCI에 전달되지 않으므로 어느 저장소를 사용하든
+해당 저장소의 자격증명이 필요하다. 실제 키는 운영 서버에서만 설정하고 Git/Docker build
+context에 포함하지 않는다. 이 가이드는 기존 AWS 객체를 이동하거나 삭제하지 않는다.
 
 ## 기존 GitHub Actions 분석과 제안
 
@@ -1071,3 +1071,129 @@ revision 불일치는 교체 전에 차단했다. containerd 방식의 성공 �
 참고: [Docker containerd image store](https://docs.docker.com/engine/storage/containerd/),
 [Docker manifest inspect](https://docs.docker.com/reference/cli/docker/manifest/inspect/),
 [OCI image manifest/config 설명](https://github.com/opencontainers/image-spec/blob/main/manifest.md).
+
+## Cloudflare R2 첨부파일 저장소 전환
+
+기존 AWS SDK for Java v2 **2.42.3**과 첨부파일 API를 유지한다. `S3_ENDPOINT`가 비어 있거나
+공백이면 기존 AWS region/기본 자격증명 체인을 그대로 사용한다. 값이 있으면 **R2 모드**로
+동작하며 `S3Client`와 `S3Presigner` 모두 같은 endpoint, `Region.of("auto")`, path-style
+주소를 사용한다. 임의의 S3 호환 서비스에 대한 일반 설정으로 사용하지 않는다.
+
+### 운영자가 직접 설정할 값
+
+검토한 새 이미지를 적용할 때 운영 서버의 `/opt/calfit/BE/.env.prod`에서 아래 항목만 직접
+설정한다. 이 문서의 예시는 실제 인증정보가 아니다. 기존 DB/JWT/메일 등 다른 설정과
+`.env.image`, `calfit-oracle` Compose 프로젝트 및 `calfit_oracle_mysql84` 볼륨은 유지한다.
+실제 환경 파일을 터미널 로그, CI, Git, Docker 이미지에 출력하거나 포함하지 않는다.
+
+```dotenv
+S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+S3_APPLICANT_BUCKET=calfit-applicants
+AWS_ACCESS_KEY_ID=<R2_ACCESS_KEY_ID>
+AWS_SECRET_ACCESS_KEY=<R2_SECRET_ACCESS_KEY>
+AWS_SESSION_TOKEN=
+AWS_REGION=ap-northeast-2
+S3_KEY_PREFIX=uploads
+PRESIGN_EXPIRE_MINUTES=10
+```
+
+endpoint는 Cloudflare가 표시하는 계정별 **S3 API endpoint**를 사용한다. 버킷명, 객체 경로,
+`r2.dev` 또는 사용자 도메인을 붙이지 않는다. `AWS_REGION`은 AWS fallback용이며 R2 모드의
+실제 서명 region은 항상 `auto`다. 발급한 버킷 전용 Object Read & Write **Access Key ID /
+Secret Access Key**를 기존 AWS 환경변수 이름으로 전달한다. 대시보드의 Bearer API Token을
+키 대신 넣지 않는다. R2 기본 자격증명에는 session token이 필요 없으므로 기존 AWS session
+token을 남기지 않는다. Compose는 프로세스 환경변수가 env 파일보다 우선하므로 수동 실행 시
+셸에 남은 `S3_ENDPOINT`/`S3_APPLICANT_BUCKET`/`AWS_*` 값도 확인하되 값 자체를 출력하지 않는다.
+
+코드와 함께 변경된 `docker-compose.prod.yml`도 검토하여 반영해야 새 환경변수가 컨테이너에
+전달된다. 기존 파일을 자동 덮어쓰는 절차는 제공하지 않는다. 실제 적용은 별도 운영 절차에서
+백엔드만 교체하고 MySQL을 재시작하거나 스키마/볼륨을 변경하지 않는다. `.env.prod`는 기존
+root 소유권과 제한된 읽기 권한을 유지한다. 잘못된 키는 Health Check만으로 감지되지 않는다.
+
+### SDK checksum 및 브라우저 호환성
+
+SDK 2.30.0 이후 자동 CRC32 동작과 R2의 checksum 지원 차이를 고려해 **R2 모드에서만**
+S3Client의 request checksum 계산과 response checksum 검증을 `WHEN_REQUIRED`로 설정한다.
+`chunkedEncodingEnabled(false)`도 적용한다. Presigner의 사용자 지정 S3Configuration은
+`checksumValidationEnabled(false)`로 구성하여 브라우저가 추가 checksum 헤더를 보내야 하는
+서명을 생성하지 않는다. AWS fallback 설정과 SDK 버전은 변경하지 않는다.
+
+합성 키를 사용한 실제 SDK 서명 테스트로 PUT의 signed headers는 `host;content-type`, GET은
+`host`만 포함하고 checksum 쿼리/헤더 및 session token이 추가되지 않는지 확인한다. GET의
+다운로드 `Content-Disposition`과 기존 10분 만료(설정값으로 변경 가능)도 유지한다.
+
+### 기존 FE와 R2 CORS
+
+`CareersApplyView.vue`는 BE에 보낸 `file.type || 'application/octet-stream'`과 동일한 값을
+R2 PUT의 `Content-Type`으로 보내며, PUT에 JWT/Authorization 또는 checksum 헤더를 붙이지
+않는다. 따라서 현재 준비한 아래 CORS와 호환되며 **FE 기능 수정은 필요 없다**.
+
+| R2 CORS 항목 | 값 |
+| --- | --- |
+| AllowedOrigins | `https://calfit.co.kr`, `https://www.calfit.co.kr` |
+| AllowedMethods | `GET`, `PUT`, `HEAD` |
+| AllowedHeaders | `Content-Type` |
+| ExposeHeaders | `ETag` |
+
+버킷 Public Access는 Disabled로 유지한다. 서명 URL의 `Content-Type`은 실제 PUT 값과 같아야
+한다. 위 Origin에는 localhost/Pages preview가 포함되지 않으므로 해당 환경에서 실제 R2를
+사용하려면 별도의 명시적 허용이 필요하다. 이번 변경은 버킷/CORS 설정을 수정하지 않는다.
+
+### 유지되는 흐름과 운영 확인
+
+1. `POST /api/v1/application-files/presign-upload`: 기존 지원자 소유권/tenant 확인 후 PENDING
+   파일과 PUT URL 생성. 객체 키 형식 및 요청/응답 DTO를 유지한다.
+2. 브라우저가 서명된 Content-Type으로 R2 PUT 수행.
+3. `POST /api/v1/application-files/complete`: 같은 R2 endpoint로 HEAD하여 크기를 기록하고
+   ACTIVE로 전환. 기존 지원자 접근 권한 검증을 유지한다.
+4. `GET /api/v1/application-files/{fileId}/presign-download`: 기존 HR/tenant/ACTIVE 검사 후
+   GET URL을 발급하고 브라우저가 원래 파일명으로 다운로드한다.
+
+기존 FE의 파일 입력 `accept`와 `maxFileSizeMB`(미설정 시 10MB)를 그대로 유지한다. 현재 BE
+서비스는 별도 MIME allowlist/최대 크기를 강제하지 않으며, 이 전환에서 새로운 제한을 추가하거나
+기존 검사를 삭제하지 않는다. 서명 URL과 자격증명은 로그나 공유 문서에 남기지 않는다.
+
+### 변경 범위 로컬 검증 결과
+
+Temurin `17.0.21.1+2` / Gradle `8.14.3` / AWS SDK `2.42.3`에서 다음 검사를 통과했다.
+
+| 검사 | 결과 |
+| --- | --- |
+| R2 PUT/GET 서명, AWS fallback, loopback HEAD, 자격증명 미조회 Bean 초기화 | 새 테스트 8개 통과 |
+| 기존 첨부파일 업로드 권한/업로드 URL/완료/다운로드 API | 기존 테스트 10개 통과 |
+| 합계 | 18개 성공, 실패/오류/비활성화 0개 |
+| core-api Spotless / git diff --check | 통과 |
+| Compose config (endpoint 빈 값 및 R2 값) | 전달 정상; endpoint 외 해석된 설정 동일 |
+
+재실행 대상은 다음으로 한정한다. 이번 검증은 격리된 작업 디렉터리, local H2와 합성 AWS/JWT
+환경변수 및 빈 AWS profile 파일을 사용했으며 실제 운영 환경 파일은 읽지 않았다.
+
+```bash
+./gradlew :core:core-api:test \
+  --tests '*AwsS3ConfigTest' \
+  --tests 'com.coffiness.calfit.api.application_files.*' \
+  :core:core-api:spotlessCheck
+```
+
+S3Client에는 최신 checksum 옵션만 설정하고 Presigner에만 legacy `checksumValidationEnabled`
+옵션을 사용한다. SDK 2.42.3에서 두 방식을 S3Client에 동시에 지정하면 Bean 초기화가 실패하므로
+설정을 분리한 상태를 위 테스트로 검증했다. 전체 Gradle 테스트/Quality Gate와 ARM64 빌드는
+반복하지 않았으며 CI/CD, Dockerfile, Baseline 및 FE에는 변경이 없다.
+
+실제 키를 설정하고 배포한 뒤 위 네 단계를 운영 Origin의 브라우저에서 수행해 OPTIONS/PUT,
+완료 API의 HEAD, HR 다운로드 및 만료 후 접근 거절을 확인해야 한다. 합성 키 로컬 검증은 실제
+R2의 키 권한/CORS/객체 저장 성공을 증명하지 않는다. `/health`는 저장소 연결 검사가 아니며,
+자격증명 없이도 Bean 생성과 기존 CI 기동은 가능하지만 실제 URL 발급에는 유효한 키가 필요하다.
+
+기존 DB의 첨부파일 레코드는 객체 키를 그대로 사용한다. endpoint/버킷만 바꾸어도 기존 AWS
+객체가 R2에 복사되지는 않는다. 같은 키의 객체가 R2에 없다면 기존 첨부파일 다운로드는 실패할
+수 있으므로 별도 데이터 이전 여부를 결정해야 한다. 이번 작업은 기존 AWS 객체/DB를 변경하지
+않으며 데이터 이전은 수행하지 않는다.
+
+공식 참고:
+[Cloudflare Java SDK 예제](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-java/),
+[R2 Presigned URLs](https://developers.cloudflare.com/r2/api/s3/presigned-urls/),
+[R2 CORS](https://developers.cloudflare.com/r2/buckets/cors/),
+[R2 S3 checksum 지원 표](https://developers.cloudflare.com/r2/api/s3/api/),
+[AWS Java SDK checksum 기본 동작](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/s3-checksums.html),
+[SDK 2.42.3 Presigner 구현](https://github.com/aws/aws-sdk-java-v2/blob/2.42.3/services/s3/src/main/java/software/amazon/awssdk/services/s3/internal/signing/DefaultS3Presigner.java).

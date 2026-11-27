@@ -83,13 +83,14 @@ services:
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
       LOGGING_CONFIG: /app/config/logback-oracle.xml
       JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx768m}
-      # File uploads still use AWS S3. OCI does not inherit the EC2 IAM role.
+      # Empty endpoint preserves AWS S3. Set the R2 S3 API endpoint for R2 mode.
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
       AWS_REGION: ${AWS_REGION:-ap-northeast-2}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       AWS_EC2_METADATA_DISABLED: "true"
-      S3_APPLICANT_BUCKET: ${S3_APPLICANT_BUCKET:?Set the existing S3 bucket name}
+      S3_APPLICANT_BUCKET: ${S3_APPLICANT_BUCKET:?Set the S3-compatible bucket name}
       S3_KEY_PREFIX: ${S3_KEY_PREFIX:-uploads}
       PRESIGN_EXPIRE_MINUTES: ${PRESIGN_EXPIRE_MINUTES:-10}
       TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:-}
@@ -136,7 +137,7 @@ services:
 networks:
   database:
     internal: true
-  # API requires outbound access to Google, Toss, SMTP and S3.
+  # API requires outbound access to Google, Toss, SMTP and S3/R2.
   application:
     driver: bridge
 
