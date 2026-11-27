@@ -762,3 +762,246 @@ Python 표준 라이브러리와 실제 Bash/jq/flock으로 신규/내부 실패
 88.015초에 완료했다. Bash 구문 검사, 문서의 Bash 예시 구문 검사 및 git diff --check도
 통과했다. Workflow/Gradle Gate/Baseline/Dockerfile/운영 Compose의 변경이 없는 것도 확인했다.
 이는 격리 Mock 결과이며 실제 Oracle의 기동·네트워크·롤백 성공을 검증한 결과는 아니다.
+
+## 15-12 systemd Service 및 Timer — /opt 운영 경로
+
+root 관리 운영 경로는 `/opt/calfit/BE`다. `/home/ubuntu`와 기존 하위 디렉터리의 소유권·권한은
+변경하지 않는다. 기존 `/home/ubuntu/calfit/BE`는 전환 성공 전까지 파일과 상태를 그대로 보존한다.
+아래는 **향후 서버 내부에서 수행할 절차**이며 이번 작업에서는 서버 접속·권한 변경·복사·배포를
+하지 않았다. 이전 절의 /home 경로는 초기 운영 기록이다. 설치된 스크립트의 기본 경로도 유지하므로
+현재 Service와 모든 /opt 운영·복구 호출은 반드시 `--root /opt/calfit/BE`를 전달한다.
+
+### Service와 Timer
+
+- root/root oneshot, WorkingDirectory=/opt/calfit/BE.
+- ExecStart=/usr/local/sbin/calfit-deploy-oracle --root /opt/calfit/BE.
+- Docker/network 의존성, 40분 제한, Restart=no, journald는 기존과 같다.
+- Timer 파일은 변경하지 않는다. OnCalendar 10분 주기와 Persistent=true를 유지한다.
+- 기존 flock/pending/실패 digest 동작을 재사용한다. 소유권 인계는 /opt의 복사본에만 적용한다.
+
+Service가 실행 중이면 같은 Service를 중복 시작하지 않으며 직접 호출은 flock으로 방어한다.
+Persistent Timer는 활성화 직후 실행될 수도 있으므로 **최초 수동 전환·배포 검증 완료 전에는
+Timer를 활성화하지 않는다.** 별도 cron/무한 루프나 ubuntu의 Docker 그룹 가입은 필요 없다.
+
+### 1. 실행을 동결하고 원본 상태 확인
+
+기존 Timer가 설치돼 있다면 비활성화하고 기존 Service/직접 실행 중인 배포가 끝날 때까지 기다린다.
+원본과 /opt 복사본은 lock 경로가 다르므로 전환 중에는 어느 쪽에서도 다른 수동 배포를 실행하지
+않는다. pending이 있으면 먼저 기존 환경의 복구 문제를 해결한 뒤 전환을 다시 준비한다. pending을
+복사해 새 경로에서 무작정 재개하거나 이력을 초기화하지 않는다.
+
+```bash
+# 이미 설치된 Timer가 있는 경우에만:
+sudo systemctl disable --now calfit-deploy.timer
+sudo systemctl status calfit-deploy.service --no-pager
+# 위 상태가 실행 중이라면 여기서 기다리고 아래로 진행하지 않는다.
+old=/home/ubuntu/calfit/BE
+app=/opt/calfit/BE
+sudo test ! -e "$old/.oracle-deploy/pending.json" || exit 1
+command -v bash curl jq flock sha256sum mktemp realpath grep systemd-analyze
+sudo docker --host unix:///var/run/docker.sock version
+sudo docker compose version
+# 부족한 경우에만 curl/jq/util-linux/coreutils/grep을 준비한다. Docker는 교체하지 않는다.
+api_id=$(sudo docker --host unix:///var/run/docker.sock ps -q --filter label=com.docker.compose.project=calfit-oracle --filter label=com.docker.compose.service=core-api)
+mysql_id=$(sudo docker --host unix:///var/run/docker.sock ps -q --filter label=com.docker.compose.project=calfit-oracle --filter label=com.docker.compose.service=mysql)
+test -n "$api_id" && test -n "$mysql_id" || exit 1
+previous_id=$(sudo docker --host unix:///var/run/docker.sock inspect "$api_id" --format '{{.Image}}')
+mysql_started=$(sudo docker --host unix:///var/run/docker.sock inspect "$mysql_id" --format '{{.State.StartedAt}}')
+mysql_volume=$(sudo docker --host unix:///var/run/docker.sock inspect "$mysql_id" --format '{{range .Mounts}}{{if eq .Destination "/var/lib/mysql"}}{{.Name}}{{end}}{{end}}')
+test "$mysql_volume" = calfit_oracle_mysql84 || exit 1
+env_hash=$(sudo sha256sum "$old/.env.prod" | cut -d ' ' -f 1)
+rollback_image="calfit-backend:before-opt-$(date -u +%Y%m%dT%H%M%SZ)"
+sudo docker --host unix:///var/run/docker.sock image tag "$previous_id" "$rollback_image"
+```
+
+### 2. 필요한 운영 파일만 서버 내부에서 복사
+
+`/opt`, `/usr/local/sbin`, `/etc/systemd/system`의 root 소유권·상위 쓰기 권한을 확인한다.
+원본의 Compose/logback은 검토한 버전이어야 하며, 복사본의 공개 설정 hash를 검토본과 대조한다.
+원본 `.env.prod`와 선택적 `.env.image`는 서버 내부에서만 복사한다. 내용을 출력하거나 PC/GitHub로
+전송하지 않는다. Secret 파일은 cmp의 종료 코드와 hash로만 동일성을 확인한다.
+
+목적지가 이미 있으면 덮어쓰지 말고 기존 사용 이력을 확인한다. 다음 예시는 빈 /opt 전용 경로를
+처음 준비하는 경우다. 전체 저장소나 소스·캐시·개인키·DB 데이터를 복사할 필요는 없다.
+
+```bash
+sudo namei -l /opt
+sudo namei -l /usr/local/sbin
+sudo test ! -e /opt/calfit/BE || exit 1
+sudo test ! -L /opt/calfit || exit 1
+sudo install -d -o root -g root -m 0755 /opt/calfit "$app" "$app/deploy" "$app/deploy/oracle"
+for file in docker-compose.prod.yml deploy/oracle/logback.xml .env.prod; do
+  sudo test -f "$old/$file" && sudo test ! -L "$old/$file" || exit 1
+done
+sudo install -o root -g root -m 0644 "$old/docker-compose.prod.yml" "$app/docker-compose.prod.yml"
+sudo install -o root -g root -m 0644 "$old/deploy/oracle/logback.xml" "$app/deploy/oracle/logback.xml"
+sudo install -o root -g root -m 0600 "$old/.env.prod" "$app/.env.prod"
+if sudo test -e "$old/.env.image"; then
+  sudo test ! -L "$old/.env.image" || exit 1
+  sudo install -o root -g root -m 0600 "$old/.env.image" "$app/.env.image"
+fi
+sudo cmp --silent "$old/.env.prod" "$app/.env.prod" || exit 1
+test "$env_hash" = "$(sudo sha256sum "$old/.env.prod" | cut -d ' ' -f 1)" || exit 1
+test "$env_hash" = "$(sudo sha256sum "$app/.env.prod" | cut -d ' ' -f 1)" || exit 1
+sudo cmp --silent "$old/docker-compose.prod.yml" "$app/docker-compose.prod.yml" || exit 1
+sudo cmp --silent "$old/deploy/oracle/logback.xml" "$app/deploy/oracle/logback.xml" || exit 1
+sudo install -d -o root -g root -m 0700 "$app/.oracle-deploy"
+if sudo test -d "$old/.oracle-deploy"; then
+  sudo test ! -L "$old/.oracle-deploy" || exit 1
+  test -z "$(sudo find "$old/.oracle-deploy" -type l -print -quit)" || exit 1
+  sudo cp -a -- "$old/.oracle-deploy/." "$app/.oracle-deploy/"
+fi
+# 아래 권한 변경은 새 /opt 복사본에만 적용한다.
+sudo chown -R --no-dereference root:root "$app/.oracle-deploy"
+sudo find "$app/.oracle-deploy" -xdev -type d -exec chmod 0700 {} +
+sudo find "$app/.oracle-deploy" -xdev -type f -exec chmod 0600 {} +
+sudo namei -l "$app/docker-compose.prod.yml"
+sudo stat -c '%U:%G %a %n' "$app" "$app/docker-compose.prod.yml" "$app/.env.prod" "$app/.oracle-deploy"
+sudo -u ubuntu test ! -w "$app" || exit 1
+sudo -u ubuntu test ! -w "$app/docker-compose.prod.yml" || exit 1
+```
+
+원본의 성공/실패 digest 이력과 복구 자료도 보존하며 lock의 실행 상태를 복사해 이어받는 것은
+아니다. 과거 성공 기록의 backup 필드에 /home 경로가 있으면 감사 기록으로 그대로 둔다.
+pending이 없는 상태에서만 복사하고, 새로운 배포의 backup은 /opt에서 생성한다. 기존 경로의
+과거 복구 자료도 임의로 삭제하지 않는다. chmod/chown/find 권한 변경 대상은 /opt뿐이다.
+
+### 3. 검토한 실행 파일과 unit 설치
+
+검토된 비민감 파일을 서버의 별도 staging 경로에 준비한다. 원본 운영 디렉터리의 파일을
+덮어쓰지 않는다. 아래 review는 검토된 배포 스크립트와 수정 Service, 기존 Timer가 있는 경로다.
+검토 시 고정한 SHA-256을 채워 source와 설치 복사본을 대조한다. Timer 내용은 기존과 같아야 한다.
+
+```bash
+review=/tmp/calfit-reviewed
+script_sha=REPLACE_WITH_REVIEWED_SCRIPT_SHA256
+service_sha=REPLACE_WITH_REVIEWED_SERVICE_SHA256
+timer_sha=REPLACE_WITH_UNCHANGED_TIMER_SHA256
+for digest in "$script_sha" "$service_sha" "$timer_sha"; do
+  [[ "$digest" =~ ^[0-9a-f]{64}$ ]] || exit 1
+done
+printf '%s  %s\n' "$script_sha" "$review/tools/deployment/deploy-oracle.sh" \
+  "$service_sha" "$review/deploy/oracle/systemd/calfit-deploy.service" \
+  "$timer_sha" "$review/deploy/oracle/systemd/calfit-deploy.timer" | sha256sum --check --strict - || exit 1
+sudo test ! -L /usr/local/sbin/calfit-deploy-oracle || exit 1
+sudo test ! -L /etc/systemd/system/calfit-deploy.service || exit 1
+sudo test ! -L /etc/systemd/system/calfit-deploy.timer || exit 1
+sudo install -o root -g root -m 0750 "$review/tools/deployment/deploy-oracle.sh" /usr/local/sbin/calfit-deploy-oracle
+sudo install -o root -g root -m 0644 "$review/deploy/oracle/systemd/calfit-deploy.service" /etc/systemd/system/calfit-deploy.service
+sudo install -o root -g root -m 0644 "$review/deploy/oracle/systemd/calfit-deploy.timer" /etc/systemd/system/calfit-deploy.timer
+printf '%s  %s\n' "$script_sha" /usr/local/sbin/calfit-deploy-oracle \
+  "$service_sha" /etc/systemd/system/calfit-deploy.service \
+  "$timer_sha" /etc/systemd/system/calfit-deploy.timer | sudo sha256sum --check --strict - || exit 1
+sudo systemd-analyze verify /etc/systemd/system/calfit-deploy.service
+sudo systemctl daemon-reload
+sudo env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root \
+  /usr/local/sbin/calfit-deploy-oracle --root /opt/calfit/BE --dry-run
+```
+
+### 4. 최초 전환: 같은 로컬 이미지로 백엔드 bind mount만 이동
+
+성공 digest 이력을 복사하면 스크립트가 같은 digest를 skip할 수 있다. 따라서 Service의 경로를
+바꾼 것만으로 전환이 끝났다고 판단하지 않는다. 기존과 동일한 이미지 ID를 사용해 core-api만
+한 번 재생성하고 logback bind mount가 새 경로인지 확인한다. MySQL은 재생성하지 않는다.
+다음 함수는 운영 env를 source하지 않으며 내용을 출력하지 않는다.
+
+```bash
+set -o pipefail
+compose_at() {
+  local base=$1; shift
+  local files=(--env-file "$base/.env.prod")
+  if sudo test -f "$base/.env.image"; then files+=(--env-file "$base/.env.image"); fi
+  sudo env -u DOCKER_HOST -u DOCKER_CONTEXT -u DOCKER_TLS_VERIFY -u DOCKER_CERT_PATH \
+    -u BACKEND_IMAGE -u COMPOSE_FILE -u COMPOSE_PROJECT_NAME -u COMPOSE_ENV_FILES -u COMPOSE_PROFILES \
+    JPA_DDL_AUTO=validate docker --host unix:///var/run/docker.sock compose \
+    --project-name calfit-oracle --project-directory "$base" "${files[@]}" -f "$base/docker-compose.prod.yml" "$@"
+}
+compose_at "$app" config --quiet || exit 1
+compose_at "$app" config --format json | jq -e '
+.services["core-api"] as $a |
+($a | has("build") | not) and $a.environment.SPRING_JPA_HIBERNATE_DDLAUTO=="validate" and
+any($a.volumes[]; .target=="/app/config/logback-oracle.xml" and .source=="/opt/calfit/BE/deploy/oracle/logback.xml" and .read_only==true) and
+.services.mysql.image=="mysql:8.4.13" and .volumes.mysql_data.external==true and .volumes.mysql_data.name=="calfit_oracle_mysql84"
+' >/dev/null || exit 1
+selected_image=$(compose_at "$app" config --format json | jq -er '.services["core-api"].image')
+test "$(sudo docker --host unix:///var/run/docker.sock image inspect "$selected_image" --format '{{.Id}}')" = "$previous_id" || exit 1
+# Pull/Build 없이 캐시된 동일 이미지로 backend만 재생성한다.
+compose_at "$app" up -d --no-deps --no-build --pull never --force-recreate --wait --wait-timeout 600 core-api || exit 1
+new_api_id=$(compose_at "$app" ps -q core-api)
+test "$(sudo docker --host unix:///var/run/docker.sock inspect "$new_api_id" --format '{{.Image}}')" = "$previous_id" || exit 1
+sudo docker --host unix:///var/run/docker.sock inspect "$new_api_id" | jq -e '
+.[0].State.Health.Status=="healthy" and
+any(.[0].Mounts[]; .Destination=="/app/config/logback-oracle.xml" and .Source=="/opt/calfit/BE/deploy/oracle/logback.xml" and .RW==false)
+' >/dev/null || exit 1
+sudo docker --host unix:///var/run/docker.sock exec "$new_api_id" curl -fsS --max-time 10 http://127.0.0.1:8081/actuator/health | jq -e '.status=="UP"' >/dev/null || exit 1
+curl -fsS --max-time 10 http://127.0.0.1:8080/health || exit 1
+test "$mysql_id" = "$(compose_at "$app" ps -q mysql)" || exit 1
+test "$mysql_started" = "$(sudo docker --host unix:///var/run/docker.sock inspect "$mysql_id" --format '{{.State.StartedAt}}')" || exit 1
+test "$mysql_volume" = "$(sudo docker --host unix:///var/run/docker.sock inspect "$mysql_id" --format '{{range .Mounts}}{{if eq .Destination "/var/lib/mysql"}}{{.Name}}{{end}}{{end}}')" || exit 1
+test "$env_hash" = "$(sudo sha256sum "$old/.env.prod" | cut -d ' ' -f 1)" || exit 1
+test "$env_hash" = "$(sudo sha256sum "$app/.env.prod" | cut -d ' ' -f 1)" || exit 1
+```
+
+단일 backend 재생성 동안 짧은 중단이 생길 수 있다. 이 단계 실패 시 Timer는 비활성 상태로 두고,
+보존한 기존 경로와 같은 캐시 이미지로 `compose_at "$old" up -d --no-deps --no-build --pull never
+--force-recreate --wait --wait-timeout 600 core-api`를 수동 검토 후 사용해 이전 bind mount로 되돌릴 수
+있다. 이 명령도 기존 파일의 내용·소유권·권한을 변경하지 않는다. 기존 이미지 태그와 두 경로의
+운영 파일·이력은 전환 성공 전까지 삭제하지 않는다. down/volume 생성·삭제/MySQL Pull은 하지 않는다.
+
+### 5. 실제 수동 배포 검증 후 Timer 활성화
+
+```bash
+sudo systemctl start calfit-deploy.service
+sudo systemctl show calfit-deploy.service -p WorkingDirectory -p ExecStart -p Result -p ExecMainStatus
+sudo journalctl -u calfit-deploy.service -n 100 --no-pager
+sudo test ! -e /opt/calfit/BE/.oracle-deploy/pending.json || exit 1
+sudo jq '{status,commitSha,digest,imageId,externalHealth}' /opt/calfit/BE/.oracle-deploy/current.json
+```
+
+Result=success/ExecMainStatus=0에 더해 실제 승인된 main digest·실행 image ID·내부 health와
+새 bind mount를 확인한다. 요청 없음/이미 배포됨 skip 또는 dry-run 종료 코드 0만으로 최초 배포를
+검증했다고 판단하지 않는다. 최초 /opt 전환 및 수동 배포 확인이 모두 끝난 경우에만 다음을 실행한다.
+
+```bash
+# 최초 실제 전환/수동 배포 검증 완료 전에는 실행하지 않는다.
+sudo systemctl enable --now calfit-deploy.timer
+sudo systemctl list-timers --all calfit-deploy.timer
+sudo systemctl show calfit-deploy.timer -p NextElapseUSecRealtime -p LastTriggerUSec
+```
+
+### 6. 로그·상태·복구
+
+```bash
+sudo systemctl disable --now calfit-deploy.timer
+# 이미 실행 중인 Service/수동 작업은 종료할 때까지 기다린다.
+sudo systemctl status calfit-deploy.service --no-pager
+sudo journalctl -u calfit-deploy.service --since '1 hour ago' -n 100 --no-pager
+sudo jq '{status,commitSha,digest,imageId,externalHealth}' /opt/calfit/BE/.oracle-deploy/current.json
+if sudo test -f /opt/calfit/BE/.oracle-deploy/pending.json; then
+  sudo jq '{status,phase,deploymentId,digest,backup}' /opt/calfit/BE/.oracle-deploy/pending.json
+fi
+if sudo test -d /opt/calfit/BE/.oracle-deploy/failures; then
+  sudo find /opt/calfit/BE/.oracle-deploy/failures -type f -name '*.json' -print
+fi
+sudo env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root \
+  /usr/local/sbin/calfit-deploy-oracle --root /opt/calfit/BE --dry-run --recover
+# 15-11의 원인 확인 및 복구 준비를 마친 뒤에만:
+sudo env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root \
+  /usr/local/sbin/calfit-deploy-oracle --root /opt/calfit/BE --recover
+sudo test ! -e /opt/calfit/BE/.oracle-deploy/pending.json
+sudo systemctl reset-failed calfit-deploy.service
+```
+
+state와 복구 자료는 root로 검사한다. pending/실패 marker를 지워서 우회하지 않는다. 복구 후
+실제 이미지·내부 health와 정상 이력을 확인한 뒤에만 Timer를 재활성화한다. Cloudflare Tunnel은
+기존 `127.0.0.1:8080` 연결 및 systemd 서비스를 그대로 사용한다.
+
+### 경로 수정의 로컬 검증 범위
+
+이번 수정은 Service와 이 문서뿐이다. 임시 루트에서 실행 복사본과 Docker/target 검증용 fixture를
+이용한 `systemd-analyze verify`는 Service만 대상으로 종료 코드 0, 경고 없이 통과했다.
+Service 변경은 WorkingDirectory와 ExecStart의 --root 두 항목뿐이며, Timer와 기존 코드 등
+보호 대상 8개 파일의 SHA-256이 그대로인 것을 확인했다. 실제 /opt, /usr/local/sbin,
+/etc/systemd에 설치하거나 서버 파일을 복사하지 않았다. Timer 일정 검증, 기존 Mock/Gradle
+테스트 및 이미지 빌드는 재실행하지 않았다. 실제 mount 전환/MySQL 보존/운영 기동은 위
+후속 수동 적용에서 확인한다.
