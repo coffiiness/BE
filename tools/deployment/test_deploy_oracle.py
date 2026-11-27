@@ -25,6 +25,8 @@ from pathlib import Path
 p=Path(os.environ['MOCK_STATE']); s=json.loads(p.read_text()); args=sys.argv[2:]
 tool=sys.argv[1]; case=s['case']; sha='a'*40; digest='sha256:'+'d'*64
 old='sha256:'+'c'*64; new='sha256:'+'b'*64
+run_id=100; deployment_id=55
+if s.get('release')==2: sha='2'*40; digest='sha256:'+'1'*64; new='sha256:'+'3'*64; run_id=101; deployment_id=56
 image='ghcr.io/coffiiness/calfit-backend@'+digest
 s['calls'].append([tool]+args)
 def emit(value=None,code=0):
@@ -34,6 +36,10 @@ def emit(value=None,code=0):
 if tool=='curl':
     assert not any(x in args for x in ['--request','-X','--data','--data-binary']), 'GET only'
     url=args[-1]; base='https://api.github.com/repos/coffiiness/BE/'
+    if url=='http://127.0.0.1:8080/health':
+        emit('503' if case=='host-health-failure' and s.get('active_image')==new else '200')
+    if url=='https://api.calfit.co.kr/health':
+        emit('503' if case=='external-http-failure' else '200',code=7 if case=='external-network-failure' else 0)
     assert url.startswith(base)
     endpoint=url[len(base):]
     n=s.setdefault('requests',{}).get(endpoint,0)+1; s['requests'][endpoint]=n
@@ -41,12 +47,12 @@ if tool=='curl':
     if case=='api-after-pull' and n>1: emit(code=22)
     if endpoint.startswith('deployments?'):
         payload={'schemaVersion':1,'repository':'coffiiness/BE','image':'ghcr.io/coffiiness/calfit-backend',
-                 'commitSha':sha,'digest':digest,'imageId':new,'workflowRunId':100,'workflowRunAttempt':1}
+                 'commitSha':sha,'digest':digest,'imageId':new,'workflowRunId':run_id,'workflowRunAttempt':1}
         if case=='bad-digest': payload['digest']='sha256:not-a-digest'
         if case=='injection': payload['commitSha']='$(touch /tmp/calfit-must-never-execute)'
         if case=='wrong-repository': payload['repository']='someone/BE'
         if case=='bad-payload': payload='echo malicious'
-        d={'id':55,'environment':'oracle-production','task':'deploy','production_environment':True,
+        d={'id':deployment_id,'environment':'oracle-production','task':'deploy','production_environment':True,
            'repository_url':base.rstrip('/'),'creator':{'login':'github-actions[bot]','type':'Bot'},
            'sha':sha,'ref':sha,'payload':payload}
         if case=='wrong-creator': d['creator']['login']='someone'
@@ -54,8 +60,8 @@ if tool=='curl':
         emit([] if case=='no-request' else [d])
     if endpoint=='git/ref/heads/main': emit({'object':{'sha':'f'*40 if case=='stale-main' or (case=='main-advanced' and n>1) else sha}})
     if endpoint=='actions/workflows/ci.yml': emit({'id':20,'name':'Backend CI/CD','path':'.github/workflows/ci.yml'})
-    if endpoint=='actions/runs/100':
-        run={'id':100,'workflow_id':20,'run_attempt':1,'name':'Backend CI/CD','path':'.github/workflows/ci.yml',
+    if endpoint==f'actions/runs/{run_id}':
+        run={'id':run_id,'workflow_id':20,'run_attempt':1,'name':'Backend CI/CD','path':'.github/workflows/ci.yml',
              'event':'push','head_branch':'main','head_sha':sha,'repository':{'full_name':'coffiiness/BE'},
              'head_repository':{'full_name':'coffiiness/BE'},'status':'completed','conclusion':'success'}
         if case=='failed-workflow': run['conclusion']='failure'
@@ -65,12 +71,12 @@ if tool=='curl':
         if case=='wrong-workflow': run['workflow_id']=99
         if case=='new-attempt' and n>1: run['run_attempt']=2
         emit(run)
-    if endpoint.startswith('actions/runs/100/attempts/1/jobs?'):
+    if endpoint.startswith(f'actions/runs/{run_id}/attempts/1/jobs?'):
         names=['Quality Gate and verified bootJar (AMD64)','Build and verify the ARM64 runtime','Publish the tested image to GHCR']
-        jobs=[{'name':name,'run_id':100,'head_sha':sha,'status':'completed','conclusion':'success'} for name in names]
+        jobs=[{'name':name,'run_id':run_id,'head_sha':sha,'status':'completed','conclusion':'success'} for name in names]
         if case=='skipped-quality': jobs[0]['conclusion']='skipped'
         emit({'total_count':3,'jobs':jobs})
-    if endpoint.startswith('deployments/55/statuses?'): emit([{'state':'failure'}] if case=='cancelled-request' else [])
+    if endpoint.startswith(f'deployments/{deployment_id}/statuses?'): emit([{'state':'failure'}] if case=='cancelled-request' else [])
     if endpoint.startswith('compare/'): emit({'status':'behind' if case=='main-backwards' else 'diverged' if case=='main-diverged' else 'ahead'})
     raise AssertionError('Unexpected API path: '+endpoint)
 if tool=='docker':
@@ -79,25 +85,42 @@ if tool=='docker':
     args=args[2:]
     assert not any(x in args for x in ['down','prune','rm','build','login','push'])
     if args[0]=='compose':
-        assert os.environ['BACKEND_IMAGE']==image and os.environ['JPA_DDL_AUTO']=='validate'
+        target=os.environ.get('BACKEND_IMAGE')
+        assert target is None or target==image or target.startswith('calfit-backend:rollback-deployment-')
+        assert os.environ['JPA_DDL_AUTO']=='validate'
         assert 'COMPOSE_FILE' not in os.environ
         action=args[args.index('-f')+2:]
         if action[0]=='config':
-            emit({'services':{'core-api':{'image':image,'platform':'linux/arm64','environment':{
+            if target is None:
+                target='calfit-backend:oracle-arm64'
+                indexes=[i+1 for i,x in enumerate(args) if x=='--env-file']
+                if len(indexes)>1:
+                    target=Path(args[indexes[-1]]).read_text().strip().split('=',1)[1]
+            emit({'services':{'core-api':{'image':target,'platform':'linux/arm64','environment':{
                 'SPRING_PROFILES_ACTIVE':'prod','SPRING_JPA_HIBERNATE_DDLAUTO':'update' if case=='bad-config' else 'validate'}},
                 'mysql':{'image':'mysql:8.4.13'}},'volumes':{'mysql_data':{'external':True,'name':'calfit_oracle_mysql84'}}})
-        if action[:2]==['ps','-q']: emit('mysql-container' if action[2]=='mysql' else 'new-api' if s.get('applied') else 'old-api')
+        if action[:2]==['ps','-q']: emit('mysql-container' if action[2]=='mysql' else 'new-api' if s.get('active_image',old)==new else 'old-api')
         if action[0]=='up':
             assert action==['up','-d','--no-deps','--no-build','--pull','never','--wait','--wait-timeout','600','core-api']
+            rollback=target!=image
+            s['active_image']=old if rollback else new
             s['applied']=True
-            emit(code=1 if case=='replace-failure' else 0)
+            if rollback: s['rollback_count']=s.get('rollback_count',0)+1
+            if (case=='process-kill' and not rollback) or (case=='rollback-kill' and rollback):
+                p.write_text(json.dumps(s))
+                import signal
+                os.kill(os.getppid(),signal.SIGKILL)
+                sys.exit(0)
+            emit(code=1 if (not rollback and case in ['replace-failure','rollback-failure','rollback-unhealthy','missing-rollback-image','rollback-kill']) or (rollback and case=='rollback-failure') else 0)
     if args[0]=='pull':
         assert args==['pull','--platform','linux/arm64',image]
         emit(code=1 if case=='pull-failure' else 0)
     if args[:2]==['image','tag']:
         assert args[2]==old; s['rollbackTag']=args[3]; emit()
     if args[:2]==['image','inspect']:
-        if '--format' in args: emit(old)
+        if '--format' in args:
+            if case=='missing-rollback-image' and s.get('applied') and args[2].startswith('calfit-backend:rollback-deployment-'): emit(code=1)
+            emit('sha256:'+'8'*64 if case=='stale-version' and not args[2].startswith('calfit-backend:rollback-deployment-') else old)
         emit([{'Id':'sha256:'+'e'*64 if case=='wrong-image-id' else new,'Os':'linux',
               'Architecture':'amd64' if case=='wrong-architecture' else 'arm64',
               'RepoDigests':[] if case=='wrong-repodigest' else [image],
@@ -107,10 +130,13 @@ if tool=='docker':
     if args[0]=='inspect':
         container=args[1]; fmt=args[args.index('--format')+1]
         if fmt=='{{.Image}}': emit(new if container=='new-api' else old)
-        if fmt=='{{.State.Running}}': emit('true')
-        if fmt=='{{.State.Health.Status}}': emit('unhealthy' if case=='unhealthy' and container=='new-api' else 'healthy')
+        if fmt=='{{.State.Running}}': emit('false' if case=='not-running' and container=='new-api' else 'true')
+        if fmt=='{{.State.Health.Status}}': emit('unhealthy' if (case=='unhealthy' and container=='new-api') or (case=='rollback-unhealthy' and container=='old-api' and s.get('rollback_count')) else 'healthy')
         if fmt=='{{.State.StartedAt}}': emit('changed' if case=='mysql-changed' and s.get('applied') else 'unchanged')
         if '.Mounts' in fmt: emit('unexpected-volume' if case=='wrong-volume' else 'calfit_oracle_mysql84')
+    if args[0]=='exec':
+        assert args[1] in ['old-api','new-api'] and args[-1]=='http://127.0.0.1:8081/actuator/health'
+        emit({'status':'DOWN' if case=='actuator-down' and args[1]=='new-api' else 'UP'})
     raise AssertionError('Unexpected Docker command: '+repr(args))
 raise AssertionError('Unexpected mock tool')
 '''
@@ -260,13 +286,21 @@ class DeployTest(unittest.TestCase):
                 result = self.run_script()
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse((self.state / 'current.json').exists())
-                self.assertEqual(json.loads((self.state / 'pending.json').read_text())['status'], 'failed')
                 self.assertTrue((self.state / 'backups/55/recovery.env').exists())
-                before = len(self.calls())
-                self.assertNotEqual(self.run_script().returncode, 0)
-                self.assertEqual(len(self.calls()), before)
+                if case == 'mysql-changed':
+                    self.assertEqual(json.loads((self.state / 'pending.json').read_text())['status'], 'rollback_failed')
+                    before = len(self.calls())
+                    self.assertNotEqual(self.run_script().returncode, 0)
+                    self.assertEqual(len(self.calls()), before)
+                    (self.state / 'pending.json').unlink()
+                else:
+                    self.assertFalse((self.state / 'pending.json').exists())
+                    self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+                    before = len([c for c in self.calls() if c[0] == 'docker'])
+                    self.assertEqual(self.run_script().returncode, 0)
+                    self.assertEqual(len([c for c in self.calls() if c[0] == 'docker']), before)
+                    shutil.rmtree(self.state / 'failures')
                 shutil.rmtree(self.state / 'backups')
-                (self.state / 'pending.json').unlink()
 
     def test_duplicate_execution_uses_real_flock(self):
         with (self.state / 'lock').open('w') as handle:
@@ -287,6 +321,173 @@ class DeployTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.calls(), [])
         self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+
+    def test_internal_probe_failures_roll_back(self):
+        for case in ['not-running', 'actuator-down', 'host-health-failure']:
+            with self.subTest(case=case):
+                self.set_case(case)
+                result = self.run_script()
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], OLD)
+                self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+                self.assertEqual(json.loads((self.state / 'failures/requests/55.json').read_text())['status'], 'rolled_back')
+                shutil.rmtree(self.state / 'backups')
+                shutil.rmtree(self.state / 'failures')
+
+    def test_external_only_failure_does_not_roll_back(self):
+        for case in ['external-network-failure', 'external-http-failure']:
+            with self.subTest(case=case):
+                self.set_case(case)
+                result = self.run_script()
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(json.loads((self.state / 'current.json').read_text())['externalHealth'], 'degraded')
+                self.assertEqual(json.loads(self.mock_state.read_text()).get('rollback_count', 0), 0)
+                self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], NEW)
+                shutil.rmtree(self.state / 'backups')
+                shutil.rmtree(self.state / 'digests')
+                (self.state / 'current.json').unlink()
+                (self.root / '.env.image').write_bytes(self.old_version)
+
+    def test_first_local_rollback_restores_absent_version_file(self):
+        (self.root / '.env.image').unlink()
+        self.set_case('replace-failure')
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.root / '.env.image').exists())
+        self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], OLD)
+        self.assertFalse((self.state / 'pending.json').exists())
+        self.assertFalse((self.state / 'current.json').exists())
+
+    def test_ghcr_rollback_preserves_previous_success_exactly(self):
+        old_ghcr = b'BACKEND_IMAGE=ghcr.io/coffiiness/calfit-backend@sha256:' + b'e' * 64 + b'\n'
+        (self.root / '.env.image').write_bytes(old_ghcr)
+        self.previous()
+        previous = (self.state / 'current.json').read_bytes()
+        self.set_case('actuator-down')
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.state / 'current.json').read_bytes(), previous)
+        self.assertEqual((self.root / '.env.image').read_bytes(), old_ghcr)
+        self.assertEqual(len([c for c in self.calls() if c[0] == 'docker' and 'pull' in c]), 1)
+
+    def test_rollback_failure_and_bad_recovery_health_block_next_run(self):
+        for case in ['rollback-failure', 'rollback-unhealthy']:
+            with self.subTest(case=case):
+                self.set_case(case)
+                self.assertNotEqual(self.run_script().returncode, 0)
+                self.assertEqual(json.loads((self.state / 'pending.json').read_text())['status'], 'rollback_failed')
+                self.assertFalse((self.state / 'current.json').exists())
+                before = len(self.calls())
+                self.assertNotEqual(self.run_script().returncode, 0)
+                self.assertEqual(len(self.calls()), before)
+                (self.state / 'pending.json').unlink()
+                shutil.rmtree(self.state / 'backups')
+                (self.root / '.env.image').write_bytes(self.old_version)
+
+    def test_failed_digest_blocked_but_new_release_is_allowed(self):
+        self.set_case('replace-failure')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        before = len([c for c in self.calls() if c[0] == 'docker'])
+        self.assertEqual(self.run_script().returncode, 0)
+        self.assertEqual(len([c for c in self.calls() if c[0] == 'docker']), before)
+        self.set_case('new')
+        record = json.loads(self.mock_state.read_text())
+        record['release'] = 2
+        self.mock_state.write_text(json.dumps(record))
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads((self.state / 'current.json').read_text())['deploymentId'], 56)
+        self.assertTrue((self.state / 'failures/requests/55.json').exists())
+
+    def test_stale_previous_version_is_rejected_before_replacement(self):
+        self.set_case('stale-version')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.assertFalse(json.loads(self.mock_state.read_text()).get('applied'))
+        self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+
+    def test_killed_deployment_is_recovered_before_new_api_poll(self):
+        self.set_case('process-kill')
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue((self.state / 'pending.json').exists())
+        record = json.loads(self.mock_state.read_text())
+        record['case'] = 'api-error'
+        record['calls'] = []
+        self.mock_state.write_text(json.dumps(record))
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any(c[0] == 'curl' and c[-1].startswith('https://api.github.com') for c in self.calls()))
+        self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+        self.assertFalse((self.state / 'pending.json').exists())
+        self.assertEqual(json.loads(self.mock_state.read_text())['active_image'], OLD)
+
+    def test_interrupted_success_finalization_restores_old_journal(self):
+        self.previous()
+        previous = (self.state / 'current.json').read_bytes()
+        self.set_case('process-kill')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        pending = json.loads((self.state / 'pending.json').read_text())
+        pending['status'] = 'success'
+        (self.state / 'current.json').write_text(json.dumps(pending))
+        (self.state / 'digests' / (DIGEST[7:] + '.json')).write_text(json.dumps(pending))
+        self.set_case('new')
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.state / 'current.json').read_bytes(), previous)
+        self.assertFalse((self.state / 'digests' / (DIGEST[7:] + '.json')).exists())
+        self.assertTrue((self.state / 'failures/requests/55.json').exists())
+
+    def test_process_killed_during_rollback_is_recoverable(self):
+        self.set_case('rollback-kill')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.assertEqual(json.loads((self.state / 'pending.json').read_text())['status'], 'rolling_back')
+        self.set_case('new')
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((self.state / 'pending.json').exists())
+        self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+
+    def test_prepared_interruption_keeps_existing_container(self):
+        self.set_case('process-kill')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        pending = json.loads((self.state / 'pending.json').read_text())
+        pending['phase'] = 'prepared'
+        (self.state / 'pending.json').write_text(json.dumps(pending))
+        self.set_case('new')  # old container still running at the prepared checkpoint
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any(c[0] == 'docker' and 'up' in c for c in self.calls()))
+        self.assertEqual((self.root / '.env.image').read_bytes(), self.old_version)
+        self.assertFalse((self.state / 'pending.json').exists())
+
+    def test_manual_recover_after_blocked_rollback(self):
+        self.set_case('rollback-failure')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.assertEqual(json.loads((self.state / 'pending.json').read_text())['status'], 'rollback_failed')
+        self.set_case('new')
+        result = self.run_script('--recover')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((self.state / 'pending.json').exists())
+        self.assertFalse(any(c[0] == 'curl' and c[-1].startswith('https://api.github.com') for c in self.calls()))
+
+    def test_missing_rollback_cache_never_pulls_old_image(self):
+        self.set_case('missing-rollback-image')
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.assertEqual(json.loads((self.state / 'pending.json').read_text())['status'], 'rollback_failed')
+        self.assertEqual(len([c for c in self.calls() if c[0] == 'docker' and 'pull' in c]), 1)
+
+    def test_dry_pending_and_recover_without_pending_do_not_access_env(self):
+        (self.root / '.env.prod').unlink()
+        (self.state / 'pending.json').write_text('{"status":"rollback_failed"}')
+        result = subprocess.run(['bash', str(SCRIPT), '--root', str(self.root), '--dry-run', '--recover'],
+                                env=self.env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [])
+        (self.state / 'pending.json').unlink()
+        result = subprocess.run(['bash', str(SCRIPT), '--root', str(self.root), '--recover'],
+                                env=self.env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(), [])
 
 
 if __name__ == '__main__':

@@ -607,7 +607,7 @@ Pull 후 RepoDigests/image ID/linux-arm64/source/revision/Java label을 검사�
 | backups/<Deployment ID>/env.image.previous | 직전 이미지 버전 파일 원본 |
 | backups/<Deployment ID>/env.image.absent | 이전 버전 파일이 없었음 |
 | backups/<Deployment ID>/recovery.json | 이전 image ID, MySQL ID/시작 시각, env hash |
-| pending.json | 진행 중 또는 실패/중단된 교체, 존재하면 다음 실행 차단 |
+| pending.json | 진행 중/중단된 교체 복구 저널. 15-11에서 재개하며 rollback_failed는 자동 실행 차단 |
 
 ### 실패 처리 및 15-11 경계
 
@@ -616,18 +616,10 @@ API 오류/Rate Limit/네트워크 오류/잘못된 요청/실패 Workflow는 �
 익명 GitHub API 한도는 공유되므로 짧은 주기 반복을 피한다. 예를 들어 15분 이상 주기로
 설계하되 실제 Timer 및 backoff 정책은 15-12에서 결정한다. API 오류를 과거 요청으로 우회하지 않는다.
 
-**교체가 시작된 뒤 실패하면 기존 컨테이너가 이미 교체됐을 수 있다.** 이때 자동 복구를
-성공했다고 가정하지 않는다. `current.json`은 갱신하지 않고 `pending.json`에 실패를 남겨
-추가 자동 실행을 차단한다. 프로세스가 강제 종료된 경우에도 진행 중 기록을 남긴다.
-`.env.image`는 실패한 후보를 가리킬 수 있으므로 active 파일만 보고 성공으로 판정하지 않는다.
-상세 자동 롤백은 15-11에서 구현한다.
-
-수동 복구가 필요하면 위 15-9의 로컬 복구 절차와 해당 backup의 recovery.env를 사용한다.
-기존 MySQL/volume/.env.prod는 그대로 두고 이전 로컬 이미지로 core-api만 교체한다. 이전 버전
-파일이 있었다면 보존본을 같은 디렉터리 임시 파일로 복사한 뒤 rename하여 되돌린다. 파일이
-없었다면 recovery.env를 새 버전 파일로 사용할 수 있다. 실제 실행/health/이미지와 로컬 이력을
-대조해 복구를 확인하기 전에는 pending 기록을 지우거나 성공 이력을 임의로 재작성하지 않는다.
-복구 확인 및 상태 정리는 15-11 운영 절차에서 구체화한다. 복구 이미지/상태 파일 prune은 하지 않는다.
+15-10에서는 교체 실패 후 pending으로 차단하는 단계까지 구현했다. **현재 동작은 아래
+15-11 자동 롤백 절차로 확장했다.** 내부 실패는 자동 복구를 시도하고, 복구 실패만
+rollback_failed 상태로 차단한다. `.env.image`만 보고 성공으로 판정하지 않는다.
+복구 이미지/상태 파일 prune은 하지 않는다.
 
 ### 로컬 검증
 
@@ -653,3 +645,120 @@ Pull 중 main/요청/attempt 변경, 역행/diverged 이력, 실제 flock 경합
 참고: [Deployments API](https://docs.github.com/en/rest/deployments/deployments),
 [공개 Workflow Run API](https://docs.github.com/en/rest/actions/workflow-runs),
 [공개 Deployment Status API](https://docs.github.com/en/rest/deployments/statuses).
+
+## 15-11 Health Check 및 자동 Rollback
+
+기존 스크립트·Compose를 재사용한다. Workflow, Java/Gradle Gate/Baseline, Dockerfile,
+운영 Compose와 Secret은 변경하지 않았다. 다음은 코드의 동작 및 향후 운영 명령이며,
+이번 작업에서 실제 Oracle/GHCR/Cloudflare/DB에 연결하거나 배포하지 않았다.
+
+### 내부 실패와 외부 장애 구분
+
+신규 배포와 롤백 모두 기존 `up --wait --wait-timeout 600`을 사용하고, 이후 아래 내부
+검사를 모두 통과해야 정상으로 판단한다. 내부 curl에는 10초 제한을 둔다.
+
+| 검사 | 정상 조건 | 실패 시 처리 |
+| --- | --- | --- |
+| 백엔드 컨테이너 | 실행 중, 예상 image ID, Docker healthy | 신규 배포는 롤백, 복구 중이면 차단 |
+| 내부 관리 포트 | 컨테이너의 127.0.0.1:8081/actuator/health JSON status=UP | 동일 |
+| 호스트 API | http://127.0.0.1:8080/health HTTP 200 | 동일 |
+| MySQL/운영 env | 기존 container ID·시작 시각·external volume 및 env SHA-256 유지 | 외부 변경이면 복구도 차단하여 수동 확인 |
+| 외부 API | https://api.calfit.co.kr/health HTTP 200, 최대 15초 | 경고와 externalHealth=degraded, 내부 정상 버전 유지 |
+
+외부 API의 HTTP 오류·네트워크 오류만으로 롤백하지 않는다. 외부 응답 본문이나 운영 Secret을
+로그에 쓰지 않는다. 이 단계는 배포 직후 검사이며 상시 모니터링/Timer는 15-12 범위다.
+
+### 교체 전 보존 및 버전 설정 일치
+
+배포 전에 이전 `.env.image`를 강제 BACKEND_IMAGE 없이 Compose로 해석하고, 해당 로컬
+이미지 ID가 실제 실행 중인 image ID와 같은지 확인한다. 버전 파일이 없으면 `.env.prod`의
+기존 fallback으로 같은 검사를 한다. 다른 이미지로 바뀐 오래된 태그나 설정이면 **배포 전에
+중단**한다. 버전 파일에는 BACKEND_IMAGE 한 항목과 선택적 주석/빈 줄만 허용한다.
+
+기존 이미지의 로컬 rollback 태그와 recovery.json/recovery.env, 이전 이미지 버전 파일,
+기존 current.json 원본(또는 없었다는 표시)을 모두 보존한다. rollback 태그가 다른 image ID로
+바뀌거나 캐시가 사라지면 자동 Pull/Build로 대체하지 않고 차단한다.
+
+### 자동 복구 순서
+
+1. 교체 시작 전 실패는 기존 서비스/버전 파일을 유지한다.
+2. 교체 시작 이후 내부 기동·Health 실패는 같은 flock 안에서 recovery.json을 검증한다.
+3. MySQL ID/시작/volume과 `.env.prod` hash가 보존됐는지 먼저 확인한다. 변경됐다면 더 건드리지 않는다.
+4. 이전 로컬 rollback 태그의 image ID, 원본 버전 설정이 선택하는 image ID를 확인한다.
+5. JPA validate를 강제하고 core-api만 `--no-deps --no-build --pull never --wait --wait-timeout 600`으로 복구한다.
+6. 이전 image ID 및 신규 배포와 동일한 내부 Health Check를 모두 확인한다.
+7. `.env.image` 원본을 같은 디렉터리 임시 파일/rename으로 복원한다. 처음에 없었다면 파일을 제거해 없던 상태로 돌린다.
+8. 복원된 자연스러운 Compose 이미지 선택이 실제 복구 이미지 ID와 같은지 다시 검사한다.
+9. 이전 current.json을 정확히 유지/복원하고 실패 요청·digest를 기록한 뒤 pending을 해제한다.
+
+복구 실행에 쓰는 로컬 태그와 복원한 버전 파일의 GHCR 주소/로컬 태그 문자열은 달라도
+**image ID는 같아야 한다.** 따라서 최초 로컬 이미지와 이전 GHCR 이미지를 모두 복구할 수
+있으며, 복원 후 평상시 Compose 실행이 다른 이미지를 선택하지 않도록 검사한다.
+MySQL 재시작, SQL 실행, 스키마 변경, 데이터 복원은 하지 않는다. 애플리케이션 이미지
+롤백은 배포 후 발생한 업무 데이터 변경을 되돌리는 작업이 아니다.
+
+### 상태 파일과 재실행
+
+| 경로/상태 | 의미 |
+| --- | --- |
+| current.json | 마지막 정상 버전. 실패한 신규 버전으로 갱신하지 않음 |
+| backups/<ID>/current.previous.json 또는 current.absent | 실패/중단 복구를 위한 이전 성공 이력 원본/없음 표시 |
+| failures/requests/<ID>.json | 실패 요청 및 rolled_back 결과 |
+| failures/digests/<hex>.json | 실패 digest 격리. 새 요청이어도 같은 digest는 자동 재배포하지 않음 |
+| pending.json: in_progress | 교체 진행 또는 중단. 다음 실행은 새 API 조회보다 복구를 먼저 함 |
+| pending.json: rolling_back | 복구 도중 중단. 동일 복구를 다시 확인·수행 |
+| pending.json: rollback_failed | 자동 복구 실패. 이후 일반 실행은 Docker/API 호출 없이 차단 |
+
+pending의 phase=prepared는 Compose 교체 실행 전, replacing은 교체 실행 직전을 뜻한다.
+prepared 상태에서 중단되면 정상인 기존 컨테이너를 재생성하지 않고 버전 설정만 복구한다.
+복구 도중 재실행했을 때도 이전 이미지가 이미 내부 정상이라면 불필요한 재생성을 생략한다.
+
+롤백 성공 시 실패했던 배포 실행은 종료 코드 1을 유지하므로 실패를 숨기지 않는다. 다음
+실행은 같은 실패 digest를 skip하며, 다른 정상 최신 요청은 이전 정상 이력 기준으로 처리한다.
+중단된 배포를 다음 실행에서 성공적으로 복구한 경우는 복구만 수행하고 종료 코드 0으로
+끝낸다. 새 요청은 그 다음 실행에서 확인한다. API 장애가 있어도 저장된 로컬 복구는 가능하다.
+
+성공 이력을 쓰는 중간에 중단됐더라도 pending이 남아 있으면 보수적으로 이전 상태로
+복구한다. 이때 해당 시도의 불완전한 성공 digest marker도 제거한다. 메타데이터가 손상됐거나
+기존 15-10 백업으로 이전 이력을 확정할 수 없으면 추정해서 덮어쓰지 않고 차단한다.
+pending이 없는 기존 15-10의 실패 없는 성공 이력은 그대로 사용한다.
+
+### 수동 확인과 명시적 복구
+
+자동 복구 실패 시 pending을 지워서 새 배포를 강제로 시작하지 않는다. 먼저 로컬 상태와
+보존 파일만 검사한다. 아래 명령은 실제 서버에 아직 실행하지 않았다.
+
+```bash
+cd /home/ubuntu/calfit/BE
+# 상태 메타데이터에는 운영 env 원문이 없다. .env.prod 또는 전체 Compose config는 출력하지 않는다.
+jq '{status,deploymentId,digest,backup}' .oracle-deploy/pending.json
+bash tools/deployment/deploy-oracle.sh --dry-run --recover
+```
+
+pending에 기록된 backup의 recovery.json과 이전 버전 파일, 로컬 rollback 이미지 ID를
+대조한다. 로컬 이미지 캐시 손실, 태그 변경, MySQL 상태 변경, 운영 env hash 차이 또는
+내부 Health 원인을 운영자가 먼저 확인한다. 스크립트가 MySQL이나 운영 env를 자동 변경하여
+문제를 덮지 않는다. 운영 Secret을 채팅/로그에 출력하지 않는다.
+
+```bash
+# 원인 확인 및 복구 준비가 끝난 뒤에만 실행한다. 새 버전 배포는 하지 않는다.
+bash tools/deployment/deploy-oracle.sh --recover
+```
+
+`--recover`는 rollback_failed에 대한 명시적 재복구를 허용하지만 image/버전/DB/env/Health
+검사를 완화하지 않는다. 성공해야 pending이 해제된다. pending이 없으면 아무 배포도 하지 않고
+종료한다. 이 절차로도 검증할 수 없다면 상태·복구 파일을 보존하고 수동 장애 조치를 진행한다.
+상태 폴더 전체 삭제, 실패 marker의 무조건 삭제, current.json의 임의 성공 기록은 하지 않는다.
+
+### 검증 범위
+
+기존 Mock 테스트 14개를 유지하고 변경된 자동 복구 동작에 맞춰 실패 처리 단언만 갱신했다.
+Python 표준 라이브러리와 실제 Bash/jq/flock으로 신규/내부 실패/외부만 실패, 로컬·GHCR
+복구, absent 버전 파일 복원, 실패 digest 차단 후 새 정상 요청, rollback 실패·중단·성공 이력
+기록 도중 중단, 수동 재복구, MySQL/env 보존을 추가 검사한다. 강제 중단은 Mock 명령이 테스트
+배포 프로세스에 SIGKILL을 보내 재현한다. 실제 Docker/API/운영 env에는 연결하지 않는다.
+
+최종 Linux Mock 결과는 **28개 성공, 실패 0개**(기존 14개 유지, 14개 추가)이며
+88.015초에 완료했다. Bash 구문 검사, 문서의 Bash 예시 구문 검사 및 git diff --check도
+통과했다. Workflow/Gradle Gate/Baseline/Dockerfile/운영 Compose의 변경이 없는 것도 확인했다.
+이는 격리 Mock 결과이며 실제 Oracle의 기동·네트워크·롤백 성공을 검증한 결과는 아니다.
