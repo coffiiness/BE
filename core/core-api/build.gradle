@@ -100,7 +100,13 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     additionalSourceDirs.from(files(jacocoTargetProjects*.sourceSets.main*.allSource.srcDirs))
     sourceDirectories.from(files(jacocoTargetProjects*.sourceSets.main*.allSource.srcDirs))
     classDirectories.from(files(jacocoTargetProjects*.sourceSets.main*.output))
-    executionData.from(fileTree(rootProject.projectDir).include('**/build/jacoco/test.exec'))
+    // Preserve all regular test.exec inputs without a root-wide file tree that
+    // Gradle would treat as consuming unrelated report task outputs.
+    def regularTests = rootProject.subprojects.collect { it.tasks.named('test', Test) }
+    dependsOn regularTests
+    executionData.from(regularTests.collect { task ->
+        task.map { it.extensions.getByType(org.gradle.testing.jacoco.plugins.JacocoTaskExtension).destinationFile }
+    })
 
     reports {
         xml.required = true

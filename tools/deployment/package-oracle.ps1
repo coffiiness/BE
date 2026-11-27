@@ -18,9 +18,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Cannot enumerate repository files.' }
 
 $rootFiles = @(
     'Dockerfile', '.dockerignore', '.gitignore', 'docker-compose.prod.yml', '.env.prod.example',
-    'gradlew', 'gradlew.bat', 'build.gradle', 'settings.gradle', 'gradle.properties', 'lint.gradle'
+    'gradlew', 'gradlew.bat', 'build.gradle', 'settings.gradle', 'gradle.properties', 'lint.gradle', 'quality.gradle',
+    'docker/install-temurin17.sh', 'docker/verify-temurin17.sh'
 )
-$sourceRoots = @('core/', 'storage/', 'support/', 'clients/', 'gradle/', 'deploy/oracle/', 'docs/deployment/', 'tools/deployment/')
+$sourceRoots = @('core/', 'storage/', 'support/', 'clients/', 'gradle/', 'deploy/oracle/', 'docs/deployment/', 'docs/quality/', 'tools/deployment/')
 $selected = [System.Collections.Generic.List[string]]::new()
 
 foreach ($candidate in ($candidates | Sort-Object -Unique)) {
@@ -63,7 +64,7 @@ foreach ($candidate in ($candidates | Sort-Object -Unique)) {
             }
         }
     }
-    if ($leaf -match '(?i)\.(java|kt|xml|gradle|properties|yml|yaml|json|ps1|md|sh)$') {
+    if ($leaf -match '(?i)\.(java|kt|groovy|xml|gradle|properties|yml|yaml|json|ps1|md|sh)$') {
         $content = [System.IO.File]::ReadAllText($absolute)
         if ($content -match '-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}') {
             throw "Possible embedded credential in $relative; review before packaging."
@@ -72,7 +73,13 @@ foreach ($candidate in ($candidates | Sort-Object -Unique)) {
     $selected.Add($relative)
 }
 
-foreach ($required in @('Dockerfile', 'docker-compose.prod.yml', '.env.prod.example', 'gradle/wrapper/gradle-wrapper.jar', 'deploy/oracle/logback.xml')) {
+foreach ($required in @(
+    'Dockerfile', 'quality.gradle', 'docker/install-temurin17.sh', 'docker/verify-temurin17.sh', 'docker-compose.prod.yml', '.env.prod.example',
+    'gradle/wrapper/gradle-wrapper.jar', 'deploy/oracle/logback.xml',
+    'gradle/quality/runtime.gradle', 'gradle/quality/runtime.properties',
+    'gradle/quality/spotbugs.gradle', 'gradle/quality/policy.groovy',
+    'gradle/quality/policy-tests.gradle', 'gradle/quality/spotbugs-baseline.json'
+)) {
     if (-not $selected.Contains($required)) { throw "Required source missing: $required" }
 }
 
@@ -84,6 +91,12 @@ foreach ($relative in $selected) {
     $destination = Join-Path $stageBackend $relative
     New-Item -ItemType Directory -Path ([System.IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $repositoryRoot $relative) -Destination $destination
+    # Spotless uses native line endings. Normalize the Linux transfer copy only;
+    # keep the Windows worktree and the reviewed baseline bytes unchanged.
+    if ($relative -eq 'gradlew' -or $relative -match '\.(java|sh)$') {
+        $linuxText = [System.IO.File]::ReadAllText($destination).Replace("`r`n", "`n")
+        [System.IO.File]::WriteAllText($destination, $linuxText, [System.Text.UTF8Encoding]::new($false))
+    }
 }
 
 $archive = Join-Path $OutputDirectory ($bundleName + '.tar.gz')

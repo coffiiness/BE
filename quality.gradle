@@ -1,0 +1,140 @@
+import groovy.json.JsonOutput
+import org.gradle.api.tasks.testing.Test
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+
+apply from: 'gradle/quality/runtime.gradle'
+apply from: 'gradle/quality/spotbugs.gradle'
+
+def modules = subprojects.toList().sort { it.path }
+def allTests = modules.collectMany { it.tasks.withType(Test).toList() }
+def allExecutionData = files(allTests.collect { it.extensions.getByType(JacocoTaskExtension).destinationFile })
+def configureCoverage = { task, targets ->
+    task.dependsOn allTests
+    task.executionData.from(providers.provider { allExecutionData.files.findAll { it.exists() } })
+    task.sourceDirectories.from(targets.collect { it.sourceSets.main.allSource.srcDirs })
+    task.classDirectories.from(targets.collect { it.sourceSets.main.output.classesDirs })
+}
+tasks.register('jacocoAllModulesReport', JacocoReport) { task ->
+    group = 'verification'
+    description = 'Unfiltered main bytecode coverage of every module using all test suites.'
+    configureCoverage(task, modules)
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = true
+        xml.outputLocation = layout.buildDirectory.file('reports/jacoco/jacocoAllModulesReport/jacocoAllModulesReport.xml')
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/jacocoAllModulesReport/html')
+        csv.outputLocation = layout.buildDirectory.file('reports/jacoco/jacocoAllModulesReport/jacocoAllModulesReport.csv')
+    }
+}
+modules.each { module ->
+    module.tasks.register('jacocoModuleReport', JacocoReport) { task ->
+        group = 'verification'
+        description = 'Module coverage with execution data from all test suites and modules.'
+        configureCoverage(task, [module])
+        reports {
+            xml.required = true
+            html.required = true
+            xml.outputLocation = module.layout.buildDirectory.file('reports/jacoco/jacocoModuleReport/jacocoModuleReport.xml')
+            html.outputLocation = module.layout.buildDirectory.dir('reports/jacoco/jacocoModuleReport/html')
+        }
+    }
+}
+tasks.register('jacocoAllModulesVerification', JacocoCoverageVerification) { task ->
+    group = 'verification'
+    description = 'Required all-module LINE >=75% and BRANCH >=47%; overrides may only raise floors.'
+    configureCoverage(task, modules)
+    def line = new BigDecimal(providers.gradleProperty('qualityMinLineCoverage').getOrElse('0.75'))
+    def branch = new BigDecimal(providers.gradleProperty('qualityMinBranchCoverage').getOrElse('0.47'))
+    if (line < 0.75 || line > 1 || branch < 0.47 || branch > 1) {
+        throw new GradleException('Coverage thresholds cannot be lower than LINE 0.75 / BRANCH 0.47 or exceed 1.')
+    }
+    violationRules {
+        rule {
+            limit { counter = 'LINE'; value = 'COVEREDRATIO'; minimum = line }
+            limit { counter = 'BRANCH'; value = 'COVEREDRATIO'; minimum = branch }
+        }
+    }
+}
+// JaCoCo's DOCTYPE is allowed, but external DTD/entity resolution is forbidden.
+def readXml = { File file ->
+    def parser = new XmlSlurper(false, false, true)
+    parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
+    parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
+    parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
+    parser.parse(file)
+}
+def counters = { xml ->
+    ['LINE', 'BRANCH', 'INSTRUCTION'].collectEntries { type ->
+        def counter = xml.counter.find { it.@type.text() == type }
+        long missed = counter ? counter.@missed.toLong() : 0L
+        long covered = counter ? counter.@covered.toLong() : 0L
+        [(type): [covered: covered, missed: missed, total: covered + missed,
+                  percent: covered + missed == 0 ? null : 100.0 * covered / (covered + missed)]]
+    }
+}
+tasks.register('qualityMetrics') {
+    group = 'verification'
+    description = 'Always-unfiltered coverage and SpotBugs reports; never writes the baseline.'
+    dependsOn tasks.named('jacocoAllModulesReport'), tasks.named('spotbugsReport')
+    dependsOn modules.collect { it.tasks.named('jacocoModuleReport') }
+    outputs.upToDateWhen { false }
+    doLast {
+        def directory = layout.buildDirectory.dir('reports/quality').get().asFile
+        directory.mkdirs()
+        def coverage = [scope: 'All main classes in all subprojects; no custom class exclusions', modules: [:]]
+        modules.each { module ->
+            def file = module.layout.buildDirectory.file('reports/jacoco/jacocoModuleReport/jacocoModuleReport.xml').get().asFile
+            boolean hasClasses = !module.sourceSets.main.output.classesDirs.asFileTree.matching { include '**/*.class' }.empty
+            if (hasClasses && !file.exists()) { throw new GradleException("Coverage report missing: ${module.path}") }
+            coverage.modules[module.path] = file.exists() ? counters(readXml(file)) : [status: 'N/A - no main bytecode']
+        }
+        coverage.total = counters(readXml(tasks.named('jacocoAllModulesReport').get().reports.xml.outputLocation.get().asFile))
+        new File(directory, 'coverage-summary.json').text = JsonOutput.prettyPrint(JsonOutput.toJson(coverage))
+        def scan = rootProject.qualityReadSpotbugs()
+        def findings = scan.findings
+        def result = [pluginVersion: rootProject.spotbugsPluginVersion, toolVersion: rootProject.spotbugsVersion,
+                      policy: 'Full unfiltered findings; individual reviewed baseline is verified separately',
+                      analysis: scan.analysis, byPriority: findings.countBy { it.priority },
+                      byRank: findings.countBy { it.rank }, byCategory: findings.countBy { it.category },
+                      byType: findings.countBy { it.type }, byModule: findings.countBy { it.module }, findings: findings]
+        new File(directory, 'spotbugs-summary.json').text = JsonOutput.prettyPrint(JsonOutput.toJson(result))
+        if (scan.incomplete) { throw new GradleException('SpotBugs analysis incomplete; see full reports.') }
+    }
+}
+tasks.register('qualityCheck') {
+    group = 'verification'
+    description = 'Mandatory tests, coverage, formatting, High/new SpotBugs and analyzer integrity gate.'
+    dependsOn modules.collect { it.tasks.named('check') }
+    dependsOn allTests
+    dependsOn tasks.named('verifyQualityRuntime'), tasks.named('jacocoAllModulesVerification')
+    dependsOn tasks.named('spotbugsVerification'), tasks.named('qualityGateSelfTest'), tasks.named('qualityMetrics')
+    dependsOn ':core:core-api:jacocoMergedReport'
+}
+tasks.named('check') { dependsOn tasks.named('qualityCheck') }
+allprojects {
+    // Dependency jars and compilation are inputs to tests. Production boot jars,
+    // assembly and publication are allowed only after the complete gate.
+    tasks.matching { it.name in ['bootJar', 'bootWar', 'assemble', 'publish'] ||
+            it.name.startsWith('publishTo') || it.name.startsWith('publishMaven') }.configureEach {
+        dependsOn rootProject.tasks.named('qualityCheck')
+    }
+}
+gradle.taskGraph.whenReady { graph ->
+    def protectedGraph = graph.hasTask(tasks.named('qualityCheck').get()) ||
+            graph.hasTask(tasks.named('check').get()) || graph.allTasks.any {
+                it.name in ['bootJar', 'bootWar', 'assemble', 'publish'] ||
+                        it.name.startsWith('publishTo') || it.name.startsWith('publishMaven')
+            }
+    if (protectedGraph) {
+        def required = allTests + modules.collect { it.tasks.named('spotlessCheck').get() } +
+                ['qualityCheck', 'verifyQualityRuntime', 'jacocoAllModulesVerification', 'spotbugsVerification',
+                 'qualityGateSelfTest', 'qualityMetrics'].collect { tasks.named(it).get() } +
+                rootProject.qualitySpotbugsScans.collect { it.task.get() }
+        def missing = required.findAll { !graph.hasTask(it) }
+        if (missing) { throw new GradleException("Required quality tasks cannot be excluded: ${missing*.path.join(', ')}") }
+    }
+}
+
