@@ -147,7 +147,27 @@ start_api "$api" validate
 wait_healthy "$api"
 docker inspect "$api" | jq -e '.[0].Config.Env | index("SPRING_PROFILES_ACTIVE=prod") != null and index("SPRING_JPA_HIBERNATE_DDLAUTO=validate") != null'
 docker inspect "$api" | jq -e '.[0].HostConfig.PortBindings | . == null or length == 0'
-docker inspect "$db" | jq -e '.[0].Mounts | all(.Type != "volume") and any(.Type == "tmpfs" and .Destination == "/var/lib/mysql")'
+# Docker --tmpfs is recorded in HostConfig.Tmpfs, not necessarily in Mounts.
+echo 'Checking CI MySQL storage: no persistent volumes'
+if ! docker inspect "$db" | jq -e '.[0].Mounts | all(.Type != "volume")'; then
+  echo 'CI MySQL storage check failed: persistent volume attached or inspect failed' >&2
+  exit 1
+fi
+echo 'Checking CI MySQL storage: /var/lib/mysql configured with --tmpfs'
+if ! docker inspect "$db" | jq -e '(.[0].HostConfig.Tmpfs // {}) | has("/var/lib/mysql")'; then
+  echo 'CI MySQL storage check failed: /var/lib/mysql missing from HostConfig.Tmpfs' >&2
+  exit 1
+fi
+echo 'Checking CI MySQL storage: actual filesystem type'
+if ! mysql_filesystem=$(docker exec "$db" stat -f -c '%T' /var/lib/mysql); then
+  echo 'CI MySQL storage check failed: could not inspect /var/lib/mysql filesystem' >&2
+  exit 1
+fi
+if [[ $mysql_filesystem != tmpfs ]]; then
+  printf 'CI MySQL storage check failed: expected tmpfs at /var/lib/mysql, got %s\n' "$mysql_filesystem" >&2
+  exit 1
+fi
+echo 'CI MySQL storage verified: --tmpfs configured, actual tmpfs, no persistent volumes'
 test "$(docker exec "$api" curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 http://127.0.0.1:8080/health)" = 200
 for path in /h2-console/ /actuator/health /docs/ci-does-not-exist; do
   test "$(docker exec "$api" curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 "http://127.0.0.1:8080$path")" = 404
