@@ -1,6 +1,8 @@
 package com.coffiness.calfit.storage.db.core.member;
 
 import com.coffiness.calfit.core.enums.EntityStatus;
+import com.coffiness.calfit.support.error.CoreException;
+import com.coffiness.calfit.support.error.ErrorType;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -15,9 +17,26 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   @Query(
       value =
-          "SELECT tenant_id FROM workspace_members WHERE user_id = :userId AND status = 'ACTIVE' LIMIT 1",
+          "SELECT tenant_id FROM workspace_members WHERE user_id = :userId AND status = 'ACTIVE' LIMIT 2",
       nativeQuery = true)
-  Optional<String> findTenantIdByUserId(@Param("userId") Long userId);
+  List<String> findActiveTenantIdsByUserId(@Param("userId") Long userId);
+
+  default Optional<String> findTenantIdByUserId(Long userId) {
+    List<String> tenants = findActiveTenantIdsByUserId(userId);
+    if (tenants.size() > 1) {
+      throw new CoreException(
+          ErrorType.CONFLICT,
+          "MULTIPLE_ACTIVE_MEMBERSHIPS",
+          "활성 워크스페이스 소속이 중복되어 있습니다. 관리자에게 문의해 주세요.");
+    }
+    return tenants.stream().findFirst();
+  }
+
+  @Query(
+      value =
+          "SELECT tenant_id FROM workspace_members WHERE active_user_id = :userId LIMIT 2 FOR UPDATE",
+      nativeQuery = true)
+  List<String> lockActiveTenantIdsByUserId(@Param("userId") Long userId);
 
   MemberEntity findByTenantIdAndUserId(String tenantId, Long userId);
 

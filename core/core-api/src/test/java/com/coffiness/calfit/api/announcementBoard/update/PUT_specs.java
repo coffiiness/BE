@@ -5,9 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.AnnouncementBoardFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardResponse;
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import org.junit.jupiter.api.DisplayName;
@@ -166,15 +164,13 @@ class PUT_specs {
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
     String token = context.hrToken();
     String tenantId = context.workspaceId();
-    Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
     long boardId =
         createBoardAndGetId(announcementBoardFixture, token, tenantId, "공지 A", "내용 A", false);
-    memberFixture.updateMember(
-        memberId, new UpdateMemberRequest(MemberType.INTERVIEWER), token, tenantId);
+    String interviewerToken = memberFixture.addSecondMemberWithToken(context).token();
 
     // Act
     ApiResponse<AnnouncementBoardResponse> response =
-        announcementBoardFixture.update(token, tenantId, boardId, "공지 B", "내용 B", true);
+        announcementBoardFixture.update(interviewerToken, tenantId, boardId, "공지 B", "내용 B", true);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

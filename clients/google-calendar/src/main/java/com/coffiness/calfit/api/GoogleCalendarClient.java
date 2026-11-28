@@ -25,6 +25,18 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GoogleCalendarClient implements GoogleCalendarPort {
 
+  @Override
+  public void stopWatch(String accessToken, String channelId, String resourceId) {
+    try {
+      googleCalendarApi.stopChannel(
+          "Bearer " + accessToken,
+          new com.coffiness.calfit.dto.GoogleCalendarStopRequestDto(channelId, resourceId));
+    } catch (FeignException e) {
+      if (e.status() != 404 && e.status() != 410)
+        throw new IllegalStateException("GOOGLE_WATCH_STOP_FAILED");
+    }
+  }
+
   private static final String CALENDAR_NAME_PREFIX = "CalFit - ";
   private static final String DEFAULT_WORKSPACE_NAME = "Workspace";
   private static final String WORKSPACE_MARKER_PREFIX = "calfit_workspace_id=";

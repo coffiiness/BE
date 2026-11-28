@@ -126,6 +126,16 @@ public class ExternalCalendarEntity extends TenantBaseEntity {
   }
 
   // 새로운 동기화 지점을 저장하는 메소드
+  public void disableSync() {
+    this.isSyncEnabled = false;
+  }
+
+  public void clearWatchChannel() {
+    this.channelId = null;
+    this.channelResourceId = null;
+    this.channelExpiresAt = null;
+  }
+
   public void updateSyncToken(String syncToken) {
     this.syncToken = syncToken;
   }

@@ -1,7 +1,6 @@
 package com.coffiness.calfit.docs.workspaces;
 
 import static com.coffiness.calfit.docs.RestDocsUtils.responsePreprocessor;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -15,12 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.coffiness.calfit.api.v1.request.CreateWorkspaceRequest;
 import com.coffiness.calfit.core.api.controller.v1.WorkspaceController;
-import com.coffiness.calfit.core.enums.MemberType;
+import com.coffiness.calfit.core.api.facade.workspace.WorkspaceCreationFacade;
 import com.coffiness.calfit.docs.RestDocsTest;
 import com.coffiness.calfit.domain.workspace.Workspace;
-import com.coffiness.calfit.domain.workspace.WorkspaceService;
-import com.coffiness.calfit.domain.workspace.member.Member;
-import com.coffiness.calfit.domain.workspace.member.MemberService;
 import com.coffiness.calfit.support.security.jwt.SecurityUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,11 +30,11 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 public class WorkspaceApiDocs extends RestDocsTest {
 
-  private final WorkspaceService workspaceService = mock(WorkspaceService.class);
-  private final MemberService memberService = mock(MemberService.class);
+  private final WorkspaceCreationFacade workspaceCreationFacade =
+      mock(WorkspaceCreationFacade.class);
 
   private final WorkspaceController workspaceController =
-      new WorkspaceController(workspaceService, memberService);
+      new WorkspaceController(workspaceCreationFacade);
 
   private final SecurityUser mockSecurityUser = new SecurityUser(1L, "test@example.com", "USER");
 
@@ -69,10 +65,8 @@ public class WorkspaceApiDocs extends RestDocsTest {
   @Test
   void 워크스페이스_생성_API_문서() throws Exception {
     Workspace workspace = new Workspace(1L, "ws-uuid-1234", "코피니스", "010-1234-5678", "10~50명");
-    when(workspaceService.createWorkspace(anyString(), anyString(), anyString()))
+    when(workspaceCreationFacade.create(anyLong(), anyString(), anyString(), anyString()))
         .thenReturn(workspace);
-    when(memberService.registerMember(anyLong(), any(MemberType.class)))
-        .thenReturn(new Member(1L, "ws-uuid-1234", 1L, MemberType.HR, null));
 
     CreateWorkspaceRequest request = new CreateWorkspaceRequest("코피니스", "010-1234-5678", "10~50명");
 

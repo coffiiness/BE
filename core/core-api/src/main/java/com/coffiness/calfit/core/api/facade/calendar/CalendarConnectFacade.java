@@ -1,6 +1,7 @@
 package com.coffiness.calfit.core.api.facade.calendar;
 
 import com.coffiness.calfit.domain.CalendarConnectService;
+import com.coffiness.calfit.domain.CalendarConnectionLifecycleService;
 import com.coffiness.calfit.domain.ExternalCalendar;
 import com.coffiness.calfit.domain.ExternalCalendarReader;
 import com.coffiness.calfit.domain.GoogleChannelTokenService;
@@ -10,10 +11,14 @@ import com.coffiness.calfit.domain.workspace.WorkspaceReader;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberReader;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.member.ActiveMembershipPolicy;
+import com.coffiness.calfit.support.error.CoreException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /*
  * 구글 캘린더 연동 요청의 워크스페이스 멤버 검증과 도메인 서비스 호출을 담당
@@ -28,9 +33,13 @@ public class CalendarConnectFacade {
   private final CalendarConnectService calendarConnectService;
   private final ExternalCalendarReader externalCalendarReader;
   private final GoogleChannelTokenService googleChannelTokenService;
+  private final ActiveMembershipPolicy membershipPolicy;
+  private final CalendarConnectionLifecycleService lifecycle;
+  private final PlatformTransactionManager transactionManager;
 
   @Transactional
   public String connectGoogleCalendar(long userId, String authCode, String redirectUri) {
+    membershipPolicy.lockUser(userId);
     Member member = validateAndGetMember(userId);
     String workspaceName = resolveWorkspaceName(member.workspaceId());
 
@@ -40,6 +49,7 @@ public class CalendarConnectFacade {
 
   @Transactional
   public void syncGoogleCalendar(long userId) {
+    membershipPolicy.lockUser(userId);
     Member member = validateAndGetMember(userId);
 
     calendarConnectService.ensureWatchChannel(userId, member.workspaceId());
@@ -47,7 +57,6 @@ public class CalendarConnectFacade {
   }
 
   // 구글 웹훅 헤더를 검증하고 해당 테넌트와 멤버 기준으로 즉시 동기화를 수행
-  @Transactional
   public void handleGoogleCalendarNotification(
       String channelId, String resourceId, String channelToken, String resourceState) {
     if (!hasText(channelId) || !hasText(resourceId) || !hasText(channelToken)) {
@@ -71,7 +80,8 @@ public class CalendarConnectFacade {
 
       ExternalCalendar externalCalendar =
           externalCalendarReader.read(tokenPayload.externalCalendarId());
-      if (!isChannelMatched(externalCalendar, channelId, resourceId)) {
+      if (!externalCalendar.isSyncEnabled()
+          || !isChannelMatched(externalCalendar, channelId, resourceId)) {
         log.warn(
             "채널 정보가 일치하지 않습니다. tenantId={}, externalCalendarId={}, channelId={}, resourceId={}",
             tokenPayload.tenantId(),
@@ -81,18 +91,19 @@ public class CalendarConnectFacade {
         return;
       }
 
-      Member member = memberReader.getMember(tokenPayload.tenantId(), externalCalendar.userId());
-      if (member == null) {
-        log.warn(
-            "웹훅 대상 멤버를 찾을 수 없습니다. tenantId={}, userId={}",
-            tokenPayload.tenantId(),
-            externalCalendar.userId());
-        return;
-      }
-
-      calendarConnectService.syncGoogleCalendarByExternalCalendarId(
-          externalCalendar.id(), member.userId());
-    } catch (IllegalArgumentException e) {
+      new TransactionTemplate(transactionManager)
+          .executeWithoutResult(
+              status -> {
+                membershipPolicy.lockUser(externalCalendar.userId());
+                ExternalCalendar current =
+                    externalCalendarReader.readForUpdate(externalCalendar.id());
+                if (!current.isSyncEnabled() || !isChannelMatched(current, channelId, resourceId))
+                  return;
+                Member member = validateAndGetMember(current.userId());
+                calendarConnectService.syncGoogleCalendarByExternalCalendarId(
+                    current.id(), member.userId());
+              });
+    } catch (IllegalArgumentException | CoreException e) {
       log.warn(
           "웹훅 동기화를 건너뜁니다. tenantId={}, externalCalendarId={}",
           tokenPayload.tenantId(),
@@ -114,6 +125,7 @@ public class CalendarConnectFacade {
   }
 
   private Member validateAndGetMember(long userId) {
+    membershipPolicy.requireCurrentTenant(userId);
     String currentWorkspaceId = TenantContext.getTenantId();
     Member member = memberReader.getMember(currentWorkspaceId, userId);
 
@@ -122,6 +134,19 @@ public class CalendarConnectFacade {
     }
 
     return member;
+  }
+
+  @Transactional(readOnly = true)
+  public boolean isConnected(long userId) {
+    validateAndGetMember(userId);
+    return externalCalendarReader.readSyncEnabledByUserId(userId) != null;
+  }
+
+  @Transactional
+  public void disconnectGoogleCalendar(long userId) {
+    membershipPolicy.lockUser(userId);
+    validateAndGetMember(userId);
+    lifecycle.disconnectUser(userId);
   }
 
   // 수신된 채널 정보가 저장된 watch 채널과 일치하는지 검증

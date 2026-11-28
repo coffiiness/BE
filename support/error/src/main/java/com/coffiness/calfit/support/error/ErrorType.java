@@ -9,6 +9,7 @@ public enum ErrorType {
   UNAUTHORIZED(HttpStatus.UNAUTHORIZED, ErrorCode.E401, "Unauthorized.", LogLevel.INFO),
   FORBIDDEN(HttpStatus.FORBIDDEN, ErrorCode.E403, "Forbidden.", LogLevel.INFO),
   NOT_FOUND(HttpStatus.NOT_FOUND, ErrorCode.E404, "Resource not found.", LogLevel.INFO),
+  CONFLICT(HttpStatus.CONFLICT, ErrorCode.E409, "Conflicting request.", LogLevel.INFO),
   DEFAULT_ERROR(
       HttpStatus.INTERNAL_SERVER_ERROR,
       ErrorCode.E500,

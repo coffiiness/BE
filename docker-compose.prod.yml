@@ -97,6 +97,7 @@ services:
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALENDAR_ALLOWED_REDIRECT_URIS: ${GOOGLE_CALENDAR_ALLOWED_REDIRECT_URIS:-https://calfit.co.kr/auth/callback,https://www.calfit.co.kr/auth/callback}
       CALENDAR_GOOGLE_WATCH_CALLBACK_URL: ${PUBLIC_API_BASE_URL:?Set the public HTTPS API origin}/api/v1/calendars/google/notifications
       CALENDAR_GOOGLE_WATCH_TOKEN_SECRET: ${CALENDAR_GOOGLE_WATCH_TOKEN_SECRET:?Set a random watch token secret}
       APP_EMAIL_ENABLED: ${APP_EMAIL_ENABLED:-false}

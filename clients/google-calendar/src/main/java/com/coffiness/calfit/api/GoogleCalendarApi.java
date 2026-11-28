@@ -21,6 +21,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(value = "google-calendar-api", url = "https://www.googleapis.com/calendar/v3")
 interface GoogleCalendarApi {
+  @PostMapping(value = "/channels/stop", consumes = MediaType.APPLICATION_JSON_VALUE)
+  void stopChannel(
+      @RequestHeader("Authorization") String bearerToken,
+      @RequestBody com.coffiness.calfit.dto.GoogleCalendarStopRequestDto request);
 
   // 구글 캘린더에 일정 생성
   @PostMapping(
