@@ -4,9 +4,11 @@ import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.support.error.CoreException;
 import com.coffiness.calfit.support.error.ErrorType;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -79,6 +81,23 @@ public class ApiControllerAdvice {
     log.error("Exception : {}", e.getMessage(), e);
     return buildErrorResponse(
         request, ErrorType.DEFAULT_ERROR, ApiResponse.error(ErrorType.DEFAULT_ERROR));
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<?> handleIntegrityViolation(
+      DataIntegrityViolationException e, HttpServletRequest request) {
+    String detail = e.getMostSpecificCause().getMessage();
+    if (detail != null
+        && detail.toLowerCase(Locale.ROOT).contains("uq_workspace_members_active_user")) {
+      return buildErrorResponse(
+          request,
+          ErrorType.CONFLICT,
+          ApiResponse.error(
+              ErrorType.CONFLICT,
+              "ACTIVE_WORKSPACE_EXISTS",
+              "이미 워크스페이스에 소속되어 있습니다. 기존 소속 해제 후 가입해 주세요."));
+    }
+    return handleException(e, request);
   }
 
   private ResponseEntity<?> buildErrorResponse(

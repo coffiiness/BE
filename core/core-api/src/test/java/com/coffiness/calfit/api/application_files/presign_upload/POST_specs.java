@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.ApplicationFileFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.request.PresignUploadRequest;
 import com.coffiness.calfit.api.v1.response.PresignUploadResponse;
 import com.coffiness.calfit.domain.applicationFile.ApplicationFileService;
@@ -24,8 +25,11 @@ public class POST_specs {
 
   @Test
   void 올바른_토큰으로_presign_upload를_요청하면_성공한다(
-      @Autowired ApplicationFileFixture fixture, @Autowired UserFixture userFixture) {
+      @Autowired ApplicationFileFixture fixture,
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture) {
     String token = userFixture.createUserAndGetToken();
+    workspaceFixture.createWorkspace(token);
     PresignUploadResponse stub =
         new PresignUploadResponse(1L, "https://example.com/upload", "uploads/1/1/resume.pdf", 10);
     when(applicationFileService.presignUpload(any(PresignUploadRequest.class), any()))

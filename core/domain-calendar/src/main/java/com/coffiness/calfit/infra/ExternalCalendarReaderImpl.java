@@ -76,4 +76,11 @@ public class ExternalCalendarReaderImpl implements ExternalCalendarReader {
         entity.getChannelResourceId(),
         entity.getChannelExpiresAt());
   }
+
+  @Override
+  public List<ExternalCalendar> readAllByUserId(Long userId) {
+    return externalCalendarRepository.findAllByUserIdAndStatus(userId, EntityStatus.ACTIVE).stream()
+        .map(this::toDomain)
+        .toList();
+  }
 }

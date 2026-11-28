@@ -5,9 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import java.time.LocalDateTime;
@@ -57,16 +55,10 @@ public class DELETE_specs {
     long meetingRoomId =
         createMeetingRoomAndGetId(
             meetingRoomFixture, context.hrToken(), context.workspaceId(), "회의실 A", 1, 5);
-    Long memberId =
-        memberFixture.getMyMember(context.hrToken(), context.workspaceId()).getData().id();
-    memberFixture.updateMember(
-        memberId,
-        new UpdateMemberRequest(MemberType.INTERVIEWER),
-        context.hrToken(),
-        context.workspaceId());
+    String interviewerToken = memberFixture.addSecondMemberWithToken(context).token();
 
     ApiResponse<Void> response =
-        meetingRoomFixture.delete(context.hrToken(), context.workspaceId(), meetingRoomId);
+        meetingRoomFixture.delete(interviewerToken, context.workspaceId(), meetingRoomId);
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }

@@ -5,10 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.AnnouncementBoardFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardListResponse;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardResponse;
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import org.junit.jupiter.api.DisplayName;
@@ -150,11 +148,8 @@ class POST_specs {
       @Autowired AnnouncementBoardFixture announcementBoardFixture) {
     // Arrange
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
-    String token = context.hrToken();
+    String token = memberFixture.addSecondMemberWithToken(context).token();
     String tenantId = context.workspaceId();
-    Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
-    memberFixture.updateMember(
-        memberId, new UpdateMemberRequest(MemberType.INTERVIEWER), token, tenantId);
 
     // Act
     ApiResponse<AnnouncementBoardResponse> response =

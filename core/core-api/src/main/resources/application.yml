@@ -48,6 +48,7 @@ spring:
 
 calendar:
   google-sync:
+    allowed-redirect-uris: ${GOOGLE_CALENDAR_ALLOWED_REDIRECT_URIS:http://localhost:5173/auth/callback,http://localhost:3000/auth/callback}
     scheduler-fixed-delay-ms: 300000
     scheduler-initial-delay-ms: 120000
     watch-callback-url: ${CALENDAR_GOOGLE_WATCH_CALLBACK_URL:https://api.calfit.co.kr/api/v1/calendars/google/notifications}
@@ -102,6 +103,8 @@ cors:
 
 ---
 spring.config.activate.on-profile: prod
+
+calendar.google-sync.allowed-redirect-uris: ${GOOGLE_CALENDAR_ALLOWED_REDIRECT_URIS:https://calfit.co.kr/auth/callback,https://www.calfit.co.kr/auth/callback}
 
 spring.h2.console.enabled: false
 

@@ -4,6 +4,7 @@ import com.coffiness.calfit.core.enums.EntityStatus;
 import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.domain.workspace.member.Member;
 import com.coffiness.calfit.domain.workspace.member.MemberStore;
+import com.coffiness.calfit.storage.db.core.member.ActiveMembershipPolicy;
 import com.coffiness.calfit.storage.db.core.member.MemberEntity;
 import com.coffiness.calfit.storage.db.core.member.MemberRepository;
 import com.coffiness.calfit.support.error.CoreException;
@@ -15,9 +16,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MemberStoreImpl implements MemberStore {
   private final MemberRepository memberRepository;
+  private final ActiveMembershipPolicy membershipPolicy;
 
   @Override
+  @org.springframework.transaction.annotation.Transactional(
+      propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
   public Member save(Long userId, MemberType memberType) {
+    membershipPolicy.lockAndRequireUnassigned(userId);
+    membershipPolicy.requireRegistrationWorkspace();
     MemberEntity entity = MemberEntity.create(userId, memberType);
     MemberEntity saved = memberRepository.save(entity);
 

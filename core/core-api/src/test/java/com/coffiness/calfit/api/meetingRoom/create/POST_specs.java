@@ -5,9 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.MeetingRoomFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.MeetingRoomResponse;
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import java.util.List;
@@ -143,16 +141,10 @@ class POST_specs {
   void 인터뷰어는_회의실을_생성할_수_없다(
       @Autowired MemberFixture memberFixture, @Autowired MeetingRoomFixture meetingRoomFixture) {
     MemberFixture.WorkspaceContext context = memberFixture.setupWorkspace();
-    Long memberId =
-        memberFixture.getMyMember(context.hrToken(), context.workspaceId()).getData().id();
-    memberFixture.updateMember(
-        memberId,
-        new UpdateMemberRequest(MemberType.INTERVIEWER),
-        context.hrToken(),
-        context.workspaceId());
+    String interviewerToken = memberFixture.addSecondMemberWithToken(context).token();
 
     ApiResponse<MeetingRoomResponse> response =
-        meetingRoomFixture.create(context.hrToken(), context.workspaceId(), "권한 없음 회의실", 1, 10);
+        meetingRoomFixture.create(interviewerToken, context.workspaceId(), "권한 없음 회의실", 1, 10);
 
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
   }

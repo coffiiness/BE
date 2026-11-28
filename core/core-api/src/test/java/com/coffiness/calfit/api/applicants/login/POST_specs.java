@@ -123,7 +123,8 @@ public class POST_specs {
       @Autowired ApplicantFixture applicantFixture) {
     String hrToken = userFixture.createUserAndGetToken();
     ApiResponse<WorkspaceResponse> firstWorkspace = workspaceFixture.createWorkspace(hrToken);
-    ApiResponse<WorkspaceResponse> secondWorkspace = workspaceFixture.createWorkspace(hrToken);
+    ApiResponse<WorkspaceResponse> secondWorkspace =
+        workspaceFixture.createWorkspace(userFixture.createUserAndGetToken());
 
     String email = "cross-workspace@test.com";
     String password = applicantFixture.randomPassword();

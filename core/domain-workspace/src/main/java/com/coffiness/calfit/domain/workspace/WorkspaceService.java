@@ -17,7 +17,12 @@ public class WorkspaceService {
 
   @Transactional
   public Workspace createWorkspace(String name, String contactPhone, String employeeScale) {
-    String workspaceId = UUID.randomUUID().toString();
+    return createWorkspace(UUID.randomUUID().toString(), name, contactPhone, employeeScale);
+  }
+
+  @Transactional
+  public Workspace createWorkspace(
+      String workspaceId, String name, String contactPhone, String employeeScale) {
     WorkspaceEntity entity = WorkspaceEntity.create(workspaceId, name, contactPhone, employeeScale);
     WorkspaceEntity saved = workspaceRepository.save(entity);
     eventPublisher.publish(WorkspaceCreatedEvent.of(workspaceId));

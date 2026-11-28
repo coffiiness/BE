@@ -6,6 +6,7 @@ import com.coffiness.calfit.model.GoogleCalendarWatchResult;
 import java.time.ZonedDateTime;
 
 public interface GoogleCalendarPort {
+  void stopWatch(String accessToken, String channelId, String resourceId);
 
   // 워크스페이스 전용 캘린더를 조회하고 없으면 생성한 뒤 캘린더 ID를 반환
   String resolveWorkspaceCalendarId(String accessToken, String workspaceId, String workspaceName);

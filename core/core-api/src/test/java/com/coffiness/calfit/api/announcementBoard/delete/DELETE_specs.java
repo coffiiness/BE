@@ -5,10 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.AnnouncementBoardFixture;
 import com.coffiness.calfit.api.fixture.MemberFixture;
-import com.coffiness.calfit.api.v1.request.UpdateMemberRequest;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardListResponse;
 import com.coffiness.calfit.api.v1.response.AnnouncementBoardResponse;
-import com.coffiness.calfit.core.enums.MemberType;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
 import org.junit.jupiter.api.DisplayName;
@@ -99,12 +97,11 @@ class DELETE_specs {
     String tenantId = context.workspaceId();
     long boardId =
         createBoardAndGetId(announcementBoardFixture, token, tenantId, "공지 A", "내용 A", true);
-    Long memberId = memberFixture.getMyMember(token, tenantId).getData().id();
-    memberFixture.updateMember(
-        memberId, new UpdateMemberRequest(MemberType.INTERVIEWER), token, tenantId);
+    String interviewerToken = memberFixture.addSecondMemberWithToken(context).token();
 
     // Act
-    ApiResponse<Void> response = announcementBoardFixture.delete(token, tenantId, boardId);
+    ApiResponse<Void> response =
+        announcementBoardFixture.delete(interviewerToken, tenantId, boardId);
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.ERROR);

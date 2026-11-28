@@ -104,7 +104,7 @@ public class GET_specs {
   }
 
   @Test
-  void 멤버가_없으면_빈_리스트를_반환한다(@Autowired MemberFixture fixture) {
+  void 무소속_사용자는_임의_테넌트의_멤버_목록을_조회할_수_없다(@Autowired MemberFixture fixture) {
     // Arrange: 존재하지 않는 워크스페이스 ID를 tenant로 사용
     String token = fixture.userFixture().createUserAndGetToken();
     String nonExistentTenantId = UUID.randomUUID().toString();
@@ -113,7 +113,8 @@ public class GET_specs {
     ApiResponse<MemberResponse[]> response = fixture.getMembers(token, nonExistentTenantId);
 
     // Assert
-    assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);
-    assertThat(response.getData()).isEmpty();
+    assertThat(response.getResult()).isEqualTo(ResultType.ERROR);
+    assertThat(response.getError().getCode()).isEqualTo("E403");
+    assertThat(response.getError().getCustomCode()).isEqualTo("ACTIVE_MEMBERSHIP_REQUIRED");
   }
 }
