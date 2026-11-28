@@ -8,7 +8,6 @@ import com.coffiness.calfit.api.fixture.MemberFixture.WorkspaceContext;
 import com.coffiness.calfit.api.v1.response.GroupResponse;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,12 +76,12 @@ public class GET_specs {
 
   @Test
   void 그룹이_없으면_빈_리스트를_반환한다(@Autowired MemberFixture fixture) {
-    // Arrange: 존재하지 않는 워크스페이스를 테넌트로 사용
-    String token = fixture.userFixture().createUserAndGetToken();
-    String nonExistentTenantId = UUID.randomUUID().toString();
+    // An empty workspace still belongs to the requesting member.
+    var context = fixture.setupWorkspace();
 
     // Act
-    ApiResponse<GroupResponse[]> response = fixture.getGroups(token, nonExistentTenantId);
+    ApiResponse<GroupResponse[]> response =
+        fixture.getGroups(context.hrToken(), context.workspaceId());
 
     // Assert
     assertThat(response.getResult()).isEqualTo(ResultType.SUCCESS);

@@ -7,10 +7,24 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "workspace_members")
+@Table(
+    name = "workspace_members",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "uq_workspace_members_active_user",
+            columnNames = "active_user_id"))
 public class MemberEntity extends TenantBaseEntity {
+
+  @Column(
+      name = "active_user_id",
+      insertable = false,
+      updatable = false,
+      columnDefinition =
+          "bigint GENERATED ALWAYS AS (CASE WHEN status = 'ACTIVE' THEN user_id ELSE NULL END)")
+  private Long activeUserId;
 
   @Column(name = "user_id", nullable = false)
   private Long userId;
@@ -35,6 +49,10 @@ public class MemberEntity extends TenantBaseEntity {
 
   public Long getUserId() {
     return userId;
+  }
+
+  public Long getActiveUserId() {
+    return activeUserId;
   }
 
   public MemberType getMemberType() {

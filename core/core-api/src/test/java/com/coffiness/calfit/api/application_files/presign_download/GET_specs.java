@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.ApplicationFileFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.response.PresignDownloadResponse;
 import com.coffiness.calfit.domain.applicationFile.ApplicationFileService;
 import org.junit.jupiter.api.DisplayName;
@@ -24,8 +25,11 @@ public class GET_specs {
 
   @Test
   void 올바른_토큰으로_presign_download를_요청하면_성공한다(
-      @Autowired ApplicationFileFixture fixture, @Autowired UserFixture userFixture) {
+      @Autowired ApplicationFileFixture fixture,
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture) {
     String token = userFixture.createUserAndGetToken();
+    workspaceFixture.createWorkspace(token);
     PresignDownloadResponse stub = new PresignDownloadResponse("https://example.com/download", 10);
     when(applicationFileService.presignDownload(eq(1L), any())).thenReturn(stub);
 

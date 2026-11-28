@@ -201,8 +201,7 @@ class POST_specs {
             recruitmentFixture,
             groupRepository,
             applicationTemplateRepository);
-    String hrToken = userFixture.createUserAndGetToken();
-    workspaceFixture.createWorkspace(hrToken);
+    String hrToken = recruitment.hrToken();
     ApplicantContext applicant =
         signUpAndLogin(applicantFixture, recruitment.tenantId(), "file-hr@test.com");
     Long applicationId =
@@ -266,7 +265,8 @@ class POST_specs {
 
     RecruitmentListResponse recruitment =
         recruitmentFixture.getRecruitmentList(hrToken, tenantId).getData().get(0);
-    return new RecruitmentContext(tenantId, recruitment.id(), recruitment.stages().get(0).id());
+    return new RecruitmentContext(
+        tenantId, recruitment.id(), recruitment.stages().get(0).id(), hrToken);
   }
 
   private ApplicantContext signUpAndLogin(
@@ -354,7 +354,8 @@ class POST_specs {
     }
   }
 
-  private record RecruitmentContext(String tenantId, Long recruitmentId, Long firstStageId) {}
+  private record RecruitmentContext(
+      String tenantId, Long recruitmentId, Long firstStageId, String hrToken) {}
 
   private record ApplicantContext(Long id, String email, String name, String token) {}
 }

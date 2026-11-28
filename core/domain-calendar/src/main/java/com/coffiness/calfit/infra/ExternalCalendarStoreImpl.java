@@ -116,4 +116,20 @@ public class ExternalCalendarStoreImpl implements ExternalCalendarStore {
         entity.getChannelResourceId(),
         entity.getChannelExpiresAt());
   }
+
+  @Override
+  public void disableSync(Long externalCalendarId) {
+    externalCalendarRepository
+        .findByIdAndStatusForUpdate(externalCalendarId, EntityStatus.ACTIVE)
+        .orElseThrow(() -> new IllegalArgumentException("구글 캘린더 연동 정보를 찾을 수 없습니다."))
+        .disableSync();
+  }
+
+  @Override
+  public void clearWatchChannel(Long externalCalendarId) {
+    externalCalendarRepository
+        .findByIdAndStatusForUpdate(externalCalendarId, EntityStatus.ACTIVE)
+        .orElseThrow(() -> new IllegalArgumentException("구글 캘린더 연동 정보를 찾을 수 없습니다."))
+        .clearWatchChannel();
+  }
 }

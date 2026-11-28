@@ -82,12 +82,14 @@ public class GoogleCalendarTokenService {
   // 현재 사용 가능한 access token 을 반환하고, 만료 임박 시 refresh 후 갱신
   public String getValidAccessToken(Long externalCalendarId) {
     ExternalCalendar snapshot = externalCalendarReader.read(externalCalendarId);
+    if (!snapshot.isSyncEnabled()) throw new IllegalStateException("GOOGLE_REAUTH_REQUIRED");
 
     if (!isExpiringSoon(snapshot.tokenExpiresAt())) {
       return snapshot.accessToken();
     }
 
     ExternalCalendar locked = externalCalendarReader.readForUpdate(externalCalendarId);
+    if (!locked.isSyncEnabled()) throw new IllegalStateException("GOOGLE_REAUTH_REQUIRED");
     if (!isExpiringSoon(locked.tokenExpiresAt())) {
       return locked.accessToken();
     }

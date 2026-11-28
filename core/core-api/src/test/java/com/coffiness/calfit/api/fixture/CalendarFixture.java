@@ -1,7 +1,9 @@
 package com.coffiness.calfit.api.fixture;
 
+import com.coffiness.calfit.core.api.controller.v1.calendar.CalendarConnectController;
 import com.coffiness.calfit.core.support.response.ApiResponse;
 import com.coffiness.calfit.core.support.response.ResultType;
+import com.coffiness.calfit.domain.GoogleCalendarOAuthStateService;
 import com.coffiness.calfit.v1.request.CalendarConnectRequest;
 import com.coffiness.calfit.v1.request.ScheduleCreateRequest;
 import com.coffiness.calfit.v1.request.ScheduleSyncRequest;
@@ -24,9 +26,23 @@ public record CalendarFixture(BaseFixture base) {
     return new CalendarFixture(BaseFixture.create(environment, objectMapper));
   }
 
+  @SuppressWarnings("unchecked")
   public ApiResponse<String> connectGoogleCalendar(String token, String tenantId, String authCode) {
+    ApiResponse<GoogleCalendarOAuthStateService.Authorization> authorization =
+        exchangeWithTenant(
+            "/api/v1/calendars/google/authorization",
+            HttpMethod.POST,
+            new CalendarConnectController.AuthorizationRequest(
+                "http://localhost:5173/auth/callback"),
+            token,
+            tenantId,
+            GoogleCalendarOAuthStateService.Authorization.class);
+    if (authorization.getResult() != ResultType.SUCCESS) {
+      return (ApiResponse<String>) (ApiResponse<?>) authorization;
+    }
     CalendarConnectRequest request =
-        new CalendarConnectRequest(authCode, "http://localhost:5173/auth/callback");
+        new CalendarConnectRequest(
+            authCode, "http://localhost:5173/auth/callback", authorization.getData().state());
 
     return exchangeWithTenant(
         "/api/v1/calendars/google/connect",

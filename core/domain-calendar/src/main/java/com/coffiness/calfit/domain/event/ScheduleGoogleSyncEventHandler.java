@@ -5,6 +5,7 @@ import com.coffiness.calfit.domain.*;
 import com.coffiness.calfit.model.GoogleCalendarClientResult;
 import com.coffiness.calfit.port.GoogleCalendarPort;
 import com.coffiness.calfit.storage.db.core.config.TenantContext;
+import com.coffiness.calfit.storage.db.core.member.ActiveMembershipPolicy;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /*
  * 일정 변경 이벤트를 받아 구글 캘린더 반영을 수행하는 핸들러
@@ -31,6 +34,8 @@ public class ScheduleGoogleSyncEventHandler {
   private final ScheduleReader scheduleReader;
   private final ScheduleStore scheduleStore;
   private final ZoneId appZoneId;
+  private final ActiveMembershipPolicy membershipPolicy;
+  private final PlatformTransactionManager transactionManager;
 
   private final ConcurrentMap<Long, ReentrantLock> scheduleLocks = new ConcurrentHashMap<>();
 
@@ -40,7 +45,13 @@ public class ScheduleGoogleSyncEventHandler {
   public void handle(ScheduleGoogleSyncRequestedEvent event) {
     try {
       TenantContext.setTenantId(event.tenantId());
-      syncSchedule(event);
+      new TransactionTemplate(transactionManager)
+          .executeWithoutResult(
+              status -> {
+                membershipPolicy.lockUser(event.userId());
+                membershipPolicy.requireCurrentTenant(event.userId());
+                syncSchedule(event);
+              });
     } catch (RuntimeException e) {
       log.error(
           "구글 일정 동기화 실패 - tenantId: {}, scheduleId: {}, action: {}",

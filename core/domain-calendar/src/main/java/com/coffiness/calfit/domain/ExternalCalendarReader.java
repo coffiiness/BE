@@ -13,4 +13,6 @@ public interface ExternalCalendarReader {
   ExternalCalendar readSyncEnabledByUserId(Long userId);
 
   List<ExternalCalendar> readAllSyncEnabled();
+
+  List<ExternalCalendar> readAllByUserId(Long userId);
 }

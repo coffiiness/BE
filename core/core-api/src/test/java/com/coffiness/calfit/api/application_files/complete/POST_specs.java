@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.coffiness.calfit.api.CalfitApiTest;
 import com.coffiness.calfit.api.fixture.ApplicationFileFixture;
 import com.coffiness.calfit.api.fixture.UserFixture;
+import com.coffiness.calfit.api.fixture.WorkspaceFixture;
 import com.coffiness.calfit.api.v1.request.CompleteUploadRequest;
 import com.coffiness.calfit.api.v1.response.CompleteUploadResponse;
 import com.coffiness.calfit.domain.applicationFile.ApplicationFileService;
@@ -24,8 +25,11 @@ public class POST_specs {
 
   @Test
   void 올바른_토큰으로_complete를_요청하면_성공한다(
-      @Autowired ApplicationFileFixture fixture, @Autowired UserFixture userFixture) {
+      @Autowired ApplicationFileFixture fixture,
+      @Autowired UserFixture userFixture,
+      @Autowired WorkspaceFixture workspaceFixture) {
     String token = userFixture.createUserAndGetToken();
+    workspaceFixture.createWorkspace(token);
     CompleteUploadResponse stub = new CompleteUploadResponse(1L, "ACTIVE", 1024L);
     when(applicationFileService.completeUpload(any(CompleteUploadRequest.class), any()))
         .thenReturn(stub);
