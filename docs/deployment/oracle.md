@@ -1197,3 +1197,79 @@ R2의 키 권한/CORS/객체 저장 성공을 증명하지 않는다. `/health`�
 [R2 S3 checksum 지원 표](https://developers.cloudflare.com/r2/api/s3/api/),
 [AWS Java SDK checksum 기본 동작](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/s3-checksums.html),
 [SDK 2.42.3 Presigner 구현](https://github.com/aws/aws-sdk-java-v2/blob/2.42.3/services/s3/src/main/java/software/amazon/awssdk/services/s3/internal/signing/DefaultS3Presigner.java).
+
+## Resend SMTP STARTTLS 신뢰 설정
+
+현재 런타임 의존성은 `spring-boot-starter-mail:3.5.3` 및
+`org.eclipse.angus:jakarta.mail:2.0.3`이다. 기존 YAML의
+`trust: ${SPRING_MAIL_SMTP_SSL_TRUST:}`는 환경변수가 없거나 비어 있어도 JavaMail에
+`mail.smtp.ssl.trust=""`를 전달한다. Angus 2.0.3은 이 속성이 null이 아니면
+MailSSLSocketFactory의 명시적 trusted-hosts 목록을 사용한다. 빈 값은 SMTP 호스트를
+포함하지 않으므로 `Server is not trusted: smtp.resend.com`을 발생시킬 수 있다.
+이는 호스트의 OpenSSL 인증서 검증 성공과 별개의 애플리케이션 설정 문제다.
+
+수정 후 해당 trust 속성은 아예 전달하지 않고 `mail.smtp.ssl.checkserveridentity=true`를
+명시한다. 사용자 정의 socket factory나 trust manager를 추가하지 않으며 JVM 기본 TrustStore의
+인증서 체인 검증 및 SMTP hostname 검증을 사용한다. 특정 호스트를 강제로 신뢰하거나 모든
+인증서를 허용하는 방법은 사용하지 않는다. 의존성 버전, 이메일 비즈니스 로직과 템플릿도 유지한다.
+
+Resend 운영 값은 서버에서만 관리하며 다음 기존 설정을 유지한다. 실제 API Key는 예시에 넣지 않는다.
+
+```dotenv
+SPRING_MAIL_HOST=smtp.resend.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=resend
+SPRING_MAIL_PASSWORD=<SERVER_ONLY_RESEND_SMTP_KEY>
+SPRING_MAIL_SMTP_AUTH=true
+SPRING_MAIL_SMTP_STARTTLS_ENABLE=true
+SPRING_MAIL_SMTP_STARTTLS_REQUIRED=true
+SPRING_MAIL_SMTP_SSL_ENABLE=false
+SPRING_MAIL_SMTP_SSL_PROTOCOLS=TLSv1.2
+SPRING_MAIL_SMTP_CONNECTION_TIMEOUT=5000
+SPRING_MAIL_SMTP_TIMEOUT=5000
+SPRING_MAIL_SMTP_WRITE_TIMEOUT=5000
+```
+
+기존 운영 `.env.prod`는 이번 작업에서 읽거나 수정하지 않는다. 후속 적용 시 운영자가 기존
+`SPRING_MAIL_SMTP_SSL_TRUST` 항목을 제거한다. 새 Compose는 해당 변수를 전달하지 않으며,
+회귀 테스트는 오래된 변수가 남아 있어도 JavaMail trust 속성으로 연결되지 않음을 확인한다.
+직접 작성한 `spring.mail.properties` override, 별도 socket factory, JVM trustStore override가
+있다면 운영자가 값/인증정보를 로그에 노출하지 않고 검토해야 한다.
+
+후속 배포에서는 검증된 새 이미지와 변경된 Compose를 함께 반영하고 백엔드만 교체한다.
+MySQL, external volume, `.env.image`, 자동 배포 구조는 변경하지 않는다. 다음을 별도 확인한다.
+
+1. 컨테이너에 새 설정이 반영되고 trust 속성이 없으며 checkserveridentity가 true인지 확인한다.
+   확인 과정에서 SMTP 비밀번호, API Key, 전체 JavaMail properties를 출력하지 않는다.
+2. 컨테이너 JVM의 기본 CA와 시간, SMTP DNS/아웃바운드 587 경로를 확인한다. 호스트 OpenSSL의
+   성공만으로 컨테이너 JVM TrustStore의 성공을 보장하지는 않는다.
+3. STARTTLS 필수, TLSv1.2, SMTP 인증 설정을 유지한 채 승인된 테스트 수신자에게만 후속 수동
+   발송을 수행하고 Resend 발송 이력 및 애플리케이션 오류를 확인한다. 이 로컬 작업에서는
+   실제 발송/SMTP 접속/Oracle 배포를 수행하지 않는다.
+
+공식 근거:
+[Angus 2.0.3 SocketFetcher](https://github.com/eclipse-ee4j/angus-mail/blob/2.0.3/core/src/main/java/org/eclipse/angus/mail/util/SocketFetcher.java),
+[Angus 2.0.3 MailSSLSocketFactory](https://github.com/eclipse-ee4j/angus-mail/blob/2.0.3/core/src/main/java/org/eclipse/angus/mail/util/MailSSLSocketFactory.java).
+
+### SMTP 수정 로컬 검증 결과 (2026-11-28)
+
+Windows / Temurin `17.0.21.1+2` / Gradle `8.14.3`에서 실제 키 없이 검증했다.
+JavaMail Session의 trust 속성 부재, checkserveridentity=true, STARTTLS 필수, TLSv1.2 및
+timeout 유지/override를 새 테스트 4개로 확인했다. 기존 이메일 설정 테스트 3개도 통과했다.
+Angus 2.0.3 JAR의 빈 trusted-hosts 값이 Resend 호스트를 거절함을 연결하지 않은 소켓으로
+재현했다. 실제 SMTP 서버 연결, 이메일 발송, Oracle 적용은 수행하지 않았다.
+
+| 기존 Quality Gate / 설정 검사 | 결과 |
+| --- | --- |
+| `check qualityCheck` | BUILD SUCCESSFUL (13분 6초) |
+| 전체 JUnit | 609개 중 597개 성공, 기존 비활성화 12개, 실패/오류 0개 |
+| JaCoCo 전체 모듈 | Line 75.51%, Branch 47.91% (기준 75% / 47% 유지) |
+| 전체 SpotBugs | 기존 255개, 신규/High/악화 0개; Gate 통과 |
+| Quality Gate 자체 회귀 검사 | 기존 14개 통과 |
+| 전체 Spotless / git diff --check | 통과 |
+| 운영/로컬 Compose config | trust 변수 제거 외 해석된 설정 동일 |
+
+운영 파일 import를 피한 격리 테스트 작업 경로, local H2, 합성 AWS/JWT 환경변수와
+APP_EMAIL_ENABLED=false를 사용했다. Baseline/Quality Gate/CI/CD/이메일 서비스/템플릿은
+변경하지 않았다. 후속 CI에서는 기존 명령을 그대로 사용하며, 이 작업에서 이미지 빌드·발행이나
+Git Commit/Push는 수행하지 않았다.
